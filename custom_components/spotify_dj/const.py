@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "spotify_dj"
 NAME = "SpotifyDJ"
-VERSION = "1.4.0"
+VERSION = "1.4.2"
 
 API_BASE = "/api/spotify_dj"
 API_PAIR = f"{API_BASE}/pair"
@@ -16,6 +16,7 @@ CONF_DEVICE_ID = "device_id"
 CONF_DEVICE_NAME = "device_name"
 CONF_DEVICE_TOKEN = "device_token"
 CONF_LOCAL_URL = "local_url"
+CONF_HA_EXTERNAL_URL = "ha_external_url"
 CONF_PAIR_CODE = "pair_code"
 
 CONF_SPOTIFY_CLIENT_ID = "spotify_client_id"
@@ -105,5 +106,6 @@ DEFAULT_TTS_VOICE_LEGACY = DEFAULT_TTS_VOICE
 
 PLATFORMS = ["sensor", "button", "update"]
 
-# Spotify OAuth/PKCE
-SPOTIFY_MY_HOME_ASSISTANT_REDIRECT_URI = "https://my.home-assistant.io/redirect/oauth"
+# Spotify OAuth/PKCE direct callback support
+SPOTIFY_CALLBACK_PATH = API_SPOTIFY_CALLBACK
+

@@ -217,6 +217,37 @@ class SpotifyDJSpotifyCallbackView(HomeAssistantView):
         if not state or not code:
             return self.Response(text="SpotifyDJ Spotify OAuth failed: missing state/code", status=400)
 
+        # Config-flow OAuth path: during initial setup there is no config entry yet.
+        # config_flow.py stores pending context under config_flow_oauth_pending.
+        config_pending = hass.data.setdefault(DOMAIN, {}).setdefault("config_flow_oauth_pending", {})
+        ctx = config_pending.pop(state, None)
+        if ctx:
+            try:
+                token = await exchange_code_for_refresh_token(
+                    hass,
+                    client_id=ctx["client_id"],
+                    code=code,
+                    code_verifier=ctx["code_verifier"],
+                    redirect_uri=ctx["redirect_uri"],
+                )
+                results = hass.data.setdefault(DOMAIN, {}).setdefault("config_flow_oauth_results", {})
+                results[state] = {
+                    CONF_SPOTIFY_CLIENT_ID: ctx["client_id"],
+                    CONF_SPOTIFY_REFRESH_TOKEN: token["refresh_token"],
+                    CONF_SPOTIFY_MARKET: ctx.get("market", DEFAULT_SPOTIFY_MARKET),
+                    CONF_SPOTIFY_SCOPES: ctx.get("scopes", DEFAULT_SPOTIFY_SCOPES),
+                }
+                return self.Response(
+                    text=(
+                        "SpotifyDJ Spotify OAuth is gelukt. Kopieer deze state en plak hem in de SpotifyDJ setup: "
+                        f"{state}"
+                    ),
+                    content_type="text/plain",
+                )
+            except Exception as exc:  # noqa: BLE001
+                _LOGGER.exception("SpotifyDJ config-flow OAuth callback failed")
+                return self.Response(text=f"SpotifyDJ Spotify OAuth failed: {exc}", status=500)
+
         pending = hass.data.setdefault(DOMAIN, {}).setdefault("spotify_oauth_pending", {})
         ctx = pending.pop(state, None)
         if not ctx:

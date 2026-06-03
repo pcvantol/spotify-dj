@@ -1,11 +1,13 @@
-"""Config flow for SpotifyDJ with Spotify OAuth/PKCE.
+"""Config flow for SpotifyDJ.
 
-The flow is intentionally defensive so it keeps loading on HA even while the
-firmware/device side is under active development.
+This version keeps the working v1.3 flow structure and adds Spotify PKCE OAuth
+using a direct HTTPS Home Assistant callback, such as a Nabu Casa URL:
+https://<id>.ui.nabu.casa/api/spotify_dj/spotify/callback
 """
 from __future__ import annotations
 
 import logging
+import secrets
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -27,6 +29,7 @@ from .const import (
     CONF_FIRMWARE_CHANNEL,
     CONF_FIRMWARE_DEVICE,
     CONF_FIRMWARE_REPO,
+    CONF_HA_EXTERNAL_URL,
     CONF_LIKED_PROXY,
     CONF_LOCAL_URL,
     CONF_MAX_AUDIO_BYTES,
@@ -58,10 +61,10 @@ from .const import (
     DJ_STYLE_NAMES,
     DJ_STYLES,
     DOMAIN,
-    SPOTIFY_MY_HOME_ASSISTANT_REDIRECT_URI,
 )
 from .spotify_oauth import (
     build_authorize_url,
+    build_redirect_uri,
     create_code_verifier,
     exchange_code_for_refresh_token,
 )
@@ -91,17 +94,16 @@ def _int(value: Any, default: int) -> int:
         return default
 
 
-def _extract_oauth_code(value: str) -> str:
-    """Extract Spotify authorization code from a pasted full callback URL or raw code."""
+def _extract_query_value(value: str, key: str) -> str:
     value = (value or "").strip()
     if not value:
         return ""
     if value.startswith("http://") or value.startswith("https://"):
         parsed = urlparse(value)
         qs = parse_qs(parsed.query)
-        if qs.get("code"):
-            return qs["code"][0]
-    return value
+        if qs.get(key):
+            return qs[key][0]
+    return ""
 
 
 def _voice_defaults(data: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -138,7 +140,6 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._pairing: dict[str, Any] = {}
         self._spotify: dict[str, Any] = {}
-        self._voice: dict[str, Any] = {}
         self._oauth: dict[str, str] = {}
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
@@ -150,16 +151,13 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if len(pair_code) != 6 or not pair_code.isdigit():
                 errors[CONF_PAIR_CODE] = "invalid_pair_code"
             else:
-                # Until mDNS discovery/pair pre-registration is fully wired, the pair
-                # code becomes a stable unique placeholder. The ESP will later report
-                # its real device_id through status/pair endpoints.
                 device_id = f"spotifydj-{pair_code}"
                 await self.async_set_unique_id(device_id)
                 self._abort_if_unique_id_configured()
                 self._pairing = {
                     CONF_DEVICE_ID: device_id,
                     CONF_DEVICE_NAME: _clean(user_input.get(CONF_DEVICE_NAME), DEFAULT_DEVICE_NAME),
-                    CONF_DEVICE_TOKEN: __import__("secrets").token_urlsafe(32),
+                    CONF_DEVICE_TOKEN: secrets.token_urlsafe(32),
                     CONF_LOCAL_URL: _clean(user_input.get(CONF_LOCAL_URL), ""),
                 }
                 return await self.async_step_spotify()
@@ -177,124 +175,122 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_spotify(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Collect Spotify Client ID and market, then start OAuth."""
+        """Collect Spotify Client ID and HTTPS HA external URL."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             client_id = str(user_input.get(CONF_SPOTIFY_CLIENT_ID, "")).strip()
+            external_url = str(user_input.get(CONF_HA_EXTERNAL_URL, "")).strip().rstrip("/")
             if not client_id:
                 errors[CONF_SPOTIFY_CLIENT_ID] = "required"
+            elif not external_url.startswith("https://"):
+                errors[CONF_HA_EXTERNAL_URL] = "https_required"
             else:
+                redirect_uri = build_redirect_uri(external_url)
                 self._spotify = {
                     CONF_SPOTIFY_CLIENT_ID: client_id,
+                    CONF_HA_EXTERNAL_URL: external_url,
                     CONF_SPOTIFY_MARKET: _clean(user_input.get(CONF_SPOTIFY_MARKET), DEFAULT_SPOTIFY_MARKET),
                     CONF_SPOTIFY_SCOPES: DEFAULT_SPOTIFY_SCOPES,
                 }
-                return await self.async_step_spotify_oauth_start()
+                self._oauth = {
+                    "state": secrets.token_urlsafe(24),
+                    "code_verifier": create_code_verifier(),
+                    "redirect_uri": redirect_uri,
+                }
+                authorize_url = build_authorize_url(
+                    client_id,
+                    redirect_uri,
+                    DEFAULT_SPOTIFY_SCOPES,
+                    self._oauth["state"],
+                    self._oauth["code_verifier"],
+                )
+                pending = self.hass.data.setdefault(DOMAIN, {}).setdefault("config_flow_oauth_pending", {})
+                pending[self._oauth["state"]] = {
+                    "client_id": client_id,
+                    "code_verifier": self._oauth["code_verifier"],
+                    "redirect_uri": redirect_uri,
+                    "market": self._spotify[CONF_SPOTIFY_MARKET],
+                    "scopes": DEFAULT_SPOTIFY_SCOPES,
+                }
+                return await self.async_step_spotify_oauth({"authorize_url": authorize_url})
 
         return self.async_show_form(
             step_id="spotify",
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_SPOTIFY_CLIENT_ID): str,
+                    vol.Required(CONF_HA_EXTERNAL_URL): str,
                     vol.Optional(CONF_SPOTIFY_MARKET, default=DEFAULT_SPOTIFY_MARKET): str,
                 }
             ),
             errors=errors,
             description_placeholders={
-                "redirect_uri": SPOTIFY_MY_HOME_ASSISTANT_REDIRECT_URI,
+                "callback_path": "/api/spotify_dj/spotify/callback",
             },
         )
 
-    async def async_step_spotify_oauth_start(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Launch Spotify OAuth in the browser.
-
-        Home Assistant external-step callback behaviour can vary by install and
-        reverse proxy. Therefore this flow both opens the browser and provides a
-        robust fallback step where the user can paste the final callback URL/code.
-        """
-        code_verifier = create_code_verifier()
-        state = __import__("secrets").token_urlsafe(24)
-        self._oauth = {
-            "code_verifier": code_verifier,
-            "state": state,
-            "redirect_uri": SPOTIFY_MY_HOME_ASSISTANT_REDIRECT_URI,
-        }
-        authorize_url = build_authorize_url(
-            self._spotify[CONF_SPOTIFY_CLIENT_ID],
-            SPOTIFY_MY_HOME_ASSISTANT_REDIRECT_URI,
-            self._spotify.get(CONF_SPOTIFY_SCOPES, DEFAULT_SPOTIFY_SCOPES),
-            state,
-            code_verifier,
-        )
-
-        # Try the native HA external-step UX first. If HA does not hand the code
-        # back into this flow, the next step asks for the callback URL/code.
-        try:
-            return self.async_external_step(step_id="spotify_oauth", url=authorize_url)
-        except AttributeError:
-            return await self.async_step_spotify_oauth_manual({"auth_url": authorize_url})
-
     async def async_step_spotify_oauth(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Handle HA external OAuth callback if HA supplies code/state."""
-        code = ""
-        state = ""
-        if user_input:
-            code = _extract_oauth_code(user_input.get("code") or user_input.get("url") or "")
-            state = str(user_input.get("state") or "")
+        """Finish Spotify OAuth.
 
-        if code:
-            return await self._finish_spotify_oauth(code, state)
-
-        # If HA returns from the external step without code details, continue to
-        # the fallback form. The user can paste the final URL or only the code.
-        try:
-            return self.async_external_step_done(next_step_id="spotify_oauth_manual")
-        except AttributeError:
-            return await self.async_step_spotify_oauth_manual()
-
-    async def async_step_spotify_oauth_manual(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Fallback form: paste Spotify callback URL or authorization code."""
+        Open the authorize URL, approve Spotify, then the callback page will show a
+        state value. Paste that state here. As a fallback, you can paste the full
+        callback URL containing code/state.
+        """
         errors: dict[str, str] = {}
-        if user_input is not None:
-            code = _extract_oauth_code(str(user_input.get("callback_url_or_code", "")))
-            if not code:
-                errors["callback_url_or_code"] = "required"
-            else:
-                try:
-                    return await self._finish_spotify_oauth(code, "")
-                except Exception as exc:  # noqa: BLE001
-                    _LOGGER.exception("Spotify OAuth failed")
-                    errors["base"] = "oauth_failed"
+        authorize_url = (user_input or {}).get("authorize_url") or self._oauth.get("authorize_url", "")
+        if authorize_url:
+            self._oauth["authorize_url"] = authorize_url
 
-        authorize_url = build_authorize_url(
-            self._spotify[CONF_SPOTIFY_CLIENT_ID],
-            SPOTIFY_MY_HOME_ASSISTANT_REDIRECT_URI,
-            self._spotify.get(CONF_SPOTIFY_SCOPES, DEFAULT_SPOTIFY_SCOPES),
-            self._oauth.get("state") or __import__("secrets").token_urlsafe(24),
-            self._oauth.get("code_verifier") or create_code_verifier(),
-        )
+        if user_input is not None and "oauth_result" in user_input:
+            raw = str(user_input.get("oauth_result", "")).strip()
+            state = raw
+            code = ""
+            if raw.startswith("http://") or raw.startswith("https://"):
+                state = _extract_query_value(raw, "state")
+                code = _extract_query_value(raw, "code")
+
+            try:
+                if code and state:
+                    await self._exchange_code_direct(code, state)
+                elif state:
+                    result = self.hass.data.get(DOMAIN, {}).get("config_flow_oauth_results", {}).pop(state, None)
+                    if not result:
+                        errors["oauth_result"] = "oauth_not_completed"
+                    else:
+                        self._spotify[CONF_SPOTIFY_REFRESH_TOKEN] = result[CONF_SPOTIFY_REFRESH_TOKEN]
+                        self._spotify[CONF_SPOTIFY_MARKET] = result.get(CONF_SPOTIFY_MARKET, DEFAULT_SPOTIFY_MARKET)
+                        self._spotify[CONF_SPOTIFY_SCOPES] = result.get(CONF_SPOTIFY_SCOPES, DEFAULT_SPOTIFY_SCOPES)
+                else:
+                    errors["oauth_result"] = "required"
+            except Exception as exc:  # noqa: BLE001
+                _LOGGER.exception("Spotify OAuth failed")
+                errors["base"] = "oauth_failed"
+
+            if not errors:
+                return await self.async_step_voice()
+
         return self.async_show_form(
-            step_id="spotify_oauth_manual",
-            data_schema=vol.Schema({vol.Required("callback_url_or_code"): str}),
+            step_id="spotify_oauth",
+            data_schema=vol.Schema({vol.Required("oauth_result"): str}),
             errors=errors,
-            description_placeholders={"authorize_url": authorize_url},
+            description_placeholders={
+                "authorize_url": self._oauth.get("authorize_url", authorize_url or ""),
+                "redirect_uri": self._oauth.get("redirect_uri", ""),
+            },
         )
 
-    async def _finish_spotify_oauth(self, code: str, state: str = "") -> FlowResult:
-        """Exchange Spotify authorization code for refresh token."""
-        if state and self._oauth.get("state") and state != self._oauth["state"]:
+    async def _exchange_code_direct(self, code: str, state: str) -> None:
+        if state != self._oauth.get("state"):
             raise RuntimeError("Spotify OAuth state mismatch")
-
         token = await exchange_code_for_refresh_token(
             self.hass,
             client_id=self._spotify[CONF_SPOTIFY_CLIENT_ID],
             code=code,
             code_verifier=self._oauth["code_verifier"],
-            redirect_uri=SPOTIFY_MY_HOME_ASSISTANT_REDIRECT_URI,
+            redirect_uri=self._oauth["redirect_uri"],
         )
         self._spotify[CONF_SPOTIFY_REFRESH_TOKEN] = token["refresh_token"]
-        return await self.async_step_voice()
 
     async def async_step_voice(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Collect optional voice settings. Empty fields are allowed."""
