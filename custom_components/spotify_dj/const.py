@@ -2,7 +2,7 @@ from __future__ import annotations
 
 DOMAIN = "spotify_dj"
 NAME = "SpotifyDJ"
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 API_BASE = "/api/spotify_dj"
 API_PAIR = f"{API_BASE}/pair"
@@ -69,3 +69,17 @@ DEFAULT_STT_MODEL = "ha_stt"
 DEFAULT_TTS_MODEL = "ha_tts"
 DEFAULT_TTS_VOICE = ""
 DEFAULT_SPOTIFY_SCOPES = " ".join(SPOTIFY_SCOPES)
+
+# DJ style configuration
+CONF_DJ_STYLE = "dj_style"
+DEFAULT_DJ_STYLE = "classic_dutch_radio"
+DJ_STYLE_CLASSIC_DUTCH_RADIO = "classic_dutch_radio"
+DJ_STYLE_CALM_EVENING = "calm_evening"
+DJ_STYLE_FESTIVAL = "festival"
+DJ_STYLE_MINIMAL = "minimal"
+DJ_STYLES = [
+    DJ_STYLE_CLASSIC_DUTCH_RADIO,
+    DJ_STYLE_CALM_EVENING,
+    DJ_STYLE_FESTIVAL,
+    DJ_STYLE_MINIMAL,
+]

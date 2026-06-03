@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0
+Fix config flow constants
+
+
 ## 1.0.0
 
 Production-polish release.
