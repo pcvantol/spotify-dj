@@ -28,8 +28,6 @@ from .spotify_oauth import exchange_code_for_refresh_token
 
 _LOGGER = logging.getLogger(__name__)
 
-def __init__(self, hass):
-    self.hass = hass
 
 def _runtime(hass):
     return hass.data.get(DOMAIN, {}).get("runtime")
@@ -39,6 +37,10 @@ class SpotifyDJPairView(HomeAssistantView):
     url = API_PAIR
     name = "api:spotify_dj:pair"
     requires_auth = False
+
+    def __init__(self, hass):
+        self.hass = hass
+
 
     async def post(self, request):
         hass = request.app["hass"]
@@ -94,6 +96,10 @@ class SpotifyDJStatusView(HomeAssistantView):
     name = "api:spotify_dj:status"
     requires_auth = False
 
+    def __init__(self, hass):
+        self.hass = hass
+
+
     async def post(self, request):
         hass = request.app["hass"]
         runtime = _runtime(hass)
@@ -120,6 +126,10 @@ class SpotifyDJEventView(HomeAssistantView):
     name = "api:spotify_dj:event"
     requires_auth = False
 
+    def __init__(self, hass):
+        self.hass = hass
+
+
     async def post(self, request):
         hass = request.app["hass"]
         runtime = _runtime(hass)
@@ -142,6 +152,10 @@ class SpotifyDJVoiceView(HomeAssistantView):
     url = API_VOICE
     name = "api:spotify_dj:voice"
     requires_auth = False
+
+    def __init__(self, hass):
+        self.hass = hass
+
 
     async def post(self, request):
         hass = request.app["hass"]
@@ -188,6 +202,10 @@ class SpotifyDJSpotifyCallbackView(HomeAssistantView):
     url = API_SPOTIFY_CALLBACK
     name = "api:spotify_dj:spotify_callback"
     requires_auth = False
+
+    def __init__(self, hass):
+        self.hass = hass
+
 
     async def get(self, request):
         hass = request.app["hass"]

@@ -72,10 +72,17 @@ GET  /api/spotify_dj/spotify/callback
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v1.1.1"
-git tag v1.1.1
+git commit -m "Release SpotifyDJ v1.0.0"
+git tag v1.0.0
 git push origin main
-git push origin v1.1.1
+git push origin v1.0.0
 ```
 
-Then create a GitHub Release for `v1.1.1`.
+Then create a GitHub Release for `v1.0.0`.
+
+
+## v1.3.0 hotfix
+
+This release fixes Home Assistant config-flow loading errors and applies safe default values for optional voice settings.
+
+After updating through HACS, restart Home Assistant and add SpotifyDJ again from **Settings → Devices & services → Add integration**.

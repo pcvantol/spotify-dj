@@ -1,11 +1,13 @@
 # Changelog
 
-## 1.1.1
-Fix config flow
+## 1.3.0
 
-## 1.1.0
-Fix config flow constants
+- Fix config flow loading regressions.
+- Add safe defaults for empty voice settings.
+- Keep `dj_style` and `dj_profile` aliases for backwards compatibility.
+- Fix HTTP view constructors used by Home Assistant setup.
 
+# Changelog
 
 ## 1.0.0
 

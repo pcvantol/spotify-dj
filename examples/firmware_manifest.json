@@ -1,7 +1,7 @@
 {
-  "version": "1.1.1",
+  "version": "1.1.0",
   "device": "lilygo-t-embed-s3",
-  "asset": "spotifydj-lilygo-t-embed-s3-v1.1.1.bin",
+  "asset": "spotifydj-lilygo-t-embed-s3-v1.1.0.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "min_ha_integration": "0.6.0",
   "notes": "Example SpotifyDJ firmware release manifest."
