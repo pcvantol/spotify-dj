@@ -1,7 +1,9 @@
-name: validate
+name: Validate Home Assistant custom integration
+
 on:
   push:
   pull_request:
+
 jobs:
   hassfest:
     runs-on: ubuntu-latest

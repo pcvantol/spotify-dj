@@ -1,11 +1,14 @@
 {
   "domain": "spotify_dj",
   "name": "SpotifyDJ",
-  "version": "0.8.0",
+  "version": "1.0.0",
   "documentation": "https://github.com/pcvantol/spotify-dj",
   "issue_tracker": "https://github.com/pcvantol/spotify-dj/issues",
   "dependencies": [
     "http",
+    "conversation",
+    "assist_pipeline",
+    "tts",
     "spotify"
   ],
   "codeowners": [
@@ -14,7 +17,8 @@
   "config_flow": true,
   "iot_class": "local_push",
   "requirements": [
-    "awesomeversion>=23.8.0"
+    "awesomeversion>=23.8.0",
+    "aiohttp>=3.9.0"
   ],
   "integration_type": "device"
 }

@@ -1,31 +1,12 @@
 {
-  "title": "SpotifyDJ",
   "config": {
     "step": {
-      "user": {
-        "title": "SpotifyDJ setup",
-        "description": "Configure your LilyGO SpotifyDJ voice remote.",
-        "data": {
-          "openai_api_key": "OpenAI API key",
-          "spotify_player": "Spotify media player",
-          "spotify_source": "Spotify Connect source",
-          "liked_songs_proxy_playlist": "Liked songs proxy playlist URI",
-          "openai_chat_model": "OpenAI chat model",
-          "openai_stt_model": "OpenAI STT model",
-          "openai_tts_model": "OpenAI TTS model",
-          "openai_tts_voice": "OpenAI TTS voice",
-          "dj_style": "DJ style prompt",
-          "max_audio_bytes": "Maximum upload size in bytes"
-        }
-      }
-    }
+      "user": {"title": "Pair SpotifyDJ", "description": "Enter the 6 digit pairing code shown on the LilyGO display.", "data": {"pair_code": "Pairing code", "device_name": "Device name", "local_url": "Local device URL"}},
+      "spotify": {"title": "Connect Spotify", "description": "Enter your Spotify Developer App Client ID. PKCE does not require a client secret.", "data": {"spotify_client_id": "Spotify Client ID", "spotify_market": "Market"}},
+      "voice": {"title": "Voice and DJ style", "data": {"assist_pipeline_id": "Assist pipeline ID", "tts_engine": "TTS engine", "tts_language": "TTS language", "tts_voice": "TTS voice", "dj_profile": "DJ profile"}}
+    },
+    "error": {"invalid_pair_code": "Enter a 6 digit pairing code."},
+    "abort": {"already_configured": "This SpotifyDJ device is already configured."}
   },
-  "options": {
-    "step": {
-      "init": {
-        "title": "SpotifyDJ options",
-        "description": "Change SpotifyDJ settings."
-      }
-    }
-  }
+  "options": {"step": {"init": {"title": "SpotifyDJ options"}}}
 }

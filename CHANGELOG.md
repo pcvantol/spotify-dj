@@ -1,19 +1,23 @@
 # Changelog
 
+## 1.0.0
+
+Production-polish release.
+
+### Added
+- Diagnostics download with secret redaction.
+- Repair issue scaffolding for missing pairing/device token and Spotify Client ID.
+- Dutch and English translations for config flow.
+- HACS and hassfest GitHub Action validation.
+- Stable/beta firmware channel option.
+- v1.0 release checklist and GitHub/HACS guidance.
+
+### Architecture
+- Home Assistant remains the pairing, provisioning and OTA control plane.
+- LilyGO can keep standalone Spotify API functionality after Spotify credential provisioning.
+- OTA distribution is HA-managed through the public firmware release repository.
+
 ## 0.8.0
 
-- Added HACS/Home Assistant branding assets.
-- Added `brands/spotify_dj` and `brands/custom_integrations/spotify_dj` icon/logo folders.
-- Added icon/logo copies under `custom_components/spotify_dj`.
-- Added `info.md` for HACS detail display.
-- Updated manifest metadata, issue tracker and documentation URLs.
-
-## 0.7.0
-
-- Added Spotify OAuth/PKCE provisioning through Home Assistant.
-- Added ESP provisioning endpoint contract for Spotify refresh token handoff.
-
-## 0.6.0
-
-- Added HA-managed OTA through GitHub Releases.
-- Added firmware update entity and OTA endpoint contract.
+- HACS/brand assets.
+- App icon and logo assets.
