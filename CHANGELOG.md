@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.1
+Fix config flow
+
 ## 1.1.0
 Fix config flow constants
 

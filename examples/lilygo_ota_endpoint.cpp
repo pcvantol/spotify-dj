@@ -7,7 +7,7 @@
 
 String deviceToken;   // loaded from NVS after pairing
 String deviceId;      // spotifydj-<chipid>
-String firmwareVersion = "1.1.0";
+String firmwareVersion = "1.1.1";
 
 bool authorizeSpotifyDJRequest(const String& authHeader, const String& headerDeviceId) {
   String expected = "Bearer " + deviceToken;

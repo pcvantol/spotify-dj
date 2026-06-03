@@ -28,6 +28,8 @@ from .spotify_oauth import exchange_code_for_refresh_token
 
 _LOGGER = logging.getLogger(__name__)
 
+def __init__(self, hass):
+    self.hass = hass
 
 def _runtime(hass):
     return hass.data.get(DOMAIN, {}).get("runtime")

@@ -214,7 +214,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(DOMAIN, "provision_spotify_credentials", handle_provision_spotify, supports_response="optional")
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    _LOGGER.info("SpotifyDJ v1.1.0 loaded")
+    _LOGGER.info("SpotifyDJ v1.1.1 loaded")
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
