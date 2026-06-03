@@ -1,6 +1,11 @@
 {
   "name": "SpotifyDJ",
   "render_readme": true,
-  "domains": ["spotify_dj"],
-  "homeassistant": "2025.1.0"
+  "domains": [
+    "spotify_dj"
+  ],
+  "homeassistant": "2025.1.0",
+  "country": [
+    "NL"
+  ]
 }

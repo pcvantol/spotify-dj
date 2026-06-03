@@ -314,3 +314,42 @@ prefs.putString("sp_market", market);
 ```
 
 Security note: the Spotify refresh token is sensitive. This design is meant for your own trusted device. The HA-only Spotify brain remains safer, but this v0.7 flow fits the standalone ESP Spotify API architecture.
+
+## v0.8.0 - HACS / branding polish
+
+This release adds branding assets so HACS and Home Assistant can show a SpotifyDJ icon when the repository is installed as a custom integration.
+
+### Included branding assets
+
+```text
+brands/
+├── spotify_dj/
+│   ├── icon.png
+│   ├── icon@2x.png
+│   └── logo.png
+└── custom_integrations/
+    └── spotify_dj/
+        ├── icon.png
+        ├── icon@2x.png
+        └── logo.png
+```
+
+Also included:
+
+```text
+custom_components/spotify_dj/icon.png
+custom_components/spotify_dj/icon@2x.png
+custom_components/spotify_dj/logo.png
+screenshots/spotifydj_icon_1024.png
+info.md
+CHANGELOG.md
+```
+
+### After updating in HACS
+
+1. Update SpotifyDJ in HACS.
+2. Restart Home Assistant.
+3. Hard-refresh your browser/app cache if the icon does not appear immediately.
+4. HACS and Home Assistant may cache brand images aggressively.
+
+For long-term public distribution, consider submitting the icon/logo to the official Home Assistant brands repository under `custom_integrations/spotify_dj`.
