@@ -1,0 +1,71 @@
+test_parse:
+  name: Test SpotifyDJ parser
+  description: Test de OpenAI parser zonder audio en zonder Spotify afspelen.
+  fields:
+    text:
+      name: Text
+      description: Nederlandse muziekaanvraag.
+      example: "Ik wil het nieuwste album van Pearl Jam horen"
+      required: true
+      selector:
+        text:
+
+test_tts:
+  name: Test SpotifyDJ TTS
+  description: Genereert OpenAI TTS WAV in de log, zonder LILYGO request.
+  fields:
+    text:
+      name: Text
+      description: Tekst die SpotifyDJ moet uitspreken.
+      example: "Daar gaan we hoor. Pearl Jam, nieuw spul, oude klasse."
+      required: true
+      selector:
+        text:
+
+test_command:
+  name: Test SpotifyDJ command
+  description: Verwerkt tekst alsof die van de LilyGO kwam en probeert Spotify af te spelen.
+  fields:
+    text:
+      name: Text
+      description: Nederlandse muziekaanvraag.
+      example: "Speel mijn favoriete nummers"
+      required: true
+      selector:
+        text:
+
+
+start_spotify_oauth:
+  name: Start Spotify OAuth for ESP provisioning
+  description: Maakt een Spotify PKCE authorization URL aan. Open de URL, log in bij Spotify en de callback slaat de refresh token op in SpotifyDJ.
+  fields:
+    client_id:
+      name: Spotify Client ID
+      description: Spotify Developer app Client ID. Als leeg wordt de waarde uit SpotifyDJ opties gebruikt.
+      required: false
+      selector:
+        text:
+    ha_base_url:
+      name: Home Assistant base URL
+      description: Basis-URL die Spotify na login kan bereiken, bijvoorbeeld http://homeassistant.local:8123 of je externe HA URL. Deze URL moet exact als Redirect URI in je Spotify Developer app staan met /api/spotify_dj/spotify_callback erachter.
+      required: true
+      example: "http://homeassistant.local:8123"
+      selector:
+        text:
+    market:
+      name: Spotify market
+      required: false
+      default: NL
+      selector:
+        text:
+    scopes:
+      name: Spotify scopes
+      required: false
+      selector:
+        text:
+          multiline: true
+
+provision_spotify_credentials:
+  name: Provision Spotify credentials to LilyGO
+  description: Stuurt de in HA opgeslagen Spotify client_id en refresh_token éénmalig naar het gekoppelde LilyGO device.
+  fields: {}

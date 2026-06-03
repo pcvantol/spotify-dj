@@ -1,0 +1,19 @@
+{
+  "domain": "spotify_dj",
+  "name": "SpotifyDJ",
+  "version": "0.7.0",
+  "documentation": "https://github.com/pcvantol/spotify-dj",
+  "issue_tracker": "https://github.com/pcvantol/spotify-dj/issues",
+  "dependencies": [
+    "http",
+    "spotify"
+  ],
+  "codeowners": [
+    "@pcvantol"
+  ],
+  "config_flow": true,
+  "iot_class": "local_push",
+  "requirements": [
+    "awesomeversion>=23.8.0"
+  ]
+}

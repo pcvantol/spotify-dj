@@ -1,0 +1,31 @@
+{
+  "title": "SpotifyDJ",
+  "config": {
+    "step": {
+      "user": {
+        "title": "SpotifyDJ setup",
+        "description": "Configure your LilyGO SpotifyDJ voice remote.",
+        "data": {
+          "openai_api_key": "OpenAI API key",
+          "spotify_player": "Spotify media player",
+          "spotify_source": "Spotify Connect source",
+          "liked_songs_proxy_playlist": "Liked songs proxy playlist URI",
+          "openai_chat_model": "OpenAI chat model",
+          "openai_stt_model": "OpenAI STT model",
+          "openai_tts_model": "OpenAI TTS model",
+          "openai_tts_voice": "OpenAI TTS voice",
+          "dj_style": "DJ style prompt",
+          "max_audio_bytes": "Maximum upload size in bytes"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SpotifyDJ options",
+        "description": "Change SpotifyDJ settings."
+      }
+    }
+  }
+}
