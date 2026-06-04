@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import Any
 from homeassistant.core import HomeAssistant
 
-from .dj import parse_music_request
+from .pipeline import process_text_with_assist
 from .spotify import play_from_intent
 
 async def process_text_command(hass: HomeAssistant, runtime, user_text: str, play: bool = True) -> dict[str, Any]:
     conf = runtime.config
-    intent = await parse_music_request(hass, user_text, conf)
+    intent = await process_text_with_assist(hass, user_text, conf)
     playback = None
     if play:
         playback = await play_from_intent(hass, intent, conf)

@@ -33,7 +33,12 @@ class SpotifyDJFirmwareUpdate(UpdateEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        return DeviceInfo(identifiers={(DOMAIN, self.runtime.entry.entry_id)}, name="SpotifyDJ", manufacturer="SpotifyDJ", model="LilyGO T-Embed S3")
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.runtime.entry.entry_id)},
+            name="SpotifyDJ",
+            manufacturer="SpotifyDJ",
+            model="LilyGO T-Embed S3",
+        )
 
     @property
     def installed_version(self) -> str | None:

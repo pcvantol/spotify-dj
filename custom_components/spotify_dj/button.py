@@ -7,8 +7,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DOMAIN
-from .tts import create_openai_tts_wav
+from .const import (
+    CONF_SPOTIFY_PLAYER,
+    CONF_TTS_ENGINE,
+    CONF_TTS_LANGUAGE,
+    DEFAULT_TTS_ENGINE,
+    DEFAULT_TTS_LANGUAGE,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,10 +33,29 @@ class SpotifyDJTestVoiceButton(ButtonEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        return DeviceInfo(identifiers={(DOMAIN, self.runtime.entry.entry_id)}, name="SpotifyDJ", manufacturer="SpotifyDJ", model="LilyGO Voice Remote")
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.runtime.entry.entry_id)},
+            name="SpotifyDJ",
+            manufacturer="SpotifyDJ",
+            model="LilyGO Voice Remote",
+        )
 
     async def async_press(self) -> None:
         text = "Daar gaan we hoor. SpotifyDJ is wakker en klaar voor je volgende plaat."
-        wav = await create_openai_tts_wav(self.hass, text, self.runtime.config)
+        conf = self.runtime.config
+        player = conf.get(CONF_SPOTIFY_PLAYER)
+        if not player:
+            raise RuntimeError("Configureer eerst een Spotify/media_player in SpotifyDJ options")
+        await self.hass.services.async_call(
+            "tts",
+            "speak",
+            {
+                "entity_id": conf.get(CONF_TTS_ENGINE, DEFAULT_TTS_ENGINE),
+                "media_player_entity_id": player,
+                "message": text,
+                "language": conf.get(CONF_TTS_LANGUAGE, DEFAULT_TTS_LANGUAGE),
+            },
+            blocking=True,
+        )
         self.runtime.update(last_dj_text=text, last_error=None)
-        _LOGGER.warning("SpotifyDJ test button generated %d wav bytes", len(wav))
+        _LOGGER.warning("SpotifyDJ test button sent text to HA TTS: %s", text)

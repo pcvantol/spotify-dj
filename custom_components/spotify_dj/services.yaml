@@ -1,6 +1,6 @@
 test_parse:
-  name: Test SpotifyDJ parser
-  description: Test alleen de AI/intent parser zonder Spotify playback.
+  name: Test SpotifyDJ Assist parser
+  description: Stuurt tekst door de HA Assist conversation pipeline en toont de SpotifyDJ intent zonder Spotify playback.
   fields:
     text:
       name: Text
@@ -12,7 +12,7 @@ test_parse:
 
 test_tts:
   name: Test SpotifyDJ TTS
-  description: Test alleen de DJ tekst/voice-output zonder ESP.
+  description: Stuurt DJ tekst naar de geconfigureerde HA TTS engine en media player, zonder ESP.
   fields:
     text:
       name: Text
@@ -24,7 +24,7 @@ test_tts:
 
 test_command:
   name: Test SpotifyDJ command
-  description: Test AI/intent + Spotify command. Playback staat standaard uit.
+  description: Stuurt tekst door HA Assist, maakt een SpotifyDJ intent en probeert daarna Spotify af te spelen.
   fields:
     text:
       name: Text
@@ -36,7 +36,9 @@ test_command:
 
 start_spotify_oauth:
   name: Start Spotify OAuth for ESP provisioning
-  description: Maakt een Spotify PKCE authorization URL aan. Open de URL, log in bij Spotify en de callback slaat de refresh token op in SpotifyDJ.
+  description: >
+    Maakt een Spotify PKCE authorization URL aan. Open de URL, log in bij
+    Spotify en de callback slaat de refresh token op in SpotifyDJ.
   fields:
     client_id:
       name: Spotify Client ID
@@ -46,7 +48,11 @@ start_spotify_oauth:
         text:
     ha_base_url:
       name: Home Assistant base URL
-      description: Basis-URL die Spotify na login kan bereiken, bijvoorbeeld http://homeassistant.local:8123 of je externe HA URL. Deze URL moet exact als Redirect URI in je Spotify Developer app staan met /api/spotify_dj/spotify_callback erachter.
+      description: >
+        Basis-URL die Spotify na login kan bereiken, bijvoorbeeld
+        http://homeassistant.local:8123 of je externe HA URL. Deze URL moet
+        exact als Redirect URI in je Spotify Developer app staan met
+        /api/spotify_dj/spotify_callback erachter.
       required: true
       example: "http://homeassistant.local:8123"
       selector:

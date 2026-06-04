@@ -17,7 +17,7 @@ Belangrijke repos:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `1.4.4`.
+- Actuele integratieversie: `1.5.0`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -31,10 +31,11 @@ HA integration:
   - Spotify market vaste keuzes.
   - DJ style vaste keuzes.
   - Firmware channel vaste keuzes.
+- Verberg firmware repo settings, firmware channel, max audio bytes, min battery for OTA en allow OTA on battery onder HA advanced options.
 - Laat velden vrije tekst waar HA geen betrouwbare bron heeft, zoals Spotify source/device naam, TTS language/voice, playlist URI en firmware repo/asset/device strings.
 - Config-flow foutpaden moeten heldere NL/EN gebruikersmeldingen hebben, bijvoorbeeld bij lege of foutieve koppelcode, ontbrekende Spotify Client ID, foutieve external URL en OAuth fouten.
 - Bestaande modules niet verwijderen, zoals `openai_client.py`, `wav_util.py`, `pipeline.py`.
-- Houd `openai_client.py` en `wav_util.py` aanwezig voor bestaande voice/TTS code.
+- Houd `openai_client.py` en legacy voice modules aanwezig als compatibiliteitsstubs, maar actieve routes gebruiken HA Assist/TTS en geen directe OpenAI API.
 
 ESP firmware:
 - Voeg pairing, mDNS, OTA en Spotify provisioning toe zonder bestaande Spotify/audio/UI code te herschrijven.

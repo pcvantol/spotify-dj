@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import importlib
 from pathlib import Path
 import sys
@@ -73,6 +74,7 @@ def install_homeassistant_stubs() -> None:
 
     package = types.ModuleType("custom_components.spotify_dj")
     package.__path__ = [str(ROOT / "custom_components" / "spotify_dj")]
+    package.register_http_views = lambda hass: None
     sys.modules["custom_components.spotify_dj"] = package
 
 
@@ -94,6 +96,65 @@ class ConfigFlowHelperTest(unittest.TestCase):
 
         self.assertEqual(options["stable"], "Stable")
         self.assertEqual(options["nightly"], "nightly")
+
+    def test_tts_voice_options_use_entity_supported_voices(self) -> None:
+        class State:
+            attributes = {
+                "supported_voices": [
+                    {"voice_id": "anna", "name": "Anna"},
+                    "bram",
+                ]
+            }
+
+        class States:
+            def get(self, entity_id):
+                return State() if entity_id == "tts.home_assistant_cloud" else None
+
+        hass = types.SimpleNamespace(states=States())
+
+        options = self.config_flow._tts_voice_options(
+            hass,
+            "tts.home_assistant_cloud",
+            "custom_voice",
+        )
+
+        self.assertEqual(options[""], "Default")
+        self.assertEqual(options["anna"], "Anna")
+        self.assertEqual(options["bram"], "bram")
+        self.assertEqual(options["custom_voice"], "custom_voice")
+
+    def test_voice_schema_hides_firmware_and_ota_fields_until_advanced(self) -> None:
+        hass = types.SimpleNamespace(states=None)
+
+        basic_schema = asyncio.run(
+            self.config_flow._voice_schema(
+                hass,
+                self.config_flow._voice_defaults(),
+                include_advanced=False,
+            )
+        )
+        advanced_schema = asyncio.run(
+            self.config_flow._voice_schema(
+                hass,
+                self.config_flow._voice_defaults(),
+                include_advanced=True,
+            )
+        )
+
+        basic_keys = {marker.key for marker in basic_schema.schema}
+        advanced_keys = {marker.key for marker in advanced_schema.schema}
+        advanced_only = {
+            self.const.CONF_FIRMWARE_REPO,
+            self.const.CONF_FIRMWARE_ASSET_PREFIX,
+            self.const.CONF_FIRMWARE_DEVICE,
+            self.const.CONF_FIRMWARE_CHANNEL,
+            self.const.CONF_MAX_AUDIO_BYTES,
+            self.const.CONF_ALLOW_OTA_ON_BATTERY,
+            self.const.CONF_MIN_BATTERY_FOR_OTA,
+        }
+
+        self.assertTrue(advanced_only.isdisjoint(basic_keys))
+        self.assertTrue(advanced_only.issubset(advanced_keys))
 
     def test_voice_defaults_fill_empty_values(self) -> None:
         data = self.config_flow._voice_defaults(
