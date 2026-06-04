@@ -14,7 +14,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     DOMAIN, VERSION, API_VOICE, API_PAIR, API_STATUS, API_EVENT, API_SPOTIFY_CALLBACK, PLATFORMS,
-    CONF_LOCAL_URL, CONF_SPOTIFY_CLIENT_ID, CONF_SPOTIFY_REFRESH_TOKEN, CONF_SPOTIFY_MARKET, CONF_SPOTIFY_SCOPES,
+    CONF_PAIR_CODE, CONF_DEVICE_ID, CONF_DEVICE_NAME, CONF_HA_EXTERNAL_URL, CONF_LOCAL_URL, CONF_SPOTIFY_CLIENT_ID, CONF_SPOTIFY_REFRESH_TOKEN, CONF_SPOTIFY_MARKET, CONF_SPOTIFY_SCOPES,
     DEFAULT_SPOTIFY_MARKET, DEFAULT_SPOTIFY_SCOPES,
 )
 from .http import SpotifyDJPairView, SpotifyDJVoiceView, SpotifyDJStatusView, SpotifyDJEventView, SpotifyDJSpotifyCallbackView
@@ -107,6 +107,41 @@ class SpotifyDJRuntime:
             self.update()
             raise
 
+    async def pair_device(self, hass: HomeAssistant) -> dict[str, Any]:
+        conf = self.config
+        local_url = (
+            self.device_status.get("local_url")
+            or conf.get(CONF_LOCAL_URL)
+        )
+        if not local_url:
+            device_id = conf.get(CONF_DEVICE_ID)
+            if device_id:
+                local_url = f"http://{device_id}.local"
+        if not local_url:
+            raise RuntimeError("SpotifyDJ device local_url is unknown")
+        token = self.ensure_device_token()
+        url = local_url.rstrip("/") + "/api/device/pair"
+        payload = {
+            "pair_code": conf.get(CONF_PAIR_CODE),
+            "device_id": conf.get(CONF_DEVICE_ID),
+            "device_name": conf.get(CONF_DEVICE_NAME, "SpotifyDJ"),
+            "device_token": token,
+            "ha_url": conf.get(CONF_HA_EXTERNAL_URL),
+        }
+        session = async_get_clientsession(hass)
+        async with session.post(
+            url,
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=ClientTimeout(total=30),
+        ) as resp:
+            text = await resp.text()
+            if resp.status < 200 or resp.status >= 300:
+                raise RuntimeError(
+                    f"ESP pairing failed HTTP {resp.status}: {text}"
+                )
+            return json.loads(text) if text else {"success": True}
+
 
     async def provision_spotify_credentials(self, hass: HomeAssistant) -> dict[str, Any]:
         conf = self.config
@@ -182,6 +217,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Immediately provision Spotify credentials to the device after setup,
     # if OAuth succeeded and a local device URL is known.
     try:
+        await runtime.pair_device(hass)
         await runtime.provision_spotify_credentials(hass)
         runtime.device_status["spotify_configured"] = True
         runtime.update(last_error=None)
@@ -212,7 +248,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         result = await process_text_command(hass, runtime, text, play=True)
         _LOGGER.warning("SpotifyDJ test_command: %s", result)
         return result
-
 
     async def handle_start_spotify_oauth(call: ServiceCall) -> dict[str, Any]:
         client_id = (call.data.get("client_id") or runtime.config.get(CONF_SPOTIFY_CLIENT_ID) or "").strip()
