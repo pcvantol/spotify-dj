@@ -14,7 +14,11 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-async def process_text_with_assist(hass: HomeAssistant, user_text: str, conf: dict[str, Any]) -> dict[str, Any]:
+async def process_text_with_assist(
+    hass: HomeAssistant,
+    user_text: str,
+    conf: dict[str, Any],
+) -> dict[str, Any]:
     """Run text through HA Assist and return a SpotifyDJ intent."""
     assist_context = _assist_context(hass, conf)
     response = await _conversation_process(hass, user_text, assist_context)
@@ -103,7 +107,8 @@ def _intent_from_assist_response(response: dict[str, Any], user_text: str) -> di
         "playlist": data.get("playlist"),
         "query": data.get("query") or user_text,
         "spotify_search_query": data.get("spotify_search_query") or data.get("query") or user_text,
-        "dj_announcement": data.get("dj_announcement") or _speech_from_response(conversation_response),
+        "dj_announcement": data.get("dj_announcement")
+        or _speech_from_response(conversation_response),
     }
     if not intent["dj_announcement"]:
         intent["dj_announcement"] = "Daar gaan we. Ik zet hem voor je klaar."

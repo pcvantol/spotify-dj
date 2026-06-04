@@ -1,30 +1,31 @@
 # SpotifyDJ
 
-SpotifyDJ is a Home Assistant custom integration for a LilyGO T-Embed S3 / CC1101 Plus Spotify and voice remote.
+SpotifyDJ is a Home Assistant custom integration for a SpotifyDJ device.
 
 The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA firmware updates, device status, and voice/AI integration. The ESP firmware can keep talking to the Spotify API independently after Home Assistant provisions the Spotify credentials.
 
 ## Current Version
 
-- Home Assistant integration: `1.5.1`
+- Home Assistant integration: `2.0.0`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
-- Device target: LilyGO T-Embed S3 / CC1101 Plus
+- Device target: SpotifyDJ device
 - Firmware mDNS service: `_spotifydj._tcp`
 - Device ID format: `spotifydj-XXXXXXXXXXXX`
 
 ## Features
 
-- Pair a LilyGO SpotifyDJ device with a 6 digit code.
+- Pair a SpotifyDJ device with a 6 digit code.
 - Provision a per-device bearer token.
 - Run Spotify OAuth with PKCE from the Home Assistant config flow.
 - Open the Spotify authorization website instead of manually pasting an OAuth result.
 - Support a Nabu Casa HTTPS callback at `/api/spotify_dj/spotify/callback`.
 - Provision Spotify `client_id` and `refresh_token` to the ESP.
-- Accept voice WAV requests from the ESP and return WAV responses.
+- Provision optional MQTT broker settings to the SpotifyDJ device.
+- Accept recognized text commands from the ESP after HA Assist websocket STT.
 - Use Home Assistant Assist/TTS settings with safe defaults.
 - Process text commands through HA Assist before sending the resulting SpotifyDJ intent to Spotify.
-- Use HA-native Assist/TTS routes in active services and entities, without a direct OpenAI API key requirement.
+- Use HA-native Assist/TTS routes in active services and entities.
 - Track device status, battery, Wi-Fi RSSI, firmware version, and last track.
 - Manage firmware updates through a Home Assistant update entity.
 - Provide diagnostics with sensitive values redacted.
@@ -66,8 +67,8 @@ The redirect URI in Spotify must exactly match the Home Assistant external URL p
 
 ## Add SpotifyDJ In Home Assistant
 
-1. Boot the LilyGO firmware in pairing mode.
-2. Enter the 6 digit pair code shown on the LilyGO display.
+1. Boot the SpotifyDJ device firmware in pairing mode.
+2. Enter the 6 digit pair code shown on the SpotifyDJ device display.
 3. Enter the Spotify Client ID.
 4. Enter the HTTPS Home Assistant external URL, preferably the Nabu Casa URL.
 5. Home Assistant opens the Spotify authorization website.
@@ -78,19 +79,28 @@ The setup flow no longer shows a manual `oauth_result` field.
 
 ## Voice And DJ Settings
 
-The config flow and options flow include safe defaults for optional voice fields:
+The config flow and options flow include safe defaults for optional voice fields. The Assist pipeline is stored for ESP provisioning; SpotifyDJ does not stream microphone audio or run STT internally.
 
 - Assist pipeline ID
 - TTS engine
 - TTS language
 - TTS voice
 - DJ style
-- Spotify player/source hints
+- Required Spotify player
 - Liked proxy playlist URI
 - Firmware repository/channel/options
 - OTA battery safety options
 
-Where Home Assistant exposes choices, SpotifyDJ shows populated dropdowns for Assist pipeline, TTS entity, known TTS voices, Spotify media player, Spotify market, DJ style, and firmware channel. Stored custom values remain selectable so existing setups keep working. Firmware repository settings, firmware channel, max audio bytes, and OTA battery settings are shown only when advanced options are enabled.
+Where Home Assistant exposes choices, SpotifyDJ shows populated dropdowns for Assist pipeline, TTS entity, known TTS voices, Spotify media player, Spotify market, DJ style, and firmware channel. Stored custom values remain selectable so existing setups keep working. The Spotify media player is required. Spotify source override, MQTT broker settings, firmware repository settings, firmware channel, manual device URL, max audio bytes, and OTA battery settings are shown only when advanced options are enabled.
+
+Advanced MQTT settings can provision these fields to the SpotifyDJ device when `mqtt_host` is set. If Home Assistant already has the MQTT integration configured, for example via the Mosquitto add-on, SpotifyDJ uses that broker configuration as the advanced-field defaults when available:
+
+- `mqtt_host`
+- `mqtt_port`
+- `mqtt_username`
+- `mqtt_password`
+
+Leave MQTT fields empty if the firmware does not use MQTT. Existing SpotifyDJ values override detected HA MQTT defaults. MQTT passwords are redacted from diagnostics.
 
 Supported DJ styles are:
 
@@ -114,6 +124,9 @@ SpotifyDJ creates:
 
 Entity IDs can differ if Home Assistant has renamed the device or entities.
 
+Use `button.spotifydj_test_dj_voice` after setup to test the configured HA TTS
+engine, voice, language and Spotify media player with a short DJ response.
+
 ## Services
 
 SpotifyDJ registers these services:
@@ -124,12 +137,44 @@ SpotifyDJ registers these services:
 - `spotify_dj.start_spotify_oauth`
 - `spotify_dj.provision_spotify_credentials`
 
-Use `spotify_dj.provision_spotify_credentials` after OAuth if you want Home Assistant to send the stored Spotify credentials to the paired LilyGO device again.
+Use `spotify_dj.provision_spotify_credentials` after OAuth if you want Home Assistant to send the stored Spotify credentials to the paired SpotifyDJ device again.
 
 `spotify_dj.test_parse` and `spotify_dj.test_command` use this flow:
 
 ```text
 text -> HA Assist conversation pipeline -> SpotifyDJ intent -> Spotify -> DJ response
+```
+
+`spotify_dj.test_command` accepts `text` and optional `play`. With `play: false`, it uses the same command parser path without starting Spotify playback.
+
+Developer action overview:
+
+- `spotify_dj.test_parse`: test only the HA Assist conversation parser and return the SpotifyDJ intent; no playback and no TTS.
+- `spotify_dj.test_tts`: send a DJ response text through the configured HA TTS entity and Spotify media player; no Assist parsing and no playback.
+- `spotify_dj.test_command`: test the complete ESP text-command route with `text` and `play`; set `play: false` to avoid starting Spotify playback.
+- `spotify_dj.start_spotify_oauth`: generate a Spotify PKCE authorization URL for manual reprovisioning/debugging.
+- `spotify_dj.provision_spotify_credentials`: resend stored Spotify credentials, Assist metadata and optional MQTT settings to the paired SpotifyDJ device.
+
+Developer actions return response data where Home Assistant supports it. Enable
+debug logging for `custom_components.spotify_dj` when you want to inspect the
+selected TTS engine, media player, OAuth redirect URI, or command-processing
+result. Spotify refresh tokens and device tokens are not logged.
+
+Example developer action data:
+
+```yaml
+action: spotify_dj.test_command
+data:
+  text: "Speel Pearl Jam"
+  play: false
+```
+
+Example DJ response test:
+
+```yaml
+action: spotify_dj.test_tts
+data:
+  text: "Daar gaan we. SpotifyDJ is gekoppeld, de stem werkt, en ik sta klaar voor je volgende plaat."
 ```
 
 ## Home Assistant HTTP Endpoints
@@ -152,6 +197,23 @@ POST /api/spotify_dj/status
 
 Authenticated device requests use the provisioned bearer token and can include `X-SpotifyDJ-Device-ID`.
 
+The voice endpoint accepts recognized speech text only:
+
+```text
+POST /api/spotify_dj/voice
+Header: X-SpotifyDJ-Text: Speel Pearl Jam
+```
+
+JSON is also supported:
+
+```json
+{
+  "text": "Speel Pearl Jam"
+}
+```
+
+The ESP handles microphone audio with Home Assistant's official Assist websocket API (`/api/websocket`, `assist_pipeline/run`) and then sends the recognized text to SpotifyDJ. Legacy `audio/wav` uploads return a controlled JSON `missing_text` error instead of running STT inside this integration.
+
 ## ESP Device Endpoints
 
 Home Assistant expects the firmware to expose:
@@ -171,7 +233,7 @@ Firmware builds come from the private `spotify-dj-app` repo and are published to
 Expected release asset name:
 
 ```text
-spotifydj-lilygo-t-embed-s3-vX.Y.Z.bin
+spotifydj-device-vX.Y.Z.bin
 ```
 
 Expected manifest:
@@ -184,11 +246,11 @@ Example manifest:
 
 ```json
 {
-  "version": "1.5.1",
-  "device": "lilygo-t-embed-s3",
-  "asset": "spotifydj-lilygo-t-embed-s3-v1.5.1.bin",
+  "version": "2.0.0",
+  "device": "spotifydj-device",
+  "asset": "spotifydj-device-v2.0.0.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-  "min_ha_integration": "1.5.1"
+  "min_ha_integration": "2.0.0"
 }
 ```
 
@@ -200,11 +262,11 @@ Update `custom_components/spotify_dj/manifest.json`, `custom_components/spotify_
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v1.5.1"
-git tag v1.5.1
+git commit -m "Release SpotifyDJ v2.0.0"
+git tag v2.0.0
 git push origin main
-git push origin v1.5.1
-gh release create v1.5.1 --title "SpotifyDJ v1.5.1" --notes-file CHANGELOG.md
+git push origin v2.0.0
+gh release create v2.0.0 --title "SpotifyDJ v2.0.0" --notes-file CHANGELOG.md
 ```
 
 Then update the installed integration through HACS/Home Assistant:
@@ -234,5 +296,6 @@ These tests use local stubs for Home Assistant imports and focus on pure Spotify
 - If the config flow does not load, restart Home Assistant and check that HACS installed `custom_components/spotify_dj`.
 - If OTA cannot start, make sure the device has reported `local_url` or can be reached as `http://<device_id>.local`.
 - If OTA is blocked, check battery level, USB power, and the OTA battery options.
-- If provisioning fails, pair the LilyGO first and run `spotify_dj.provision_spotify_credentials` again.
+- If provisioning fails, pair the SpotifyDJ device first and run `spotify_dj.provision_spotify_credentials` again.
+- If `/api/spotify_dj/voice` returns `missing_text`, update the ESP firmware to run HA Assist websocket STT and send `X-SpotifyDJ-Text`.
 - Diagnostics are available from the Home Assistant integration page and redact tokens.

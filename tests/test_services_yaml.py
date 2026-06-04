@@ -1,0 +1,40 @@
+from __future__ import annotations
+
+from pathlib import Path
+import unittest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SERVICES = ROOT / "custom_components" / "spotify_dj" / "services.yaml"
+
+
+class ServicesYamlTest(unittest.TestCase):
+    def test_developer_actions_are_documented(self) -> None:
+        text = SERVICES.read_text()
+
+        for service in (
+            "test_parse",
+            "test_tts",
+            "test_command",
+            "start_spotify_oauth",
+            "provision_spotify_credentials",
+        ):
+            with self.subTest(service=service):
+                self.assertIn(f"{service}:", text)
+
+        self.assertIn("Developer test", text)
+        self.assertIn("Developer helper", text)
+        self.assertIn("stem/DJ-instellingen", text)
+        self.assertIn("/api/spotify_dj/spotify/callback", text)
+        self.assertNotIn("/api/spotify_dj/spotify_callback", text)
+
+    def test_test_command_documents_play_flag(self) -> None:
+        text = SERVICES.read_text()
+
+        self.assertIn("play:", text)
+        self.assertIn("Start playback", text)
+        self.assertIn("zonder Spotify playback", text)
+
+
+if __name__ == "__main__":
+    unittest.main()

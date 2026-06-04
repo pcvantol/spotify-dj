@@ -7,6 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 TRANSLATIONS = ROOT / "custom_components" / "spotify_dj" / "translations"
+INTEGRATION = ROOT / "custom_components" / "spotify_dj"
 
 CONFIG_FLOW_ERROR_KEYS = {
     "missing_pair_code",
@@ -18,6 +19,7 @@ CONFIG_FLOW_ERROR_KEYS = {
     "oauth_setup_failed",
     "oauth_not_completed",
     "oauth_failed",
+    "spotify_player_required",
 }
 
 
@@ -29,6 +31,19 @@ class TranslationTest(unittest.TestCase):
                 errors = data["config"]["error"]
                 missing = CONFIG_FLOW_ERROR_KEYS - set(errors)
                 self.assertFalse(missing, f"Missing {language} translations: {sorted(missing)}")
+
+    def test_no_legacy_branding_in_user_facing_integration_files(self) -> None:
+        checked_files = [
+            *TRANSLATIONS.glob("*.json"),
+            INTEGRATION / "services.yaml",
+            INTEGRATION / "strings.json",
+        ]
+        forbidden = ("openai", "open ai", "lilygo", "t-embed")
+        for path in checked_files:
+            with self.subTest(path=path.name):
+                text = path.read_text().lower()
+                hits = [word for word in forbidden if word in text]
+                self.assertFalse(hits, f"{path} contains legacy wording: {hits}")
 
 
 if __name__ == "__main__":

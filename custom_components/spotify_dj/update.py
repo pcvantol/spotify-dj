@@ -9,12 +9,21 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, CONF_ALLOW_OTA_ON_BATTERY, CONF_MIN_BATTERY_FOR_OTA, DEFAULT_MIN_BATTERY_FOR_OTA
+from .const import (
+    CONF_ALLOW_OTA_ON_BATTERY,
+    CONF_MIN_BATTERY_FOR_OTA,
+    DEFAULT_MIN_BATTERY_FOR_OTA,
+    DOMAIN,
+)
 from .github import fetch_latest_firmware_release, is_newer
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     runtime = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([SpotifyDJFirmwareUpdate(runtime, hass)])
 
@@ -22,7 +31,11 @@ class SpotifyDJFirmwareUpdate(UpdateEntity):
     _attr_has_entity_name = True
     _attr_name = "Firmware"
     _attr_unique_id = "spotifydj_firmware_update"
-    _attr_supported_features = UpdateEntityFeature.INSTALL | UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.RELEASE_NOTES
+    _attr_supported_features = (
+        UpdateEntityFeature.INSTALL
+        | UpdateEntityFeature.SPECIFIC_VERSION
+        | UpdateEntityFeature.RELEASE_NOTES
+    )
 
     def __init__(self, runtime, hass: HomeAssistant) -> None:
         self.runtime = runtime
@@ -37,7 +50,7 @@ class SpotifyDJFirmwareUpdate(UpdateEntity):
             identifiers={(DOMAIN, self.runtime.entry.entry_id)},
             name="SpotifyDJ",
             manufacturer="SpotifyDJ",
-            model="LilyGO T-Embed S3",
+            model="SpotifyDJ device",
         )
 
     @property
@@ -55,7 +68,10 @@ class SpotifyDJFirmwareUpdate(UpdateEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         if not self._latest:
-            return {"repo": self.runtime.config.get("firmware_repo"), "device_status": self.runtime.device_status}
+            return {
+                "repo": self.runtime.config.get("firmware_repo"),
+                "device_status": self.runtime.device_status,
+            }
         return {
             "repo": self.runtime.config.get("firmware_repo"),
             "firmware_asset": self._latest.firmware_asset,
@@ -82,12 +98,21 @@ class SpotifyDJFirmwareUpdate(UpdateEntity):
     async def async_release_notes(self) -> str | None:
         return self.release_summary
 
-    async def async_install(self, version: str | None = None, backup: bool = False, **kwargs: Any) -> None:
+    async def async_install(
+        self,
+        version: str | None = None,
+        backup: bool = False,
+        **kwargs: Any,
+    ) -> None:
         await self.async_update()
         if not self._latest:
             raise RuntimeError("No SpotifyDJ firmware release found")
         if version and version != self._latest.version:
-            _LOGGER.info("Requested version %s, latest available is %s; installing latest", version, self._latest.version)
+            _LOGGER.info(
+                "Requested version %s, latest available is %s; installing latest",
+                version,
+                self._latest.version,
+            )
         if not is_newer(self._latest.version, self.installed_version) and not version:
             _LOGGER.info("SpotifyDJ firmware is already current")
             return
@@ -96,8 +121,18 @@ class SpotifyDJFirmwareUpdate(UpdateEntity):
         battery = status.get("battery_percent")
         charging = bool(status.get("charging") or status.get("usb_powered"))
         allow_battery = bool(self.runtime.config.get(CONF_ALLOW_OTA_ON_BATTERY, False))
-        min_battery = int(self.runtime.config.get(CONF_MIN_BATTERY_FOR_OTA, DEFAULT_MIN_BATTERY_FOR_OTA))
-        if not charging and not allow_battery and battery is not None and int(battery) < min_battery:
+        min_battery = int(
+            self.runtime.config.get(
+                CONF_MIN_BATTERY_FOR_OTA,
+                DEFAULT_MIN_BATTERY_FOR_OTA,
+            )
+        )
+        if (
+            not charging
+            and not allow_battery
+            and battery is not None
+            and int(battery) < min_battery
+        ):
             raise RuntimeError(f"Battery too low for OTA: {battery}% < {min_battery}%")
 
         await self.runtime.start_ota(self.hass, self._latest)

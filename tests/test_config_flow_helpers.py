@@ -144,6 +144,11 @@ class ConfigFlowHelperTest(unittest.TestCase):
         basic_keys = {marker.key for marker in basic_schema.schema}
         advanced_keys = {marker.key for marker in advanced_schema.schema}
         advanced_only = {
+            self.const.CONF_SPOTIFY_SOURCE,
+            self.const.CONF_MQTT_HOST,
+            self.const.CONF_MQTT_PORT,
+            self.const.CONF_MQTT_USERNAME,
+            self.const.CONF_MQTT_PASSWORD,
             self.const.CONF_FIRMWARE_REPO,
             self.const.CONF_FIRMWARE_ASSET_PREFIX,
             self.const.CONF_FIRMWARE_DEVICE,
@@ -163,6 +168,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
                 self.const.CONF_DJ_STYLE: "does_not_exist",
                 self.const.CONF_MAX_AUDIO_BYTES: "not-an-int",
                 self.const.CONF_MIN_BATTERY_FOR_OTA: "55",
+                self.const.CONF_MQTT_PORT: "1884",
             }
         )
 
@@ -170,7 +176,79 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertEqual(data[self.const.CONF_DJ_STYLE], self.const.DEFAULT_DJ_STYLE)
         self.assertEqual(data[self.const.CONF_DJ_PROFILE], self.const.DEFAULT_DJ_STYLE)
         self.assertEqual(data[self.const.CONF_MAX_AUDIO_BYTES], self.const.DEFAULT_MAX_AUDIO_BYTES)
+        self.assertTrue(data[self.const.CONF_ALLOW_OTA_ON_BATTERY])
         self.assertEqual(data[self.const.CONF_MIN_BATTERY_FOR_OTA], 55)
+        self.assertEqual(data[self.const.CONF_MQTT_PORT], 1884)
+
+    def test_mqtt_config_from_mapping_reads_ha_mqtt_keys(self) -> None:
+        mqtt = self.config_flow._mqtt_config_from_mapping(
+            {
+                "broker": "core-mosquitto",
+                "port": 1884,
+                "username": "mqtt-user",
+                "password": "mqtt-pass",
+            }
+        )
+
+        self.assertEqual(mqtt[self.const.CONF_MQTT_HOST], "core-mosquitto")
+        self.assertEqual(mqtt[self.const.CONF_MQTT_PORT], 1884)
+        self.assertEqual(mqtt[self.const.CONF_MQTT_USERNAME], "mqtt-user")
+        self.assertEqual(mqtt[self.const.CONF_MQTT_PASSWORD], "mqtt-pass")
+
+    def test_mqtt_defaults_from_ha_do_not_override_existing_values(self) -> None:
+        class ConfigEntries:
+            def async_entries(self, domain):
+                if domain != "mqtt":
+                    return []
+                return [
+                    types.SimpleNamespace(
+                        data={
+                            "broker": "core-mosquitto",
+                            "port": 1883,
+                            "username": "detected",
+                            "password": "detected-secret",
+                        },
+                        options={},
+                    )
+                ]
+
+        hass = types.SimpleNamespace(config_entries=ConfigEntries())
+        defaults = self.config_flow._merged_mqtt_defaults(
+            hass,
+            {
+                self.const.CONF_MQTT_HOST: "manual-mqtt",
+                self.const.CONF_MQTT_PORT: 1884,
+            },
+        )
+
+        self.assertEqual(defaults[self.const.CONF_MQTT_HOST], "manual-mqtt")
+        self.assertEqual(defaults[self.const.CONF_MQTT_PORT], 1884)
+        self.assertEqual(defaults[self.const.CONF_MQTT_USERNAME], "detected")
+        self.assertEqual(defaults[self.const.CONF_MQTT_PASSWORD], "detected-secret")
+
+    def test_voice_errors_require_spotify_player(self) -> None:
+        errors = self.config_flow._voice_errors({self.const.CONF_SPOTIFY_PLAYER: ""})
+
+        self.assertEqual(
+            errors,
+            {self.const.CONF_SPOTIFY_PLAYER: "spotify_player_required"},
+        )
+        self.assertEqual(
+            self.config_flow._voice_errors(
+                {self.const.CONF_SPOTIFY_PLAYER: "media_player.spotify"}
+            ),
+            {},
+        )
+
+    def test_user_schema_hides_manual_device_url_until_advanced(self) -> None:
+        flow = self.config_flow.SpotifyDJConfigFlow()
+
+        basic_keys = {marker.key for marker in flow._user_schema()}
+        flow.show_advanced_options = True
+        advanced_keys = {marker.key for marker in flow._user_schema()}
+
+        self.assertNotIn(self.const.CONF_LOCAL_URL, basic_keys)
+        self.assertIn(self.const.CONF_LOCAL_URL, advanced_keys)
 
 
 if __name__ == "__main__":

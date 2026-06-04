@@ -1,7 +1,7 @@
 {
   "domain": "spotify_dj",
   "name": "SpotifyDJ",
-  "version": "1.5.1",
+  "version": "2.0.0",
   "documentation": "https://github.com/pcvantol/spotify-dj",
   "issue_tracker": "https://github.com/pcvantol/spotify-dj/issues",
   "dependencies": [

@@ -9,16 +9,22 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     runtime = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([
-        SpotifyDJStatusSensor(runtime),
-        SpotifyDJLastTextSensor(runtime),
-        SpotifyDJBatterySensor(runtime),
-        SpotifyDJWifiSensor(runtime),
-        SpotifyDJFirmwareSensor(runtime),
-        SpotifyDJLastTrackSensor(runtime),
-    ])
+    async_add_entities(
+        [
+            SpotifyDJStatusSensor(runtime),
+            SpotifyDJLastTextSensor(runtime),
+            SpotifyDJBatterySensor(runtime),
+            SpotifyDJWifiSensor(runtime),
+            SpotifyDJFirmwareSensor(runtime),
+            SpotifyDJLastTrackSensor(runtime),
+        ]
+    )
 
 class SpotifyDJBaseSensor(SensorEntity):
     _attr_has_entity_name = True
@@ -29,8 +35,12 @@ class SpotifyDJBaseSensor(SensorEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        device_id = self.runtime.device_status.get("device_id") or self.runtime.entry.entry_id
-        return DeviceInfo(identifiers={(DOMAIN, device_id)}, name="SpotifyDJ", manufacturer="SpotifyDJ", model="LilyGO T-Embed S3")
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.runtime.entry.entry_id)},
+            name="SpotifyDJ",
+            manufacturer="SpotifyDJ",
+            model="SpotifyDJ device",
+        )
 
     @callback
     def _handle_runtime_update(self) -> None:

@@ -3,7 +3,7 @@
 Project: SpotifyDJ
 
 Doel:
-- LilyGO T-Embed S3 / CC1101 Plus als Spotify/HA voice remote.
+- SpotifyDJ device als Spotify/HA voice remote.
 - HA custom integration heet `spotify_dj`.
 - ESP firmware heet SpotifyDJ.
 - ESP praat zelfstandig met Spotify API.
@@ -17,13 +17,15 @@ Belangrijke repos:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `1.5.1`.
+- Actuele integratieversie: `2.0.0`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
 - Redirect path: `/api/spotify_dj/spotify/callback`
 - Geen handmatig `oauth_result` veld tonen.
 - Voice velden moeten defaults hebben.
+- Koppelcode uit de HA config-flow moet worden opgeslagen en ESP pairing moet een afwijkende koppelcode weigeren.
+- `spotify_player` is verplicht in config-flow/options-flow.
 - Gebruik waar veilig HA-populated combo boxes/dropdowns i.p.v. vrije tekst:
   - Assist pipeline uit HA Assist pipelines.
   - TTS engine uit HA `tts` entities.
@@ -32,10 +34,18 @@ HA integration:
   - DJ style vaste keuzes.
   - Firmware channel vaste keuzes.
 - Verberg firmware repo settings, firmware channel, max audio bytes, min battery for OTA en allow OTA on battery onder HA advanced options.
-- Laat velden vrije tekst waar HA geen betrouwbare bron heeft, zoals Spotify source/device naam, TTS language/voice, playlist URI en firmware repo/asset/device strings.
+- Laat velden vrije tekst waar HA geen betrouwbare bron heeft, zoals TTS language/voice, playlist URI en firmware repo/asset/device strings.
+- Spotify source/device naam is dynamisch; toon dit niet in de normale flow, alleen advanced als optionele override.
+- MQTT broker settings (`mqtt_host`, `mqtt_port`, `mqtt_username`, `mqtt_password`) staan alleen advanced en worden mee geprovisioned naar ESP pair/provision/status payloads indien host is ingevuld.
+- Als HA MQTT/Mosquitto al geconfigureerd is, gebruik die broker settings best-effort als defaults in de advanced MQTT velden; bestaande SpotifyDJ waarden mogen niet overschreven worden.
+- `mqtt_password` nooit loggen en altijd redacteren in diagnostics.
+- Verberg lokale/manual device URL in de normale flow; toon die alleen onder HA advanced options als mDNS/manual override nodig is.
+- Alle SpotifyDJ entities moeten onder één HA device vallen met hetzelfde device identifier.
 - Config-flow foutpaden moeten heldere NL/EN gebruikersmeldingen hebben, bijvoorbeeld bij lege of foutieve koppelcode, ontbrekende Spotify Client ID, foutieve external URL en OAuth fouten.
-- Bestaande modules niet verwijderen, zoals `openai_client.py`, `wav_util.py`, `pipeline.py`.
-- Houd `openai_client.py` en legacy voice modules aanwezig als compatibiliteitsstubs, maar actieve routes gebruiken HA Assist/TTS en geen directe OpenAI API.
+- Bestaande modules niet verwijderen, zoals `wav_util.py`, `pipeline.py`.
+- Actieve routes gebruiken HA Assist/TTS en geen directe externe AI/STT/TTS API.
+- ESP firmware doet microfoon-STT via de officiële HA Assist websocket API en stuurt herkende tekst naar `POST /api/spotify_dj/voice` met `X-SpotifyDJ-Text`.
+- `POST /api/spotify_dj/voice` accepteert tekstcommands, geen WAV-transcriptie; legacy `audio/wav` uploads krijgen een gecontroleerde JSON foutmelding.
 
 ESP firmware:
 - Voeg pairing, mDNS, OTA en Spotify provisioning toe zonder bestaande Spotify/audio/UI code te herschrijven.
@@ -45,12 +55,13 @@ ESP firmware:
 - OTA endpoint: `POST /api/device/ota`
 - Spotify provisioning endpoint: `POST /api/device/provision_spotify`
 - Status endpoint naar HA: `POST /api/spotify_dj/status`
+- Voice tekst endpoint naar HA: `POST /api/spotify_dj/voice`
 
 Firmware releases:
 - Build vanuit private repo `spotify-dj-app`.
 - Publish binaries naar public repo `spotify-dj-firmware`.
 - Release asset naam:
-  `spotifydj-lilygo-t-embed-s3-vX.Y.Z.bin`
+  `spotifydj-device-vX.Y.Z.bin`
 - Manifest:
   `firmware_manifest.json`
 - Firmwareversie wordt via PlatformIO build flags uit Git tag geïnjecteerd.

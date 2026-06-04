@@ -1,59 +1,135 @@
 {
-    "config": {
-        "step": {
-            "user": {
-                "title": "SpotifyDJ koppelen",
-                "description": "Voer de 6-cijferige koppelcode in die op het LilyGO-scherm staat.",
-                "data": {
-                    "pair_code": "Koppelcode",
-                    "device_name": "Apparaatnaam",
-                    "local_url": "Lokale apparaat-URL"
-                }
-            },
-            "spotify": {
-                "title": "Spotify koppelen",
-                "description": "Vul de Client ID van je Spotify Developer App en de HTTPS externe Home Assistant URL in. PKCE gebruikt geen client secret. De Spotify Redirect URI moet de externe URL plus /api/spotify_dj/spotify/callback zijn.",
-                "data": {
-                    "spotify_client_id": "Spotify Client ID",
-                    "ha_external_url": "Home Assistant externe URL",
-                    "spotify_market": "Market"
-                }
-            },
-            "spotify_oauth": {
-                "title": "SpotifyDJ autoriseren bij Spotify",
-                "description": "Home Assistant opent Spotify in je browser. Na akkoord ga je terug naar Home Assistant om de setup af te maken."
-            },
-            "voice": {
-                "title": "Stem en DJ-stijl",
-                "data": {
-                    "assist_pipeline_id": "Assist pipeline ID",
-                    "tts_engine": "TTS engine",
-                    "tts_language": "TTS taal",
-                    "tts_voice": "TTS stem",
-                    "dj_profile": "DJ-profiel"
-                }
-            }
+  "config": {
+    "step": {
+      "user": {
+        "title": "SpotifyDJ apparaat koppelen",
+        "description": "Voer de 6-cijferige koppelcode in die op het SpotifyDJ device-scherm staat. De handmatige apparaat-URL is alleen nodig als mDNS discovery niet werkt.",
+        "data": {
+          "pair_code": "Koppelcode",
+          "device_name": "Apparaatnaam",
+          "local_url": "Handmatige apparaat-URL"
         },
-        "error": {
-            "missing_pair_code": "Voer de 6-cijferige koppelcode in die op het LilyGO-scherm staat.",
-            "invalid_pair_code": "De koppelcode moet precies 6 cijfers bevatten.",
-            "spotify_client_id_required": "Vul de Client ID van je Spotify Developer App in.",
-            "external_url_required": "Vul je externe Home Assistant URL in, bijvoorbeeld je Nabu Casa URL.",
-            "external_url_https_required": "Gebruik een HTTPS externe URL. De aanbevolen URL is je Nabu Casa URL.",
-            "external_url_invalid": "Vul een volledige HTTPS URL in, bijvoorbeeld https://voorbeeld.ui.nabu.casa.",
-            "oauth_setup_failed": "Spotify autorisatie kon niet worden gestart. Controleer de Client ID en externe URL en probeer opnieuw.",
-            "oauth_not_completed": "Spotify autorisatie is nog niet afgerond. Geef akkoord in Spotify en ga terug naar Home Assistant.",
-            "oauth_failed": "Spotify autorisatie is mislukt. Start de Spotify stap opnieuw en controleer de Redirect URI in je Spotify app."
-        },
-        "abort": {
-            "already_configured": "Dit SpotifyDJ apparaat is al geconfigureerd."
+        "data_description": {
+          "pair_code": "De 6-cijferige code op het apparaatdisplay.",
+          "device_name": "Leesbare naam voor deze SpotifyDJ remote.",
+          "local_url": "Geavanceerde fallback, bijvoorbeeld http://spotifydj-xxxxxxxxxxxx.local."
         }
+      },
+      "spotify": {
+        "title": "Spotify koppelen",
+        "description": "Vul de Client ID van je Spotify Developer App en de HTTPS externe Home Assistant URL in. PKCE gebruikt geen client secret. De Spotify Redirect URI moet de externe URL plus /api/spotify_dj/spotify/callback zijn.",
+        "data": {
+          "spotify_client_id": "Spotify Client ID",
+          "ha_external_url": "Home Assistant externe URL",
+          "spotify_market": "Spotify regio"
+        },
+        "data_description": {
+          "spotify_client_id": "Client ID uit je Spotify Developer App.",
+          "ha_external_url": "Bereikbare HTTPS URL, bij voorkeur je Nabu Casa URL.",
+          "spotify_market": "Spotify regio voor zoeken en afspelen."
+        }
+      },
+      "spotify_oauth": {
+        "title": "SpotifyDJ autoriseren bij Spotify",
+        "description": "Home Assistant opent Spotify in je browser. Na akkoord ga je terug naar Home Assistant om de setup af te maken."
+      },
+      "voice": {
+        "title": "Spraak, playback en firmware",
+        "data": {
+          "assist_pipeline_id": "Assist pipeline",
+          "tts_engine": "TTS engine",
+          "tts_language": "TTS taal",
+          "tts_voice": "TTS stem",
+          "dj_style": "DJ stijl",
+          "dj_profile": "DJ stijl",
+          "spotify_player": "Spotify media player",
+          "spotify_source": "Spotify bron override",
+          "mqtt_host": "MQTT broker host",
+          "mqtt_port": "MQTT broker poort",
+          "mqtt_username": "MQTT gebruikersnaam",
+          "mqtt_password": "MQTT wachtwoord",
+          "liked_proxy_playlist_uri": "Liked songs playlist URI",
+          "firmware_repo": "Firmware repository",
+          "firmware_asset_prefix": "Firmware bestandsnaam-prefix",
+          "firmware_device": "Firmware apparaat",
+          "firmware_channel": "Firmware kanaal",
+          "max_audio_bytes": "Maximale audio bytes",
+          "allow_ota_on_battery": "OTA op batterij toestaan",
+          "min_battery_for_ota": "Minimale batterij voor OTA"
+        },
+        "data_description": {
+          "assist_pipeline_id": "Assist pipeline die SpotifyDJ apparaten gebruiken voor spraakherkenning.",
+          "tts_engine": "Home Assistant TTS entity voor DJ reacties.",
+          "tts_language": "Taal die aan de TTS engine wordt meegegeven.",
+          "tts_voice": "Stem die aan de TTS engine wordt meegegeven als die bekend is.",
+          "dj_style": "Toon/stijl voor SpotifyDJ aankondigingen.",
+          "dj_profile": "Toon/stijl voor SpotifyDJ aankondigingen.",
+          "spotify_player": "Verplichte media player voor Spotify playback en TTS output.",
+          "spotify_source": "Geavanceerde optionele override voor een Spotify Connect bron. Laat leeg voor dynamische/standaard playback.",
+          "mqtt_host": "Geavanceerde optionele MQTT broker host die naar het SpotifyDJ device wordt gestuurd. Standaard gevuld vanuit HA MQTT/Mosquitto indien bekend.",
+          "mqtt_port": "MQTT broker poort, meestal 1883.",
+          "mqtt_username": "Optionele MQTT gebruikersnaam voor het SpotifyDJ device.",
+          "mqtt_password": "Optioneel MQTT wachtwoord voor het SpotifyDJ device. Dit wordt in diagnostics afgeschermd.",
+          "liked_proxy_playlist_uri": "Optionele playlist URI als proxy voor liked songs.",
+          "firmware_repo": "Geavanceerde firmware release repository.",
+          "firmware_asset_prefix": "Geavanceerde firmware binary bestandsnaam-prefix.",
+          "firmware_device": "Geavanceerde firmware target/device identifier.",
+          "firmware_channel": "Geavanceerd firmware releasekanaal.",
+          "max_audio_bytes": "Compatibiliteitslimiet voor legacy audio uploads.",
+          "allow_ota_on_battery": "Sta firmware updates toe als het apparaat niet via USB gevoed wordt.",
+          "min_battery_for_ota": "Minimaal batterijpercentage voordat OTA is toegestaan."
+        }
+      }
     },
-    "options": {
-        "step": {
-            "init": {
-                "title": "SpotifyDJ opties"
-            }
-        }
+    "error": {
+      "missing_pair_code": "Voer de 6-cijferige koppelcode in die op het SpotifyDJ device-scherm staat.",
+      "invalid_pair_code": "De koppelcode moet precies 6 cijfers bevatten.",
+      "spotify_client_id_required": "Vul de Client ID van je Spotify Developer App in.",
+      "external_url_required": "Vul je externe Home Assistant URL in, bijvoorbeeld je Nabu Casa URL.",
+      "external_url_https_required": "Gebruik een HTTPS externe URL. De aanbevolen URL is je Nabu Casa URL.",
+      "external_url_invalid": "Vul een volledige HTTPS URL in, bijvoorbeeld https://voorbeeld.ui.nabu.casa.",
+      "oauth_setup_failed": "Spotify autorisatie kon niet worden gestart. Controleer de Client ID en externe URL en probeer opnieuw.",
+      "oauth_not_completed": "Spotify autorisatie is nog niet afgerond. Geef akkoord in Spotify en ga terug naar Home Assistant.",
+      "oauth_failed": "Spotify autorisatie is mislukt. Start de Spotify stap opnieuw en controleer de Redirect URI in je Spotify app.",
+      "spotify_player_required": "Kies de Spotify media player die SpotifyDJ gebruikt voor playback en TTS."
+    },
+    "abort": {
+      "already_configured": "Dit SpotifyDJ apparaat is al geconfigureerd."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SpotifyDJ opties",
+        "description": "Pas SpotifyDJ spraak-, playback-, OTA- en firmware-instellingen aan.",
+        "data": {
+          "assist_pipeline_id": "Assist pipeline",
+          "tts_engine": "TTS engine",
+          "tts_language": "TTS taal",
+          "tts_voice": "TTS stem",
+          "dj_style": "DJ stijl",
+          "dj_profile": "DJ stijl",
+          "spotify_player": "Spotify media player",
+          "spotify_source": "Spotify bron override",
+          "mqtt_host": "MQTT broker host",
+          "mqtt_port": "MQTT broker poort",
+          "mqtt_username": "MQTT gebruikersnaam",
+          "mqtt_password": "MQTT wachtwoord",
+          "liked_proxy_playlist_uri": "Liked songs playlist URI",
+          "firmware_repo": "Firmware repository",
+          "firmware_asset_prefix": "Firmware bestandsnaam-prefix",
+          "firmware_device": "Firmware apparaat",
+          "firmware_channel": "Firmware kanaal",
+          "max_audio_bytes": "Maximale audio bytes",
+          "allow_ota_on_battery": "OTA op batterij toestaan",
+          "min_battery_for_ota": "Minimale batterij voor OTA"
+        },
+        "data_description": {
+          "assist_pipeline_id": "Assist pipeline die SpotifyDJ apparaten gebruiken voor spraakherkenning.",
+          "spotify_player": "Verplichte media player voor Spotify playback en TTS output.",
+          "allow_ota_on_battery": "Sta firmware updates toe als het apparaat niet via USB gevoed wordt."
+        }
+      }
+    }
+  }
 }

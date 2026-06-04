@@ -6,7 +6,7 @@ from homeassistant.config_entries import ConfigEntry
 
 from .const import DOMAIN
 
-_REDACT_KEYS = {"device_token", "spotify_refresh_token", "openai_api_key"}
+_REDACT_KEYS = {"device_token", "mqtt_password", "spotify_refresh_token"}
 
 
 def _redact(value: Any) -> Any:
