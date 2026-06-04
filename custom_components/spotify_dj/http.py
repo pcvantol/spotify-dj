@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from aiohttp import web
 import logging
 from typing import Any
 
@@ -161,9 +161,9 @@ class SpotifyDJVoiceView(HomeAssistantView):
         hass = request.app["hass"]
         runtime = _runtime(hass)
         if runtime is None:
-            return self.Response(status=503, text="SpotifyDJ is not configured")
+            return web.Response(status=503, text="SpotifyDJ is not configured")
         if not runtime.authorize_device_request(request.headers):
-            return self.Response(status=401, text="Unauthorized")
+            return web.Response(status=401, text="Unauthorized")
 
         conf = runtime.config
         max_audio_bytes = int(conf.get(CONF_MAX_AUDIO_BYTES, DEFAULT_MAX_AUDIO_BYTES))
@@ -172,7 +172,7 @@ class SpotifyDJVoiceView(HomeAssistantView):
             msg = "De opname is te lang voor SpotifyDJ. Probeer het iets korter."
             runtime.update(last_error=msg)
             body = await create_error_wav(hass, msg, conf)
-            return self.Response(body=body, content_type="audio/wav", status=413)
+            return web.Response(body=body, content_type="audio/wav", status=413)
 
         try:
             user_text = request.headers.get("X-SpotifyDJ-Text")
@@ -188,14 +188,14 @@ class SpotifyDJVoiceView(HomeAssistantView):
             result = await process_text_command(hass, runtime, user_text, play=True)
             response_wav = await create_openai_tts_wav(hass, result["dj_text"], conf)
             _LOGGER.info("SpotifyDJ OK: %s", result)
-            return self.Response(body=response_wav, content_type="audio/wav")
+            return web.Response(body=response_wav, content_type="audio/wav")
 
         except Exception as exc:  # noqa: BLE001
             _LOGGER.exception("SpotifyDJ request failed: %s", exc)
             msg = f"Sorry, SpotifyDJ liep vast: {exc}"
             runtime.update(last_error=str(exc))
             body = await create_error_wav(hass, msg, conf)
-            return self.Response(body=body, content_type="audio/wav", status=200)
+            return web.Response(body=body, content_type="audio/wav", status=200)
 
 
 class SpotifyDJSpotifyCallbackView(HomeAssistantView):
@@ -213,9 +213,9 @@ class SpotifyDJSpotifyCallbackView(HomeAssistantView):
         code = request.query.get("code")
         error = request.query.get("error")
         if error:
-            return self.Response(text=f"SpotifyDJ Spotify OAuth failed: {error}", status=400)
+            return web.Response(text=f"SpotifyDJ Spotify OAuth failed: {error}", status=400)
         if not state or not code:
-            return self.Response(text="SpotifyDJ Spotify OAuth failed: missing state/code", status=400)
+            return web.Response(text="SpotifyDJ Spotify OAuth failed: missing state/code", status=400)
 
         # Config-flow OAuth path: during initial setup there is no config entry yet.
         # config_flow.py stores pending context under config_flow_oauth_pending.
@@ -240,7 +240,7 @@ class SpotifyDJSpotifyCallbackView(HomeAssistantView):
                 flow_id = ctx.get("flow_id")
                 if flow_id:
                     await hass.config_entries.flow.async_configure(flow_id, {"state": state})
-                return self.Response(
+                return web.Response(
                     text=(
                         "SpotifyDJ Spotify OAuth is gelukt. Je kunt dit venster sluiten en teruggaan naar Home Assistant."
                     ),
@@ -248,12 +248,12 @@ class SpotifyDJSpotifyCallbackView(HomeAssistantView):
                 )
             except Exception as exc:  # noqa: BLE001
                 _LOGGER.exception("SpotifyDJ config-flow OAuth callback failed")
-                return self.Response(text=f"SpotifyDJ Spotify OAuth failed: {exc}", status=500)
+                return web.Response(text=f"SpotifyDJ Spotify OAuth failed: {exc}", status=500)
 
         pending = hass.data.setdefault(DOMAIN, {}).setdefault("spotify_oauth_pending", {})
         ctx = pending.pop(state, None)
         if not ctx:
-            return self.Response(text="SpotifyDJ Spotify OAuth failed: unknown/expired state", status=400)
+            return web.Response(text="SpotifyDJ Spotify OAuth failed: unknown/expired state", status=400)
 
         try:
             token = await exchange_code_for_refresh_token(
@@ -273,7 +273,7 @@ class SpotifyDJSpotifyCallbackView(HomeAssistantView):
             new_data[CONF_SPOTIFY_SCOPES] = ctx.get("scopes", DEFAULT_SPOTIFY_SCOPES)
             hass.config_entries.async_update_entry(entry, data=new_data)
             await hass.config_entries.async_reload(entry.entry_id)
-            return self.Response(
+            return web.Response(
                 text=(
                     "SpotifyDJ Spotify OAuth is gelukt. De refresh token is opgeslagen in Home Assistant. "
                     "Je kunt dit venster sluiten en daarna de service spotify_dj.provision_spotify_credentials uitvoeren."
@@ -282,4 +282,4 @@ class SpotifyDJSpotifyCallbackView(HomeAssistantView):
             )
         except Exception as exc:  # noqa: BLE001
             _LOGGER.exception("SpotifyDJ Spotify OAuth callback failed")
-            return self.Response(text=f"SpotifyDJ Spotify OAuth failed: {exc}", status=500)
+            return web.Response(text=f"SpotifyDJ Spotify OAuth failed: {exc}", status=500)

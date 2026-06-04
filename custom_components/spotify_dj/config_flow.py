@@ -11,6 +11,7 @@ import secrets
 from typing import Any
 from urllib.parse import urlparse
 
+from custom_components.spotify_dj import register_http_views
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -300,6 +301,8 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         "market": self._spotify[CONF_SPOTIFY_MARKET],
                         "scopes": DEFAULT_SPOTIFY_SCOPES,
                     }
+                    register_http_views(self.hass)
+                    
                     self._oauth["authorize_url"] = authorize_url
                     return await self.async_step_spotify_oauth()
                 except Exception:  # noqa: BLE001
@@ -353,7 +356,9 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data_schema=vol.Schema({}),
                 errors={"base": "oauth_setup_failed"},
             )
-
+    
+        from . import register_http_views
+        
         return self.async_external_step(
             step_id="spotify_oauth",
             url=self._oauth["authorize_url"],

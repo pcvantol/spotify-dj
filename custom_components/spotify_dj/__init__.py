@@ -140,14 +140,31 @@ class SpotifyDJRuntime:
                 return json.loads(text) if text else {"success": True}
             except json.JSONDecodeError:
                 return {"success": True, "response": text}
-
-async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+            
+def register_http_views(hass: HomeAssistant) -> None:
     hass.data.setdefault(DOMAIN, {})
     if not hass.data[DOMAIN].get("http_registered"):
-        for view in [SpotifyDJVoiceView(hass), SpotifyDJPairView(hass), SpotifyDJStatusView(hass), SpotifyDJEventView(hass), SpotifyDJSpotifyCallbackView(hass)]:
+        for view in [
+            SpotifyDJVoiceView(hass),
+            SpotifyDJPairView(hass),
+            SpotifyDJStatusView(hass),
+            SpotifyDJEventView(hass),
+            SpotifyDJSpotifyCallbackView(hass),
+        ]:
             hass.http.register_view(view)
         hass.data[DOMAIN]["http_registered"] = True
-        _LOGGER.info("SpotifyDJ HTTP endpoints registered: %s, %s, %s, %s", API_VOICE, API_PAIR, API_STATUS, API_EVENT, API_SPOTIFY_CALLBACK)
+
+        _LOGGER.info(
+            "SpotifyDJ HTTP endpoints registered: %s, %s, %s, %s, %s",
+            API_VOICE,
+            API_PAIR,
+            API_STATUS,
+            API_EVENT,
+            API_SPOTIFY_CALLBACK,
+        )
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    register_http_views(hass)
     return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
