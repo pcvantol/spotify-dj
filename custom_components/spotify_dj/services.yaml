@@ -1,6 +1,6 @@
 test_parse:
   name: Test SpotifyDJ parser
-  description: Test de OpenAI parser zonder audio en zonder Spotify afspelen.
+  description: Test alleen de AI/intent parser zonder Spotify playback.
   fields:
     text:
       name: Text
@@ -12,7 +12,7 @@ test_parse:
 
 test_tts:
   name: Test SpotifyDJ TTS
-  description: Genereert OpenAI TTS WAV in de log, zonder LILYGO request.
+  description: Test alleen de DJ tekst/voice-output zonder ESP.
   fields:
     text:
       name: Text
@@ -24,7 +24,7 @@ test_tts:
 
 test_command:
   name: Test SpotifyDJ command
-  description: Verwerkt tekst alsof die van de LilyGO kwam en probeert Spotify af te spelen.
+  description: Test AI/intent + Spotify command. Playback staat standaard uit.
   fields:
     text:
       name: Text
@@ -33,7 +33,6 @@ test_command:
       required: true
       selector:
         text:
-
 
 start_spotify_oauth:
   name: Start Spotify OAuth for ESP provisioning
