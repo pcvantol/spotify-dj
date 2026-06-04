@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 
 ## Current Version
 
-- Home Assistant integration: `1.5.0`
+- Home Assistant integration: `1.5.1`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: LilyGO T-Embed S3 / CC1101 Plus
@@ -184,11 +184,11 @@ Example manifest:
 
 ```json
 {
-  "version": "1.5.0",
+  "version": "1.5.1",
   "device": "lilygo-t-embed-s3",
-  "asset": "spotifydj-lilygo-t-embed-s3-v1.5.0.bin",
+  "asset": "spotifydj-lilygo-t-embed-s3-v1.5.1.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-  "min_ha_integration": "1.5.0"
+  "min_ha_integration": "1.5.1"
 }
 ```
 
@@ -200,11 +200,11 @@ Update `custom_components/spotify_dj/manifest.json`, `custom_components/spotify_
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v1.5.0"
-git tag v1.5.0
+git commit -m "Release SpotifyDJ v1.5.1"
+git tag v1.5.1
 git push origin main
-git push origin v1.5.0
-gh release create v1.5.0 --title "SpotifyDJ v1.5.0" --notes-file CHANGELOG.md
+git push origin v1.5.1
+gh release create v1.5.1 --title "SpotifyDJ v1.5.1" --notes-file CHANGELOG.md
 ```
 
 Then update the installed integration through HACS/Home Assistant:
