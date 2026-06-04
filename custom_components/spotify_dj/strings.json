@@ -1,0 +1,67 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "SpotifyDJ koppelen",
+        "description": "Voer de koppelcode van je SpotifyDJ apparaat in.",
+        "data": {
+          "pair_code": "Koppelcode",
+          "device_name": "Naam apparaat",
+          "local_url": "Lokale apparaat URL"
+        }
+      },
+      "spotify": {
+        "title": "Spotify verbinden",
+        "data": {
+          "spotify_client_id": "Spotify Client ID",
+          "ha_external_url": "Home Assistant externe URL",
+          "spotify_market": "Spotify regio"
+        }
+      },
+      "voice": {
+        "title": "Spraak en DJ instellingen",
+        "data": {
+          "assist_pipeline_id": "Assist pipeline",
+          "tts_engine": "Stem engine",
+          "tts_language": "Taal",
+          "tts_voice": "Stem",
+          "dj_style": "DJ stijl",
+          "spotify_player": "Spotify speler",
+          "spotify_source": "Spotify bron",
+          "liked_proxy_playlist_uri": "Liked songs playlist",
+          "firmware_repo": "Firmware repository",
+          "firmware_asset_prefix": "Firmware bestandsnaam prefix",
+          "firmware_device": "Firmware apparaat",
+          "firmware_channel": "Firmware kanaal",
+          "max_audio_bytes": "Maximale audio grootte",
+          "allow_ota_on_battery": "OTA toestaan op batterij",
+          "min_battery_for_ota": "Minimale batterij voor OTA"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SpotifyDJ opties",
+        "data": {
+          "assist_pipeline_id": "Assist pipeline",
+          "tts_engine": "Stem engine",
+          "tts_language": "Taal",
+          "tts_voice": "Stem",
+          "dj_style": "DJ stijl",
+          "spotify_player": "Spotify speler",
+          "spotify_source": "Spotify bron",
+          "liked_proxy_playlist_uri": "Liked songs playlist",
+          "firmware_repo": "Firmware repository",
+          "firmware_asset_prefix": "Firmware bestandsnaam prefix",
+          "firmware_device": "Firmware apparaat",
+          "firmware_channel": "Firmware kanaal",
+          "max_audio_bytes": "Maximale audio grootte",
+          "allow_ota_on_battery": "OTA toestaan op batterij",
+          "min_battery_for_ota": "Minimale batterij voor OTA"
+        }
+      }
+    }
+  }
+}
