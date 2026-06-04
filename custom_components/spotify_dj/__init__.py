@@ -14,7 +14,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     DOMAIN, VERSION, API_VOICE, API_PAIR, API_STATUS, API_EVENT, API_SPOTIFY_CALLBACK, PLATFORMS,
-    CONF_SPOTIFY_CLIENT_ID, CONF_SPOTIFY_REFRESH_TOKEN, CONF_SPOTIFY_MARKET, CONF_SPOTIFY_SCOPES,
+    CONF_LOCAL_URL, CONF_SPOTIFY_CLIENT_ID, CONF_SPOTIFY_REFRESH_TOKEN, CONF_SPOTIFY_MARKET, CONF_SPOTIFY_SCOPES,
     DEFAULT_SPOTIFY_MARKET, DEFAULT_SPOTIFY_SCOPES,
 )
 from .http import SpotifyDJPairView, SpotifyDJVoiceView, SpotifyDJStatusView, SpotifyDJEventView, SpotifyDJSpotifyCallbackView
@@ -112,7 +112,10 @@ class SpotifyDJRuntime:
         conf = self.config
         if not conf.get(CONF_SPOTIFY_CLIENT_ID) or not conf.get(CONF_SPOTIFY_REFRESH_TOKEN):
             raise RuntimeError("Spotify OAuth is nog niet geconfigureerd in SpotifyDJ")
-        local_url = self.device_status.get("local_url")
+        local_url = (
+            self.device_status.get("local_url") 
+            or conf.get(CONF_LOCAL_URL)
+        )
         if not local_url:
             device_id = self.device_status.get("device_id") or self.pairing_device_id
             if device_id:
@@ -175,6 +178,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         runtime.device_token = entry.data["device_token"]
     hass.data[DOMAIN][entry.entry_id] = runtime
     hass.data[DOMAIN]["runtime"] = runtime
+
+    # Immediately provision Spotify credentials to the device after setup,
+    # if OAuth succeeded and a local device URL is known.
+    try:
+        await runtime.provision_spotify_credentials(hass)
+        runtime.device_status["spotify_configured"] = True
+        runtime.update(last_error=None)
+        _LOGGER.info("SpotifyDJ Spotify credentials provisioned to device")
+    except Exception as exc:  # noqa: BLE001
+        runtime.update(last_error=f"Spotify provisioning failed: {exc}")
+        _LOGGER.warning(
+            "SpotifyDJ Spotify provisioning deferred/failed: %s",
+            exc,
+        )
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 

@@ -140,18 +140,31 @@ def _entity_options(hass: Any, domain: str, current: Any = "", *, include_empty:
 
 
 async def _assist_pipeline_options(hass: Any, current: Any = "") -> dict[str, str]:
-    """Return Assist pipeline IDs as dropdown options when HA exposes them."""
+    """Return Assist pipeline IDs as dropdown options."""
     options: dict[str, str] = {"": "Default"}
     try:
-        from homeassistant.components.assist_pipeline.pipeline import async_get_pipeline_store
-
-        store = await async_get_pipeline_store(hass)
-        for pipeline in store.async_items():
+        from homeassistant.components.assist_pipeline.pipeline import async_get_pipelines
+        pipelines = await async_get_pipelines(hass)
+        _LOGGER.warning("SpotifyDJ found %s Assist pipelines via async_get_pipelines", len(pipelines))
+        for pipeline in pipelines:
             pipeline_id = getattr(pipeline, "id", "")
+            pipeline_name = getattr(pipeline, "name", "") or pipeline_id
             if pipeline_id:
-                options[pipeline_id] = getattr(pipeline, "name", pipeline_id) or pipeline_id
+                options[pipeline_id] = pipeline_name
     except Exception:  # noqa: BLE001
-        _LOGGER.debug("Could not list Assist pipelines for SpotifyDJ config flow", exc_info=True)
+        _LOGGER.warning("SpotifyDJ async_get_pipelines failed", exc_info=True)
+        try:
+            from homeassistant.components.assist_pipeline.pipeline import async_get_pipeline_store
+            store = await async_get_pipeline_store(hass)
+            items = list(store.async_items())
+            _LOGGER.warning("SpotifyDJ found %s Assist pipelines via pipeline_store", len(items))
+            for pipeline in items:
+                pipeline_id = getattr(pipeline, "id", "")
+                pipeline_name = getattr(pipeline, "name", "") or pipeline_id
+                if pipeline_id:
+                    options[pipeline_id] = pipeline_name
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning("SpotifyDJ async_get_pipeline_store failed", exc_info=True)
     return _options_with_current(options, current)
 
 
@@ -388,21 +401,28 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> "SpotifyDJOptionsFlow":
         """Create options flow."""
-        return SpotifyDJOptionsFlow(config_entry)
+        return SpotifyDJOptionsFlow()
 
 
 class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
     """Handle SpotifyDJ options."""
+    async def async_step_init(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Manage SpotifyDJ options."""
+        config_entry = self.config_entry
+        current = {**config_entry.data, **config_entry.options}
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
-
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        current = {**self.config_entry.data, **self.config_entry.options}
         if user_input is not None:
-            return self.async_create_entry(title="", data=_voice_defaults(user_input))
-
+            return self.async_create_entry(
+                title="",
+                data=_voice_defaults(user_input),
+            )
         return self.async_show_form(
             step_id="init",
-            data_schema=await _voice_schema(self.hass, _voice_defaults(current)),
+            data_schema=await _voice_schema(
+                self.hass,
+                _voice_defaults(current),
+            ),
         )
