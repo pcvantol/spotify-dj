@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 
 ## Current Version
 
-- Home Assistant integration: `2.0.0`
+- Home Assistant integration: `2.1.0`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: SpotifyDJ device
@@ -16,6 +16,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 ## Features
 
 - Pair a SpotifyDJ device with a 6 digit code.
+- Optionally provision WiFi credentials over BLE before normal pairing.
 - Provision a per-device bearer token.
 - Run Spotify OAuth with PKCE from the Home Assistant config flow.
 - Open the Spotify authorization website instead of manually pasting an OAuth result.
@@ -67,15 +68,20 @@ The redirect URI in Spotify must exactly match the Home Assistant external URL p
 
 ## Add SpotifyDJ In Home Assistant
 
-1. Boot the SpotifyDJ device firmware in pairing mode.
-2. Enter the 6 digit pair code shown on the SpotifyDJ device display.
-3. Enter the Spotify Client ID.
-4. Enter the HTTPS Home Assistant external URL, preferably the Nabu Casa URL.
-5. Home Assistant opens the Spotify authorization website.
-6. Approve access in Spotify.
-7. Return to Home Assistant and complete the voice/DJ settings step.
+1. Choose whether the SpotifyDJ device is already on WiFi or needs BLE WiFi provisioning.
+2. If needed, select the `SpotifyDJ xxxx` BLE device and enter WiFi SSID/password.
+3. After BLE success, wait for the device to restart and come online over WiFi.
+4. Enter the 6 digit pair code shown on the SpotifyDJ device display.
+5. Enter the Spotify Client ID.
+6. Enter the HTTPS Home Assistant external URL, preferably the Nabu Casa URL.
+7. Home Assistant opens the Spotify authorization website.
+8. Approve access in Spotify.
+9. Return to Home Assistant and complete the voice/DJ settings step.
 
 The setup flow no longer shows a manual `oauth_result` field.
+
+BLE WiFi provisioning only writes WiFi credentials to the setup-mode device. It
+does not send Spotify credentials, MQTT credentials or device tokens over BLE.
 
 ## Voice And DJ Settings
 
@@ -197,6 +203,16 @@ POST /api/spotify_dj/status
 
 Authenticated device requests use the provisioned bearer token and can include `X-SpotifyDJ-Device-ID`.
 
+BLE setup-mode devices are matched by service UUID:
+
+```text
+7f705000-9f8f-4f1a-9b5f-570071fd0001
+```
+
+WiFi credentials are written as UTF-8 JSON to characteristic
+`7f705001-9f8f-4f1a-9b5f-570071fd0001`; status is read from
+`7f705002-9f8f-4f1a-9b5f-570071fd0001`.
+
 The voice endpoint accepts recognized speech text only:
 
 ```text
@@ -246,11 +262,11 @@ Example manifest:
 
 ```json
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "device": "spotifydj-device",
-  "asset": "spotifydj-device-v2.0.0.bin",
+  "asset": "spotifydj-device-v2.1.0.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-  "min_ha_integration": "2.0.0"
+  "min_ha_integration": "2.1.0"
 }
 ```
 
@@ -262,11 +278,11 @@ Update `custom_components/spotify_dj/manifest.json`, `custom_components/spotify_
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v2.0.0"
-git tag v2.0.0
+git commit -m "Release SpotifyDJ v2.1.0"
+git tag v2.1.0
 git push origin main
-git push origin v2.0.0
-gh release create v2.0.0 --title "SpotifyDJ v2.0.0" --notes-file CHANGELOG.md
+git push origin v2.1.0
+gh release create v2.1.0 --title "SpotifyDJ v2.1.0" --notes-file CHANGELOG.md
 ```
 
 Then update the installed integration through HACS/Home Assistant:

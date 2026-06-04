@@ -2,6 +2,16 @@
   "config": {
     "step": {
       "user": {
+        "title": "SpotifyDJ instellen",
+        "description": "Kies of het SpotifyDJ device al op WiFi zit, of dat je eerst WiFi credentials via Bluetooth wilt schrijven.",
+        "data": {
+          "setup_method": "Setup methode"
+        },
+        "data_description": {
+          "setup_method": "Bluetooth wordt alleen gebruikt voor WiFi credentials. Pairing, Spotify en MQTT provisioning blijven via WiFi lopen."
+        }
+      },
+      "pair": {
         "title": "SpotifyDJ apparaat koppelen",
         "description": "Voer de 6-cijferige koppelcode in die op het SpotifyDJ device-scherm staat. De handmatige apparaat-URL is alleen nodig als mDNS discovery niet werkt.",
         "data": {
@@ -13,6 +23,20 @@
           "pair_code": "De 6-cijferige code op het apparaatdisplay.",
           "device_name": "Leesbare naam voor deze SpotifyDJ remote.",
           "local_url": "Geavanceerde fallback, bijvoorbeeld http://spotifydj-xxxxxxxxxxxx.local."
+        }
+      },
+      "ble_wifi": {
+        "title": "WiFi via Bluetooth provisionen",
+        "description": "Selecteer een SpotifyDJ device in setup mode en schrijf WiFi credentials via BLE. Spotify, MQTT en andere secrets worden niet via BLE verzonden.",
+        "data": {
+          "ble_address": "SpotifyDJ BLE device",
+          "wifi_ssid": "WiFi SSID",
+          "wifi_password": "WiFi wachtwoord"
+        },
+        "data_description": {
+          "ble_address": "Bluetooth adres van het SpotifyDJ setup device.",
+          "wifi_ssid": "WiFi netwerknaam die op het SpotifyDJ device wordt opgeslagen.",
+          "wifi_password": "WiFi wachtwoord. Dit wordt alleen naar de BLE WiFi characteristic gestuurd en niet gelogd."
         }
       },
       "spotify": {
@@ -91,7 +115,10 @@
       "oauth_setup_failed": "Spotify autorisatie kon niet worden gestart. Controleer de Client ID en externe URL en probeer opnieuw.",
       "oauth_not_completed": "Spotify autorisatie is nog niet afgerond. Geef akkoord in Spotify en ga terug naar Home Assistant.",
       "oauth_failed": "Spotify autorisatie is mislukt. Start de Spotify stap opnieuw en controleer de Redirect URI in je Spotify app.",
-      "spotify_player_required": "Kies de Spotify media player die SpotifyDJ gebruikt voor playback en TTS."
+      "spotify_player_required": "Kies de Spotify media player die SpotifyDJ gebruikt voor playback en TTS.",
+      "ble_device_required": "Selecteer een SpotifyDJ BLE device of voer het Bluetooth adres in.",
+      "wifi_ssid_required": "Vul de WiFi SSID in om te provisionen.",
+      "ble_wifi_failed": "WiFi provisioning via Bluetooth is mislukt. Controleer device, SSID en wachtwoord en probeer opnieuw."
     },
     "abort": {
       "already_configured": "Dit SpotifyDJ apparaat is al geconfigureerd."

@@ -20,6 +20,9 @@ CONFIG_FLOW_ERROR_KEYS = {
     "oauth_not_completed",
     "oauth_failed",
     "spotify_player_required",
+    "ble_device_required",
+    "wifi_ssid_required",
+    "ble_wifi_failed",
 }
 
 

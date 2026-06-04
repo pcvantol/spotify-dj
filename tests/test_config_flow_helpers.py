@@ -12,15 +12,24 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def install_homeassistant_stubs() -> None:
-    if "homeassistant" in sys.modules:
-        return
-
-    homeassistant = types.ModuleType("homeassistant")
-    config_entries = types.ModuleType("homeassistant.config_entries")
-    core = types.ModuleType("homeassistant.core")
-    data_entry_flow = types.ModuleType("homeassistant.data_entry_flow")
-    voluptuous = types.ModuleType("voluptuous")
-    aiohttp = types.ModuleType("aiohttp")
+    homeassistant = sys.modules.setdefault(
+        "homeassistant",
+        types.ModuleType("homeassistant"),
+    )
+    config_entries = sys.modules.setdefault(
+        "homeassistant.config_entries",
+        types.ModuleType("homeassistant.config_entries"),
+    )
+    core = sys.modules.setdefault(
+        "homeassistant.core",
+        types.ModuleType("homeassistant.core"),
+    )
+    data_entry_flow = sys.modules.setdefault(
+        "homeassistant.data_entry_flow",
+        types.ModuleType("homeassistant.data_entry_flow"),
+    )
+    voluptuous = sys.modules.setdefault("voluptuous", types.ModuleType("voluptuous"))
+    aiohttp = sys.modules.setdefault("aiohttp", types.ModuleType("aiohttp"))
 
     class ConfigFlow:
         def __init_subclass__(cls, **kwargs):
@@ -59,18 +68,15 @@ def install_homeassistant_stubs() -> None:
     aiohttp.ClientTimeout = ClientTimeout
 
     homeassistant.config_entries = config_entries
-    sys.modules["homeassistant"] = homeassistant
-    sys.modules["homeassistant.config_entries"] = config_entries
-    sys.modules["homeassistant.core"] = core
-    sys.modules["homeassistant.data_entry_flow"] = data_entry_flow
-    sys.modules["voluptuous"] = voluptuous
-    sys.modules["aiohttp"] = aiohttp
-
-    helpers = types.ModuleType("homeassistant.helpers")
-    aiohttp_client = types.ModuleType("homeassistant.helpers.aiohttp_client")
+    helpers = sys.modules.setdefault(
+        "homeassistant.helpers",
+        types.ModuleType("homeassistant.helpers"),
+    )
+    aiohttp_client = sys.modules.setdefault(
+        "homeassistant.helpers.aiohttp_client",
+        types.ModuleType("homeassistant.helpers.aiohttp_client"),
+    )
     aiohttp_client.async_get_clientsession = lambda hass: None
-    sys.modules["homeassistant.helpers"] = helpers
-    sys.modules["homeassistant.helpers.aiohttp_client"] = aiohttp_client
 
     package = types.ModuleType("custom_components.spotify_dj")
     package.__path__ = [str(ROOT / "custom_components" / "spotify_dj")]
@@ -249,6 +255,14 @@ class ConfigFlowHelperTest(unittest.TestCase):
 
         self.assertNotIn(self.const.CONF_LOCAL_URL, basic_keys)
         self.assertIn(self.const.CONF_LOCAL_URL, advanced_keys)
+
+    def test_ble_wifi_schema_uses_discovered_devices_when_available(self) -> None:
+        schema = self.config_flow._ble_wifi_schema({"AA:BB": "SpotifyDJ 1234"})
+
+        keys = {marker.key for marker in schema}
+        self.assertIn(self.const.CONF_BLE_ADDRESS, keys)
+        self.assertIn(self.const.CONF_WIFI_SSID, keys)
+        self.assertIn(self.const.CONF_WIFI_PASSWORD, keys)
 
 
 if __name__ == "__main__":

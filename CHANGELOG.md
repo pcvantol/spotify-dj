@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0
+## 2.1.0
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -23,5 +23,7 @@
 - Add complete readable config-flow/options-flow labels, descriptions, titles and error messages in Dutch and English.
 - Improve developer test action docs, responses and safe debug logging.
 - Refactor setup/service helpers to reduce handler complexity and improve testability.
+- Add optional BLE WiFi provisioning in the config flow using the SpotifyDJ setup service UUID.
+- Add Bluetooth manifest matcher and dependencies for HA Bluetooth adapters/proxies.
 - Add lightweight unit tests for OAuth helpers, config-flow helpers and translation coverage.
 - Refresh README and AGENTS instructions for the current HACS release workflow.

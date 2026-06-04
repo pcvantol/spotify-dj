@@ -17,12 +17,17 @@ Belangrijke repos:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.0.0`.
+- Actuele integratieversie: `2.1.0`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
 - Redirect path: `/api/spotify_dj/spotify/callback`
 - Geen handmatig `oauth_result` veld tonen.
+- Config flow ondersteunt optionele BLE WiFi provisioning vóór normale pairing.
+- BLE provisioning schrijft alleen WiFi SSID/password naar het SpotifyDJ device; geen Spotify credentials, MQTT credentials of device tokens via BLE.
+- BLE service UUID: `7f705000-9f8f-4f1a-9b5f-570071fd0001`
+- BLE WiFi write characteristic: `7f705001-9f8f-4f1a-9b5f-570071fd0001`
+- BLE status characteristic: `7f705002-9f8f-4f1a-9b5f-570071fd0001`
 - Voice velden moeten defaults hebben.
 - Koppelcode uit de HA config-flow moet worden opgeslagen en ESP pairing moet een afwijkende koppelcode weigeren.
 - `spotify_player` is verplicht in config-flow/options-flow.

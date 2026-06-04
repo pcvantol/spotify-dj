@@ -17,6 +17,7 @@ from custom_components.spotify_dj import register_http_views
 from .const import (
     CONF_ALLOW_OTA_ON_BATTERY,
     CONF_ASSIST_PIPELINE_ID,
+    CONF_BLE_ADDRESS,
     CONF_DEVICE_ID,
     CONF_DEVICE_NAME,
     CONF_DEVICE_TOKEN,
@@ -45,6 +46,9 @@ from .const import (
     CONF_TTS_ENGINE,
     CONF_TTS_LANGUAGE,
     CONF_TTS_VOICE,
+    CONF_SETUP_METHOD,
+    CONF_WIFI_PASSWORD,
+    CONF_WIFI_SSID,
     DEFAULT_ASSIST_PIPELINE_ID,
     DEFAULT_DEVICE_NAME,
     DEFAULT_DJ_STYLE,
@@ -55,6 +59,7 @@ from .const import (
     DEFAULT_MAX_AUDIO_BYTES,
     DEFAULT_MIN_BATTERY_FOR_OTA,
     DEFAULT_MQTT_PORT,
+    DEFAULT_SETUP_METHOD,
     DEFAULT_SPOTIFY_MARKET,
     DEFAULT_SPOTIFY_SCOPES,
     DEFAULT_TTS_ENGINE,
@@ -63,7 +68,10 @@ from .const import (
     DJ_STYLE_NAMES,
     DJ_STYLES,
     DOMAIN,
+    SETUP_METHOD_BLE_WIFI,
+    SETUP_METHOD_PAIR_EXISTING,
 )
+from .ble import async_discover_devices, async_provision_wifi
 from .spotify_oauth import build_authorize_url, build_redirect_uri, create_code_verifier
 
 _LOGGER = logging.getLogger(__name__)
@@ -76,6 +84,10 @@ SPOTIFY_MARKET_NAMES = {
     "FR": "France",
     "GB": "United Kingdom",
     "US": "United States",
+}
+SETUP_METHOD_NAMES = {
+    SETUP_METHOD_PAIR_EXISTING: "Pair existing WiFi device",
+    SETUP_METHOD_BLE_WIFI: "Provision WiFi over Bluetooth",
 }
 
 ADVANCED_VOICE_FIELDS = (
@@ -217,6 +229,16 @@ def _entity_options(
                 exc_info=True,
             )
     return _options_with_current(options, current)
+
+
+def _ble_wifi_schema(devices: dict[str, str]) -> dict[Any, Any]:
+    """Build BLE WiFi provisioning fields with discovered devices when present."""
+    device_validator = vol.In(devices) if devices else str
+    return {
+        vol.Required(CONF_BLE_ADDRESS): device_validator,
+        vol.Required(CONF_WIFI_SSID): str,
+        vol.Optional(CONF_WIFI_PASSWORD, default=""): str,
+    }
 
 
 def _voice_name(voice: Any) -> tuple[str, str] | None:
@@ -490,6 +512,68 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self,
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
+        """Choose setup path."""
+        if user_input is not None:
+            method = user_input.get(CONF_SETUP_METHOD, DEFAULT_SETUP_METHOD)
+            if method == SETUP_METHOD_BLE_WIFI:
+                return await self.async_step_ble_wifi()
+            return await self.async_step_pair()
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_SETUP_METHOD,
+                        default=DEFAULT_SETUP_METHOD,
+                    ): vol.In(SETUP_METHOD_NAMES),
+                }
+            ),
+        )
+
+    async def async_step_ble_wifi(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Provision WiFi credentials to a SpotifyDJ setup device over BLE."""
+        errors: dict[str, str] = {}
+        devices = await async_discover_devices(self.hass)
+
+        if user_input is not None:
+            address = str(user_input.get(CONF_BLE_ADDRESS, "")).strip()
+            ssid = str(user_input.get(CONF_WIFI_SSID, "")).strip()
+            password = str(user_input.get(CONF_WIFI_PASSWORD, ""))
+            if not address:
+                errors[CONF_BLE_ADDRESS] = "ble_device_required"
+            elif not ssid:
+                errors[CONF_WIFI_SSID] = "wifi_ssid_required"
+            else:
+                try:
+                    status = await async_provision_wifi(
+                        self.hass,
+                        address,
+                        ssid,
+                        password,
+                    )
+                    _LOGGER.debug(
+                        "SpotifyDJ BLE WiFi provisioning completed: %s",
+                        status.get("state"),
+                    )
+                    return await self.async_step_pair()
+                except Exception as exc:  # noqa: BLE001
+                    _LOGGER.warning("SpotifyDJ BLE WiFi provisioning failed: %s", exc)
+                    errors["base"] = "ble_wifi_failed"
+
+        return self.async_show_form(
+            step_id="ble_wifi",
+            data_schema=vol.Schema(_ble_wifi_schema(devices)),
+            errors=errors,
+        )
+
+    async def async_step_pair(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
         """Pair the SpotifyDJ device using the displayed pair code."""
         errors: dict[str, str] = {}
 
@@ -516,7 +600,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self.async_step_spotify()
 
         return self.async_show_form(
-            step_id="user",
+            step_id="pair",
             data_schema=vol.Schema(self._user_schema()),
             errors=errors,
         )

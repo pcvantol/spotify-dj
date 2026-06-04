@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "spotify_dj"
 NAME = "SpotifyDJ"
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 
 API_BASE = "/api/spotify_dj"
 API_PAIR = f"{API_BASE}/pair"
@@ -18,6 +18,10 @@ CONF_DEVICE_TOKEN = "device_token"
 CONF_LOCAL_URL = "local_url"
 CONF_HA_EXTERNAL_URL = "ha_external_url"
 CONF_PAIR_CODE = "pair_code"
+CONF_SETUP_METHOD = "setup_method"
+CONF_BLE_ADDRESS = "ble_address"
+CONF_WIFI_SSID = "wifi_ssid"
+CONF_WIFI_PASSWORD = "wifi_password"
 
 CONF_SPOTIFY_CLIENT_ID = "spotify_client_id"
 CONF_SPOTIFY_REFRESH_TOKEN = "spotify_refresh_token"
@@ -51,6 +55,9 @@ CONF_ALLOW_OTA_ON_BATTERY = "allow_ota_on_battery"
 CONF_MIN_BATTERY_FOR_OTA = "min_battery_for_ota"
 
 DEFAULT_DEVICE_NAME = "SpotifyDJ"
+DEFAULT_SETUP_METHOD = "pair_existing"
+SETUP_METHOD_PAIR_EXISTING = "pair_existing"
+SETUP_METHOD_BLE_WIFI = "ble_wifi"
 DEFAULT_SPOTIFY_MARKET = "NL"
 DEFAULT_MAX_AUDIO_BYTES = 2_000_000
 DEFAULT_FIRMWARE_REPO = "pcvantol/spotify-dj-firmware"

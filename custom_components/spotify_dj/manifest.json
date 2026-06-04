@@ -1,11 +1,13 @@
 {
   "domain": "spotify_dj",
   "name": "SpotifyDJ",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "documentation": "https://github.com/pcvantol/spotify-dj",
   "issue_tracker": "https://github.com/pcvantol/spotify-dj/issues",
   "dependencies": [
     "http",
+    "bluetooth",
+    "bluetooth_adapters",
     "conversation",
     "assist_pipeline",
     "tts",
@@ -19,6 +21,11 @@
   "requirements": [
     "awesomeversion>=23.8.0",
     "aiohttp>=3.9.0"
+  ],
+  "bluetooth": [
+    {
+      "service_uuid": "7f705000-9f8f-4f1a-9b5f-570071fd0001"
+    }
   ],
   "integration_type": "device"
 }

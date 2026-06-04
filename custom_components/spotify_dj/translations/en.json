@@ -2,6 +2,16 @@
   "config": {
     "step": {
       "user": {
+        "title": "Set up SpotifyDJ",
+        "description": "Choose whether the SpotifyDJ device is already on WiFi, or provision WiFi credentials over Bluetooth first.",
+        "data": {
+          "setup_method": "Setup method"
+        },
+        "data_description": {
+          "setup_method": "Use Bluetooth only to write WiFi credentials. Pairing, Spotify and MQTT provisioning still happen over WiFi."
+        }
+      },
+      "pair": {
         "title": "Pair SpotifyDJ device",
         "description": "Enter the 6 digit pairing code shown on the SpotifyDJ device display. The manual device URL is only needed when mDNS discovery is unavailable.",
         "data": {
@@ -13,6 +23,20 @@
           "pair_code": "The 6 digit code shown on the device display.",
           "device_name": "Friendly name for this SpotifyDJ remote.",
           "local_url": "Advanced fallback, for example http://spotifydj-xxxxxxxxxxxx.local."
+        }
+      },
+      "ble_wifi": {
+        "title": "Provision WiFi over Bluetooth",
+        "description": "Select a SpotifyDJ device in setup mode and write WiFi credentials over BLE. No Spotify, MQTT or other secrets are sent over BLE.",
+        "data": {
+          "ble_address": "SpotifyDJ BLE device",
+          "wifi_ssid": "WiFi SSID",
+          "wifi_password": "WiFi password"
+        },
+        "data_description": {
+          "ble_address": "Bluetooth address of the SpotifyDJ setup device.",
+          "wifi_ssid": "WiFi network name to save on the SpotifyDJ device.",
+          "wifi_password": "WiFi password. This is sent only to the BLE WiFi characteristic and is not logged."
         }
       },
       "spotify": {
@@ -91,7 +115,10 @@
       "oauth_setup_failed": "Spotify authorization could not be started. Check the Client ID and external URL, then try again.",
       "oauth_not_completed": "Spotify authorization has not completed yet. Approve access in Spotify and return to Home Assistant.",
       "oauth_failed": "Spotify authorization failed. Start the Spotify step again and check the redirect URI in your Spotify app.",
-      "spotify_player_required": "Select the Spotify media player SpotifyDJ should use for playback and TTS."
+      "spotify_player_required": "Select the Spotify media player SpotifyDJ should use for playback and TTS.",
+      "ble_device_required": "Select a SpotifyDJ BLE device or enter its Bluetooth address.",
+      "wifi_ssid_required": "Enter the WiFi SSID to provision.",
+      "ble_wifi_failed": "WiFi provisioning over Bluetooth failed. Check the selected device, SSID and password, then try again."
     },
     "abort": {
       "already_configured": "This SpotifyDJ device is already configured."
