@@ -144,27 +144,21 @@ async def _assist_pipeline_options(hass: Any, current: Any = "") -> dict[str, st
     options: dict[str, str] = {"": "Default"}
     try:
         from homeassistant.components.assist_pipeline.pipeline import async_get_pipelines
-        pipelines = await async_get_pipelines(hass)
-        _LOGGER.warning("SpotifyDJ found %s Assist pipelines via async_get_pipelines", len(pipelines))
+        pipelines = async_get_pipelines(hass)  # niet awaiten
+        _LOGGER.debug(
+            "SpotifyDJ found %s Assist pipelines",
+            len(pipelines),
+        )
         for pipeline in pipelines:
             pipeline_id = getattr(pipeline, "id", "")
             pipeline_name = getattr(pipeline, "name", "") or pipeline_id
             if pipeline_id:
                 options[pipeline_id] = pipeline_name
     except Exception:  # noqa: BLE001
-        _LOGGER.warning("SpotifyDJ async_get_pipelines failed", exc_info=True)
-        try:
-            from homeassistant.components.assist_pipeline.pipeline import async_get_pipeline_store
-            store = await async_get_pipeline_store(hass)
-            items = list(store.async_items())
-            _LOGGER.warning("SpotifyDJ found %s Assist pipelines via pipeline_store", len(items))
-            for pipeline in items:
-                pipeline_id = getattr(pipeline, "id", "")
-                pipeline_name = getattr(pipeline, "name", "") or pipeline_id
-                if pipeline_id:
-                    options[pipeline_id] = pipeline_name
-        except Exception:  # noqa: BLE001
-            _LOGGER.warning("SpotifyDJ async_get_pipeline_store failed", exc_info=True)
+        _LOGGER.warning(
+            "SpotifyDJ could not list Assist pipelines",
+            exc_info=True,
+        )
     return _options_with_current(options, current)
 
 
