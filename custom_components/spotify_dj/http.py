@@ -237,10 +237,12 @@ class SpotifyDJSpotifyCallbackView(HomeAssistantView):
                     CONF_SPOTIFY_MARKET: ctx.get("market", DEFAULT_SPOTIFY_MARKET),
                     CONF_SPOTIFY_SCOPES: ctx.get("scopes", DEFAULT_SPOTIFY_SCOPES),
                 }
+                flow_id = ctx.get("flow_id")
+                if flow_id:
+                    await hass.config_entries.flow.async_configure(flow_id, {"state": state})
                 return self.Response(
                     text=(
-                        "SpotifyDJ Spotify OAuth is gelukt. Kopieer deze state en plak hem in de SpotifyDJ setup: "
-                        f"{state}"
+                        "SpotifyDJ Spotify OAuth is gelukt. Je kunt dit venster sluiten en teruggaan naar Home Assistant."
                     ),
                     content_type="text/plain",
                 )

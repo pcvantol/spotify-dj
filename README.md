@@ -68,18 +68,26 @@ POST /api/spotify_dj/event
 GET  /api/spotify_dj/spotify/callback
 ```
 
-## Release workflow
+## HACS release workflow
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v1.0.0"
-git tag v1.0.0
+git commit -m "Release SpotifyDJ v1.4.3"
+git tag v1.4.3
 git push origin main
-git push origin v1.0.0
+git push origin v1.4.3
+gh release create v1.4.3 --title "SpotifyDJ v1.4.3" --notes-file CHANGELOG.md
 ```
 
-Then create a GitHub Release for `v1.0.0`.
+Then update the installed integration through HACS/Home Assistant:
 
+1. Open HACS in Home Assistant.
+2. Open SpotifyDJ and choose **Redownload** or refresh HACS update information.
+3. Select and install the new `v1.4.3` release from HACS.
+4. Restart Home Assistant.
+5. Go to **Settings → Devices & services**.
+6. Add SpotifyDJ again, or remove and re-add the SpotifyDJ integration if needed.
+7. Complete pairing and Spotify OAuth in the SpotifyDJ config flow.
 
 ## v1.3.0 hotfix
 

@@ -2,7 +2,8 @@
   "config": {
     "step": {
       "user": {"title": "SpotifyDJ koppelen", "description": "Voer de 6-cijferige koppelcode in die op het LilyGO-scherm staat.", "data": {"pair_code": "Koppelcode", "device_name": "Apparaatnaam", "local_url": "Lokale apparaat-URL"}},
-      "spotify": {"title": "Spotify koppelen", "description": "Vul de Client ID van je Spotify Developer App in. PKCE gebruikt geen client secret.", "data": {"spotify_client_id": "Spotify Client ID", "spotify_market": "Market"}},
+      "spotify": {"title": "Spotify koppelen", "description": "Vul de Client ID van je Spotify Developer App en de HTTPS externe Home Assistant URL in. PKCE gebruikt geen client secret.", "data": {"spotify_client_id": "Spotify Client ID", "ha_external_url": "Home Assistant externe URL", "spotify_market": "Market"}},
+      "spotify_oauth": {"title": "SpotifyDJ autoriseren bij Spotify", "description": "Home Assistant opent Spotify in je browser. Na akkoord ga je terug naar Home Assistant om de setup af te maken."},
       "voice": {"title": "Stem en DJ-stijl", "data": {"assist_pipeline_id": "Assist pipeline ID", "tts_engine": "TTS engine", "tts_language": "TTS taal", "tts_voice": "TTS stem", "dj_profile": "DJ-profiel"}}
     },
     "error": {"invalid_pair_code": "Voer een 6-cijferige koppelcode in."},

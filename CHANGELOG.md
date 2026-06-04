@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.3
+
+- Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
+- Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
+- Keep the Nabu Casa callback path `/api/spotify_dj/spotify/callback` supported.
+
 ## 1.3.0
 
 - Fix config flow loading regressions.

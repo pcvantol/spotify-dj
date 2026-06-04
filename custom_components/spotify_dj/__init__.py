@@ -13,7 +13,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
-    DOMAIN, API_VOICE, API_PAIR, API_STATUS, API_EVENT, API_SPOTIFY_CALLBACK, PLATFORMS,
+    DOMAIN, VERSION, API_VOICE, API_PAIR, API_STATUS, API_EVENT, API_SPOTIFY_CALLBACK, PLATFORMS,
     CONF_SPOTIFY_CLIENT_ID, CONF_SPOTIFY_REFRESH_TOKEN, CONF_SPOTIFY_MARKET, CONF_SPOTIFY_SCOPES,
     DEFAULT_SPOTIFY_MARKET, DEFAULT_SPOTIFY_SCOPES,
 )
@@ -214,7 +214,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(DOMAIN, "provision_spotify_credentials", handle_provision_spotify, supports_response="optional")
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    _LOGGER.info("SpotifyDJ v1.0.0 loaded")
+    _LOGGER.info("SpotifyDJ v%s loaded", VERSION)
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
