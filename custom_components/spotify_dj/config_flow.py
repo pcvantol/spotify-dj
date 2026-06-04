@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import secrets
 from typing import Any
+from urllib.parse import urlparse
 
 import voluptuous as vol
 
@@ -57,7 +58,7 @@ from .const import (
     DEFAULT_TTS_ENGINE,
     DEFAULT_TTS_LANGUAGE,
     DEFAULT_TTS_VOICE,
-    DJ_STYLE_NAMES,
+DJ_STYLE_NAMES,
     DJ_STYLES,
     DOMAIN,
 )
@@ -68,6 +69,20 @@ from .spotify_oauth import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+FIRMWARE_CHANNEL_NAMES = {
+    "stable": "Stable",
+    "beta": "Beta",
+}
+
+SPOTIFY_MARKET_NAMES = {
+    "NL": "Netherlands",
+    "BE": "Belgium",
+    "DE": "Germany",
+    "FR": "France",
+    "GB": "United Kingdom",
+    "US": "United States",
+}
 
 
 def _clean(value: Any, default: Any = "") -> Any:
@@ -90,6 +105,84 @@ def _int(value: Any, default: int) -> int:
         return int(_clean(value, default))
     except (TypeError, ValueError):
         return default
+
+
+def _is_https_url(value: str) -> bool:
+    parsed = urlparse(value)
+    return parsed.scheme == "https" and bool(parsed.netloc)
+
+
+def _options_with_current(options: dict[str, str], current: Any = "") -> dict[str, str]:
+    """Keep stored free-text values selectable after switching to dropdowns."""
+    value = _clean(current, "")
+    merged = dict(options)
+    if value and value not in merged:
+        merged[value] = str(value)
+    return merged
+
+
+def _entity_options(hass: Any, domain: str, current: Any = "", *, include_empty: bool = True) -> dict[str, str]:
+    """Return HA entity IDs as dropdown options."""
+    options: dict[str, str] = {"": "Default"} if include_empty else {}
+    states = getattr(hass, "states", None)
+    entity_ids = []
+    if states and hasattr(states, "async_entity_ids"):
+        try:
+            entity_ids = list(states.async_entity_ids(domain))
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug("Could not list %s entities for SpotifyDJ config flow", domain, exc_info=True)
+    for entity_id in sorted(entity_ids):
+        state = states.get(entity_id) if hasattr(states, "get") else None
+        name = getattr(state, "name", None) or entity_id
+        options[entity_id] = f"{name} ({entity_id})"
+    return _options_with_current(options, current)
+
+
+async def _assist_pipeline_options(hass: Any, current: Any = "") -> dict[str, str]:
+    """Return Assist pipeline IDs as dropdown options when HA exposes them."""
+    options: dict[str, str] = {"": "Default"}
+    try:
+        from homeassistant.components.assist_pipeline.pipeline import async_get_pipeline_store
+
+        store = await async_get_pipeline_store(hass)
+        for pipeline in store.async_items():
+            pipeline_id = getattr(pipeline, "id", "")
+            if pipeline_id:
+                options[pipeline_id] = getattr(pipeline, "name", pipeline_id) or pipeline_id
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("Could not list Assist pipelines for SpotifyDJ config flow", exc_info=True)
+    return _options_with_current(options, current)
+
+
+async def _voice_schema(hass: Any, defaults: dict[str, Any]) -> vol.Schema:
+    """Build a voice/options schema with dropdowns where HA can provide choices."""
+    assist_options = await _assist_pipeline_options(hass, defaults.get(CONF_ASSIST_PIPELINE_ID, ""))
+    tts_options = _entity_options(hass, "tts", defaults.get(CONF_TTS_ENGINE, DEFAULT_TTS_ENGINE))
+    player_options = _entity_options(hass, "media_player", defaults.get(CONF_SPOTIFY_PLAYER, ""))
+    firmware_channel_options = _options_with_current(
+        FIRMWARE_CHANNEL_NAMES,
+        defaults.get(CONF_FIRMWARE_CHANNEL, DEFAULT_FIRMWARE_CHANNEL),
+    )
+
+    return vol.Schema(
+        {
+            vol.Optional(CONF_ASSIST_PIPELINE_ID, default=defaults.get(CONF_ASSIST_PIPELINE_ID, "")): vol.In(assist_options),
+            vol.Optional(CONF_TTS_ENGINE, default=defaults.get(CONF_TTS_ENGINE, DEFAULT_TTS_ENGINE)): vol.In(tts_options),
+            vol.Optional(CONF_TTS_LANGUAGE, default=defaults.get(CONF_TTS_LANGUAGE, DEFAULT_TTS_LANGUAGE)): str,
+            vol.Optional(CONF_TTS_VOICE, default=defaults.get(CONF_TTS_VOICE, "")): str,
+            vol.Optional(CONF_DJ_STYLE, default=defaults.get(CONF_DJ_STYLE, DEFAULT_DJ_STYLE)): vol.In(DJ_STYLE_NAMES),
+            vol.Optional(CONF_SPOTIFY_PLAYER, default=defaults.get(CONF_SPOTIFY_PLAYER, "")): vol.In(player_options),
+            vol.Optional(CONF_SPOTIFY_SOURCE, default=defaults.get(CONF_SPOTIFY_SOURCE, "")): str,
+            vol.Optional(CONF_LIKED_PROXY, default=defaults.get(CONF_LIKED_PROXY, "")): str,
+            vol.Optional(CONF_FIRMWARE_REPO, default=defaults.get(CONF_FIRMWARE_REPO, DEFAULT_FIRMWARE_REPO)): str,
+            vol.Optional(CONF_FIRMWARE_ASSET_PREFIX, default=defaults.get(CONF_FIRMWARE_ASSET_PREFIX, DEFAULT_FIRMWARE_ASSET_PREFIX)): str,
+            vol.Optional(CONF_FIRMWARE_DEVICE, default=defaults.get(CONF_FIRMWARE_DEVICE, DEFAULT_FIRMWARE_DEVICE)): str,
+            vol.Optional(CONF_FIRMWARE_CHANNEL, default=defaults.get(CONF_FIRMWARE_CHANNEL, DEFAULT_FIRMWARE_CHANNEL)): vol.In(firmware_channel_options),
+            vol.Optional(CONF_MAX_AUDIO_BYTES, default=defaults.get(CONF_MAX_AUDIO_BYTES, DEFAULT_MAX_AUDIO_BYTES)): int,
+            vol.Optional(CONF_ALLOW_OTA_ON_BATTERY, default=defaults.get(CONF_ALLOW_OTA_ON_BATTERY, False)): bool,
+            vol.Optional(CONF_MIN_BATTERY_FOR_OTA, default=defaults.get(CONF_MIN_BATTERY_FOR_OTA, DEFAULT_MIN_BATTERY_FOR_OTA)): int,
+        }
+    )
 
 
 def _voice_defaults(data: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -134,7 +227,9 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             pair_code = str(user_input.get(CONF_PAIR_CODE, "")).strip()
-            if len(pair_code) != 6 or not pair_code.isdigit():
+            if not pair_code:
+                errors[CONF_PAIR_CODE] = "missing_pair_code"
+            elif len(pair_code) != 6 or not pair_code.isdigit():
                 errors[CONF_PAIR_CODE] = "invalid_pair_code"
             else:
                 device_id = f"spotifydj-{pair_code}"
@@ -168,40 +263,48 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             client_id = str(user_input.get(CONF_SPOTIFY_CLIENT_ID, "")).strip()
             external_url = str(user_input.get(CONF_HA_EXTERNAL_URL, "")).strip().rstrip("/")
             if not client_id:
-                errors[CONF_SPOTIFY_CLIENT_ID] = "required"
+                errors[CONF_SPOTIFY_CLIENT_ID] = "spotify_client_id_required"
+            elif not external_url:
+                errors[CONF_HA_EXTERNAL_URL] = "external_url_required"
             elif not external_url.startswith("https://"):
-                errors[CONF_HA_EXTERNAL_URL] = "https_required"
+                errors[CONF_HA_EXTERNAL_URL] = "external_url_https_required"
+            elif not _is_https_url(external_url):
+                errors[CONF_HA_EXTERNAL_URL] = "external_url_invalid"
             else:
-                redirect_uri = build_redirect_uri(external_url)
-                self._spotify = {
-                    CONF_SPOTIFY_CLIENT_ID: client_id,
-                    CONF_HA_EXTERNAL_URL: external_url,
-                    CONF_SPOTIFY_MARKET: _clean(user_input.get(CONF_SPOTIFY_MARKET), DEFAULT_SPOTIFY_MARKET),
-                    CONF_SPOTIFY_SCOPES: DEFAULT_SPOTIFY_SCOPES,
-                }
-                self._oauth = {
-                    "state": secrets.token_urlsafe(24),
-                    "code_verifier": create_code_verifier(),
-                    "redirect_uri": redirect_uri,
-                }
-                authorize_url = build_authorize_url(
-                    client_id,
-                    redirect_uri,
-                    DEFAULT_SPOTIFY_SCOPES,
-                    self._oauth["state"],
-                    self._oauth["code_verifier"],
-                )
-                pending = self.hass.data.setdefault(DOMAIN, {}).setdefault("config_flow_oauth_pending", {})
-                pending[self._oauth["state"]] = {
-                    "flow_id": self.flow_id,
-                    "client_id": client_id,
-                    "code_verifier": self._oauth["code_verifier"],
-                    "redirect_uri": redirect_uri,
-                    "market": self._spotify[CONF_SPOTIFY_MARKET],
-                    "scopes": DEFAULT_SPOTIFY_SCOPES,
-                }
-                self._oauth["authorize_url"] = authorize_url
-                return await self.async_step_spotify_oauth()
+                try:
+                    redirect_uri = build_redirect_uri(external_url)
+                    self._spotify = {
+                        CONF_SPOTIFY_CLIENT_ID: client_id,
+                        CONF_HA_EXTERNAL_URL: external_url,
+                        CONF_SPOTIFY_MARKET: _clean(user_input.get(CONF_SPOTIFY_MARKET), DEFAULT_SPOTIFY_MARKET),
+                        CONF_SPOTIFY_SCOPES: DEFAULT_SPOTIFY_SCOPES,
+                    }
+                    self._oauth = {
+                        "state": secrets.token_urlsafe(24),
+                        "code_verifier": create_code_verifier(),
+                        "redirect_uri": redirect_uri,
+                    }
+                    authorize_url = build_authorize_url(
+                        client_id,
+                        redirect_uri,
+                        DEFAULT_SPOTIFY_SCOPES,
+                        self._oauth["state"],
+                        self._oauth["code_verifier"],
+                    )
+                    pending = self.hass.data.setdefault(DOMAIN, {}).setdefault("config_flow_oauth_pending", {})
+                    pending[self._oauth["state"]] = {
+                        "flow_id": self.flow_id,
+                        "client_id": client_id,
+                        "code_verifier": self._oauth["code_verifier"],
+                        "redirect_uri": redirect_uri,
+                        "market": self._spotify[CONF_SPOTIFY_MARKET],
+                        "scopes": DEFAULT_SPOTIFY_SCOPES,
+                    }
+                    self._oauth["authorize_url"] = authorize_url
+                    return await self.async_step_spotify_oauth()
+                except Exception:  # noqa: BLE001
+                    _LOGGER.exception("Could not start Spotify OAuth")
+                    errors["base"] = "oauth_setup_failed"
 
         return self.async_show_form(
             step_id="spotify",
@@ -209,7 +312,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_SPOTIFY_CLIENT_ID): str,
                     vol.Required(CONF_HA_EXTERNAL_URL): str,
-                    vol.Optional(CONF_SPOTIFY_MARKET, default=DEFAULT_SPOTIFY_MARKET): str,
+                    vol.Optional(CONF_SPOTIFY_MARKET, default=DEFAULT_SPOTIFY_MARKET): vol.In(SPOTIFY_MARKET_NAMES),
                 }
             ),
             errors=errors,
@@ -244,6 +347,13 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if errors:
             return self.async_show_form(step_id="spotify_oauth", data_schema=vol.Schema({}), errors=errors)
 
+        if not self._oauth.get("authorize_url"):
+            return self.async_show_form(
+                step_id="spotify_oauth",
+                data_schema=vol.Schema({}),
+                errors={"base": "oauth_setup_failed"},
+            )
+
         return self.async_external_step(
             step_id="spotify_oauth",
             url=self._oauth["authorize_url"],
@@ -266,25 +376,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="voice",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(CONF_ASSIST_PIPELINE_ID, default=""): str,
-                    vol.Optional(CONF_TTS_ENGINE, default=DEFAULT_TTS_ENGINE): str,
-                    vol.Optional(CONF_TTS_LANGUAGE, default=DEFAULT_TTS_LANGUAGE): str,
-                    vol.Optional(CONF_TTS_VOICE, default=""): str,
-                    vol.Optional(CONF_DJ_STYLE, default=DEFAULT_DJ_STYLE): vol.In(DJ_STYLE_NAMES),
-                    vol.Optional(CONF_SPOTIFY_PLAYER, default=""): str,
-                    vol.Optional(CONF_SPOTIFY_SOURCE, default=""): str,
-                    vol.Optional(CONF_LIKED_PROXY, default=""): str,
-                    vol.Optional(CONF_FIRMWARE_REPO, default=DEFAULT_FIRMWARE_REPO): str,
-                    vol.Optional(CONF_FIRMWARE_ASSET_PREFIX, default=DEFAULT_FIRMWARE_ASSET_PREFIX): str,
-                    vol.Optional(CONF_FIRMWARE_DEVICE, default=DEFAULT_FIRMWARE_DEVICE): str,
-                    vol.Optional(CONF_FIRMWARE_CHANNEL, default=DEFAULT_FIRMWARE_CHANNEL): str,
-                    vol.Optional(CONF_MAX_AUDIO_BYTES, default=DEFAULT_MAX_AUDIO_BYTES): int,
-                    vol.Optional(CONF_ALLOW_OTA_ON_BATTERY, default=False): bool,
-                    vol.Optional(CONF_MIN_BATTERY_FOR_OTA, default=DEFAULT_MIN_BATTERY_FOR_OTA): int,
-                }
-            ),
+            data_schema=await _voice_schema(self.hass, _voice_defaults()),
         )
 
     @staticmethod
@@ -307,23 +399,5 @@ class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(CONF_ASSIST_PIPELINE_ID, default=current.get(CONF_ASSIST_PIPELINE_ID, "")): str,
-                    vol.Optional(CONF_TTS_ENGINE, default=current.get(CONF_TTS_ENGINE, DEFAULT_TTS_ENGINE)): str,
-                    vol.Optional(CONF_TTS_LANGUAGE, default=current.get(CONF_TTS_LANGUAGE, DEFAULT_TTS_LANGUAGE)): str,
-                    vol.Optional(CONF_TTS_VOICE, default=current.get(CONF_TTS_VOICE, "")): str,
-                    vol.Optional(CONF_DJ_STYLE, default=current.get(CONF_DJ_STYLE, current.get(CONF_DJ_PROFILE, DEFAULT_DJ_STYLE))): vol.In(DJ_STYLE_NAMES),
-                    vol.Optional(CONF_SPOTIFY_PLAYER, default=current.get(CONF_SPOTIFY_PLAYER, "")): str,
-                    vol.Optional(CONF_SPOTIFY_SOURCE, default=current.get(CONF_SPOTIFY_SOURCE, "")): str,
-                    vol.Optional(CONF_LIKED_PROXY, default=current.get(CONF_LIKED_PROXY, "")): str,
-                    vol.Optional(CONF_FIRMWARE_REPO, default=current.get(CONF_FIRMWARE_REPO, DEFAULT_FIRMWARE_REPO)): str,
-                    vol.Optional(CONF_FIRMWARE_ASSET_PREFIX, default=current.get(CONF_FIRMWARE_ASSET_PREFIX, DEFAULT_FIRMWARE_ASSET_PREFIX)): str,
-                    vol.Optional(CONF_FIRMWARE_DEVICE, default=current.get(CONF_FIRMWARE_DEVICE, DEFAULT_FIRMWARE_DEVICE)): str,
-                    vol.Optional(CONF_FIRMWARE_CHANNEL, default=current.get(CONF_FIRMWARE_CHANNEL, DEFAULT_FIRMWARE_CHANNEL)): str,
-                    vol.Optional(CONF_MAX_AUDIO_BYTES, default=current.get(CONF_MAX_AUDIO_BYTES, DEFAULT_MAX_AUDIO_BYTES)): int,
-                    vol.Optional(CONF_ALLOW_OTA_ON_BATTERY, default=current.get(CONF_ALLOW_OTA_ON_BATTERY, False)): bool,
-                    vol.Optional(CONF_MIN_BATTERY_FOR_OTA, default=current.get(CONF_MIN_BATTERY_FOR_OTA, DEFAULT_MIN_BATTERY_FOR_OTA)): int,
-                }
-            ),
+            data_schema=await _voice_schema(self.hass, _voice_defaults(current)),
         )

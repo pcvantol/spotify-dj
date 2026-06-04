@@ -1,13 +1,59 @@
 {
   "config": {
     "step": {
-      "user": {"title": "Pair SpotifyDJ", "description": "Enter the 6 digit pairing code shown on the LilyGO display.", "data": {"pair_code": "Pairing code", "device_name": "Device name", "local_url": "Local device URL"}},
-      "spotify": {"title": "Connect Spotify", "description": "Enter your Spotify Developer App Client ID and the HTTPS Home Assistant external URL. PKCE does not require a client secret.", "data": {"spotify_client_id": "Spotify Client ID", "ha_external_url": "Home Assistant external URL", "spotify_market": "Market"}},
-      "spotify_oauth": {"title": "Authorize SpotifyDJ with Spotify", "description": "Home Assistant opens Spotify in your browser. After approving access, return here to continue setup."},
-      "voice": {"title": "Voice and DJ style", "data": {"assist_pipeline_id": "Assist pipeline ID", "tts_engine": "TTS engine", "tts_language": "TTS language", "tts_voice": "TTS voice", "dj_profile": "DJ profile"}}
+      "user": {
+        "title": "Pair SpotifyDJ",
+        "description": "Enter the 6 digit pairing code shown on the LilyGO display.",
+        "data": {
+          "pair_code": "Pairing code",
+          "device_name": "Device name",
+          "local_url": "Local device URL"
+        }
+      },
+      "spotify": {
+        "title": "Connect Spotify",
+        "description": "Enter your Spotify Developer App Client ID and the HTTPS Home Assistant external URL. PKCE does not require a client secret. The Spotify redirect URI must be the external URL plus /api/spotify_dj/spotify/callback.",
+        "data": {
+          "spotify_client_id": "Spotify Client ID",
+          "ha_external_url": "Home Assistant external URL",
+          "spotify_market": "Market"
+        }
+      },
+      "spotify_oauth": {
+        "title": "Authorize SpotifyDJ with Spotify",
+        "description": "Home Assistant opens Spotify in your browser. After approving access, return here to continue setup."
+      },
+      "voice": {
+        "title": "Voice and DJ style",
+        "data": {
+          "assist_pipeline_id": "Assist pipeline ID",
+          "tts_engine": "TTS engine",
+          "tts_language": "TTS language",
+          "tts_voice": "TTS voice",
+          "dj_profile": "DJ profile"
+        }
+      }
     },
-    "error": {"invalid_pair_code": "Enter a 6 digit pairing code."},
-    "abort": {"already_configured": "This SpotifyDJ device is already configured."}
+    "error": {
+      "missing_pair_code": "Enter the 6 digit pairing code shown on the LilyGO display.",
+      "invalid_pair_code": "The pairing code must contain exactly 6 digits.",
+      "spotify_client_id_required": "Enter the Client ID from your Spotify Developer App.",
+      "external_url_required": "Enter your Home Assistant external URL, for example your Nabu Casa URL.",
+      "external_url_https_required": "Use an HTTPS external URL. The recommended URL is your Nabu Casa URL.",
+      "external_url_invalid": "Enter a complete HTTPS URL, for example https://example.ui.nabu.casa.",
+      "oauth_setup_failed": "Spotify authorization could not be started. Check the Client ID and external URL, then try again.",
+      "oauth_not_completed": "Spotify authorization has not completed yet. Approve access in Spotify and return to Home Assistant.",
+      "oauth_failed": "Spotify authorization failed. Start the Spotify step again and check the redirect URI in your Spotify app."
+    },
+    "abort": {
+      "already_configured": "This SpotifyDJ device is already configured."
+    }
   },
-  "options": {"step": {"init": {"title": "SpotifyDJ options"}}}
+  "options": {
+    "step": {
+      "init": {
+        "title": "SpotifyDJ options"
+      }
+    }
+  }
 }

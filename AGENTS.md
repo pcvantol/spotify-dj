@@ -17,12 +17,24 @@ Belangrijke repos:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
+- Actuele integratieversie: `1.4.4`.
 - Config flow moet blijven laden.
-- Spotify OAuth gebruikt Nabu Casa external URL.
+- Spotify OAuth gebruikt een HA external step en opent de Spotify website.
+- Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
 - Redirect path: `/api/spotify_dj/spotify/callback`
 - Geen handmatig `oauth_result` veld tonen.
 - Voice velden moeten defaults hebben.
+- Gebruik waar veilig HA-populated combo boxes/dropdowns i.p.v. vrije tekst:
+  - Assist pipeline uit HA Assist pipelines.
+  - TTS engine uit HA `tts` entities.
+  - Spotify player uit HA `media_player` entities.
+  - Spotify market vaste keuzes.
+  - DJ style vaste keuzes.
+  - Firmware channel vaste keuzes.
+- Laat velden vrije tekst waar HA geen betrouwbare bron heeft, zoals Spotify source/device naam, TTS language/voice, playlist URI en firmware repo/asset/device strings.
+- Config-flow foutpaden moeten heldere NL/EN gebruikersmeldingen hebben, bijvoorbeeld bij lege of foutieve koppelcode, ontbrekende Spotify Client ID, foutieve external URL en OAuth fouten.
 - Bestaande modules niet verwijderen, zoals `openai_client.py`, `wav_util.py`, `pipeline.py`.
+- Houd `openai_client.py` en `wav_util.py` aanwezig voor bestaande voice/TTS code.
 
 ESP firmware:
 - Voeg pairing, mDNS, OTA en Spotify provisioning toe zonder bestaande Spotify/audio/UI code te herschrijven.
@@ -41,3 +53,24 @@ Firmware releases:
 - Manifest:
   `firmware_manifest.json`
 - Firmwareversie wordt via PlatformIO build flags uit Git tag geïnjecteerd.
+
+README/release:
+- README moet actueel blijven voor HACS installatie, Spotify OAuth, endpoints, OTA en release workflow.
+- HACS release workflow bevat minimaal:
+  - `git tag vX.Y.Z`
+  - `git push origin main`
+  - `git push origin vX.Y.Z`
+  - `gh release create vX.Y.Z --title "SpotifyDJ vX.Y.Z" --notes-file CHANGELOG.md`
+  - HACS update-info refresh/redownload
+  - nieuwe release installeren vanuit HACS
+  - Home Assistant restart
+  - SpotifyDJ integration opnieuw toevoegen indien nodig.
+
+Tests:
+- Testcode staat onder `tests/`.
+- Lichtgewicht tests draaien zonder volledige Home Assistant installatie met:
+  `python3 -m unittest discover -s tests`
+- Houd tests voor:
+  - Spotify OAuth redirect/PKCE URL helpers.
+  - Config-flow helper/default gedrag.
+  - Vertaalcoverage voor config-flow error keys.

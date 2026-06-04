@@ -1,64 +1,132 @@
 # SpotifyDJ
 
-SpotifyDJ is a Home Assistant custom integration for a LilyGO T-Embed-S3 Spotify/voice remote.
+SpotifyDJ is a Home Assistant custom integration for a LilyGO T-Embed S3 / CC1101 Plus Spotify and voice remote.
 
-It provides:
+The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA firmware updates, device status, and voice/AI integration. The ESP firmware can keep talking to the Spotify API independently after Home Assistant provisions the Spotify credentials.
 
-- LilyGO pairing with 6 digit code
-- device token provisioning
-- Spotify OAuth/PKCE provisioning concept
-- HA-native voice/AI/TTS configuration surface
-- device status endpoints
-- GitHub Releases based firmware OTA management
-- diagnostics and repair scaffolding
+## Current Version
 
-## Installation through HACS
+- Home Assistant integration: `1.4.4`
+- Domain: `spotify_dj`
+- HACS category: `Integration`
+- Device target: LilyGO T-Embed S3 / CC1101 Plus
+- Firmware mDNS service: `_spotifydj._tcp`
+- Device ID format: `spotifydj-XXXXXXXXXXXX`
 
-1. Add this repository as a HACS custom repository.
-2. Category: `Integration`.
-3. Install SpotifyDJ.
-4. Restart Home Assistant.
-5. Go to **Settings → Devices & services → Add integration → SpotifyDJ**.
+## Features
 
-## Pairing flow
+- Pair a LilyGO SpotifyDJ device with a 6 digit code.
+- Provision a per-device bearer token.
+- Run Spotify OAuth with PKCE from the Home Assistant config flow.
+- Open the Spotify authorization website instead of manually pasting an OAuth result.
+- Support a Nabu Casa HTTPS callback at `/api/spotify_dj/spotify/callback`.
+- Provision Spotify `client_id` and `refresh_token` to the ESP.
+- Accept voice WAV requests from the ESP and return WAV responses.
+- Use Home Assistant Assist/TTS settings with safe defaults.
+- Track device status, battery, Wi-Fi RSSI, firmware version, and last track.
+- Manage firmware updates through a Home Assistant update entity.
+- Provide diagnostics with sensitive values redacted.
 
-1. Boot the LilyGO firmware in pairing mode.
-2. The display shows a 6 digit pair code.
-3. Add the SpotifyDJ integration in Home Assistant.
-4. Enter the pair code.
-5. Configure Spotify Client ID and voice/DJ settings.
+## Repository Layout
 
-## Spotify OAuth / PKCE
+- Home Assistant integration: `pcvantol/spotify-dj`
+- ESP firmware source: `pcvantol/spotify-dj-app`
+- Public firmware releases: `pcvantol/spotify-dj-firmware`
 
-For a private setup the user creates a Spotify Developer App and enters the Client ID during setup.
-PKCE does not require a client secret.
+This repository contains the Home Assistant custom integration under `custom_components/spotify_dj`.
 
-Recommended redirect URI for development:
+## Install Through HACS
+
+1. Open HACS in Home Assistant.
+2. Add `https://github.com/pcvantol/spotify-dj` as a custom repository.
+3. Select category `Integration`.
+4. Install SpotifyDJ.
+5. Restart Home Assistant.
+6. Go to **Settings -> Devices & services -> Add integration -> SpotifyDJ**.
+
+## Spotify Developer App
+
+Create a Spotify Developer App and copy its Client ID. PKCE is used, so no client secret is required.
+
+Add this redirect URI to the Spotify app:
+
+```text
+https://<your-nabu-casa-id>.ui.nabu.casa/api/spotify_dj/spotify/callback
+```
+
+For local-only development you can use a reachable Home Assistant URL instead:
 
 ```text
 http://homeassistant.local:8123/api/spotify_dj/spotify/callback
 ```
 
-The integration is intended to broker the refresh token to the LilyGO so the ESP can keep its existing standalone Spotify API implementation.
+The redirect URI in Spotify must exactly match the Home Assistant external URL plus `/api/spotify_dj/spotify/callback`.
 
-## Firmware OTA distribution
+## Add SpotifyDJ In Home Assistant
 
-Recommended hybrid layout:
+1. Boot the LilyGO firmware in pairing mode.
+2. Enter the 6 digit pair code shown on the LilyGO display.
+3. Enter the Spotify Client ID.
+4. Enter the HTTPS Home Assistant external URL, preferably the Nabu Casa URL.
+5. Home Assistant opens the Spotify authorization website.
+6. Approve access in Spotify.
+7. Return to Home Assistant and complete the voice/DJ settings step.
 
-- `pcvantol/spotify-dj-app` private firmware source repo
-- `pcvantol/spotify-dj-firmware` public release repo with `.bin`, `.sha256` and `firmware_manifest.json`
+The setup flow no longer shows a manual `oauth_result` field.
 
-Home Assistant checks the public firmware repo and instructs the LilyGO to install a concrete firmware URL through its `/api/device/ota` endpoint.
+## Voice And DJ Settings
 
-## Device endpoints expected on LilyGO
+The config flow and options flow include safe defaults for optional voice fields:
 
-```text
-POST /api/device/ota
-POST /api/device/provision_spotify
-GET  /api/device/info
-```
+- Assist pipeline ID
+- TTS engine
+- TTS language
+- TTS voice
+- DJ style
+- Spotify player/source hints
+- Liked proxy playlist URI
+- Firmware repository/channel/options
+- OTA battery safety options
 
-## Integration endpoints exposed by HA
+Where Home Assistant exposes choices, SpotifyDJ shows populated dropdowns for Assist pipeline, TTS entity, Spotify media player, Spotify market, DJ style, and firmware channel. Stored custom values remain selectable so existing setups keep working.
+
+Supported DJ styles are:
+
+- `classic_dutch_radio`
+- `calm_evening`
+- `festival`
+- `minimal`
+
+## Home Assistant Entities
+
+SpotifyDJ creates:
+
+- `sensor.spotifydj_status`
+- `sensor.spotifydj_last_command`
+- `sensor.spotifydj_battery`
+- `sensor.spotifydj_wifi_rssi`
+- `sensor.spotifydj_firmware_version`
+- `sensor.spotifydj_last_track`
+- `button.spotifydj_test_dj_voice`
+- `update.spotifydj_firmware`
+
+Entity IDs can differ if Home Assistant has renamed the device or entities.
+
+## Services
+
+SpotifyDJ registers these services:
+
+- `spotify_dj.test_parse`
+- `spotify_dj.test_tts`
+- `spotify_dj.test_command`
+- `spotify_dj.start_spotify_oauth`
+- `spotify_dj.provision_spotify_credentials`
+
+Use `spotify_dj.provision_spotify_credentials` after OAuth if you want Home Assistant to send the stored Spotify credentials to the paired LilyGO device again.
+
+## Home Assistant HTTP Endpoints
+
+The integration exposes these endpoints:
 
 ```text
 POST /api/spotify_dj/pair
@@ -68,29 +136,95 @@ POST /api/spotify_dj/event
 GET  /api/spotify_dj/spotify/callback
 ```
 
-## HACS release workflow
+The ESP should send status updates to:
+
+```text
+POST /api/spotify_dj/status
+```
+
+Authenticated device requests use the provisioned bearer token and can include `X-SpotifyDJ-Device-ID`.
+
+## ESP Device Endpoints
+
+Home Assistant expects the firmware to expose:
+
+```text
+POST /api/device/ota
+POST /api/device/provision_spotify
+GET  /api/device/info
+```
+
+The integration also uses the device `local_url` from pairing/status, or falls back to `http://<device_id>.local`.
+
+## Firmware OTA Releases
+
+Firmware builds come from the private `spotify-dj-app` repo and are published to the public `spotify-dj-firmware` repo.
+
+Expected release asset name:
+
+```text
+spotifydj-lilygo-t-embed-s3-vX.Y.Z.bin
+```
+
+Expected manifest:
+
+```text
+firmware_manifest.json
+```
+
+Example manifest:
+
+```json
+{
+  "version": "1.4.4",
+  "device": "lilygo-t-embed-s3",
+  "asset": "spotifydj-lilygo-t-embed-s3-v1.4.4.bin",
+  "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "min_ha_integration": "1.4.4"
+}
+```
+
+The firmware version is injected through PlatformIO build flags from the Git tag.
+
+## HACS Release Workflow
+
+Update `custom_components/spotify_dj/manifest.json`, `custom_components/spotify_dj/const.py`, and `CHANGELOG.md` before tagging.
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v1.4.3"
-git tag v1.4.3
+git commit -m "Release SpotifyDJ v1.4.4"
+git tag v1.4.4
 git push origin main
-git push origin v1.4.3
-gh release create v1.4.3 --title "SpotifyDJ v1.4.3" --notes-file CHANGELOG.md
+git push origin v1.4.4
+gh release create v1.4.4 --title "SpotifyDJ v1.4.4" --notes-file CHANGELOG.md
 ```
 
 Then update the installed integration through HACS/Home Assistant:
 
 1. Open HACS in Home Assistant.
-2. Open SpotifyDJ and choose **Redownload** or refresh HACS update information.
-3. Select and install the new `v1.4.3` release from HACS.
-4. Restart Home Assistant.
-5. Go to **Settings → Devices & services**.
-6. Add SpotifyDJ again, or remove and re-add the SpotifyDJ integration if needed.
-7. Complete pairing and Spotify OAuth in the SpotifyDJ config flow.
+2. Open SpotifyDJ.
+3. Choose **Redownload** or refresh HACS update information.
+4. Select and install the new release from HACS.
+5. Restart Home Assistant.
+6. Go to **Settings -> Devices & services**.
+7. Add SpotifyDJ again, or remove and re-add the SpotifyDJ integration if needed.
+8. Complete pairing and Spotify OAuth in the SpotifyDJ config flow.
 
-## v1.3.0 hotfix
+## Tests
 
-This release fixes Home Assistant config-flow loading errors and applies safe default values for optional voice settings.
+Run the lightweight unit tests with:
 
-After updating through HACS, restart Home Assistant and add SpotifyDJ again from **Settings → Devices & services → Add integration**.
+```bash
+python3 -m unittest discover -s tests
+```
+
+These tests use local stubs for Home Assistant imports and focus on pure SpotifyDJ helpers, OAuth URL building, and config-flow translation coverage.
+
+## Troubleshooting
+
+- If Spotify login does not return to Home Assistant, verify the Spotify redirect URI exactly matches the Nabu Casa or external Home Assistant URL.
+- If the config flow does not load, restart Home Assistant and check that HACS installed `custom_components/spotify_dj`.
+- If OTA cannot start, make sure the device has reported `local_url` or can be reached as `http://<device_id>.local`.
+- If OTA is blocked, check battery level, USB power, and the OTA battery options.
+- If provisioning fails, pair the LilyGO first and run `spotify_dj.provision_spotify_credentials` again.
+- Diagnostics are available from the Home Assistant integration page and redact tokens.
