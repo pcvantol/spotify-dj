@@ -38,6 +38,7 @@ from .const import (
     CONF_SPOTIFY_REFRESH_TOKEN,
     CONF_SPOTIFY_SCOPES,
     CONF_SPOTIFY_SOURCE,
+    CONF_STT_ENTITY,
     CONF_TTS_ENGINE,
     CONF_TTS_LANGUAGE,
     CONF_TTS_VOICE,
@@ -219,6 +220,7 @@ def _base_voice_schema(
     defaults: dict[str, Any],
     *,
     assist_options: dict[str, str],
+    stt_options: dict[str, str],
     tts_options: dict[str, str],
     tts_voice_options: dict[str, str],
     tts_engine: str,
@@ -232,6 +234,10 @@ def _base_voice_schema(
             CONF_ASSIST_PIPELINE_ID,
             default=defaults.get(CONF_ASSIST_PIPELINE_ID, ""),
         ): vol.In(assist_options),
+        vol.Optional(
+            CONF_STT_ENTITY,
+            default=defaults.get(CONF_STT_ENTITY, ""),
+        ): vol.In(stt_options),
         vol.Optional(CONF_TTS_ENGINE, default=tts_engine): vol.In(tts_options),
         vol.Optional(
             CONF_TTS_LANGUAGE,
@@ -291,7 +297,7 @@ def _advanced_voice_schema(defaults: dict[str, Any]) -> dict[Any, Any]:
         vol.Optional(
             CONF_MIN_BATTERY_FOR_OTA,
             default=defaults.get(CONF_MIN_BATTERY_FOR_OTA, DEFAULT_MIN_BATTERY_FOR_OTA),
-        ): int,
+        ): int
     }
 
 
@@ -313,6 +319,11 @@ async def _voice_schema(
         assist_options=await _assist_pipeline_options(
             hass,
             defaults.get(CONF_ASSIST_PIPELINE_ID, ""),
+        ),
+        stt_options = _entity_options(
+            hass,
+            "stt",
+            defaults.get(CONF_STT_ENTITY, ""),
         ),
         tts_options=_entity_options(hass, "tts", tts_engine),
         tts_voice_options=_tts_voice_options(hass, tts_engine, tts_voice),
@@ -340,6 +351,7 @@ def _voice_defaults(data: dict[str, Any] | None = None) -> dict[str, Any]:
             source.get(CONF_ASSIST_PIPELINE_ID),
             DEFAULT_ASSIST_PIPELINE_ID,
         ),
+        CONF_STT_ENTITY: _clean(source.get(CONF_STT_ENTITY), ""),
         CONF_TTS_ENGINE: _clean(source.get(CONF_TTS_ENGINE), DEFAULT_TTS_ENGINE),
         CONF_TTS_LANGUAGE: _clean(source.get(CONF_TTS_LANGUAGE), DEFAULT_TTS_LANGUAGE),
         CONF_TTS_VOICE: _clean(source.get(CONF_TTS_VOICE), DEFAULT_TTS_VOICE),

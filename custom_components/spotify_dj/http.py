@@ -22,6 +22,7 @@ from .const import (
     DEFAULT_SPOTIFY_MARKET,
     DEFAULT_SPOTIFY_SCOPES,
 )
+from .stt import transcribe_wav_with_ha
 from .processor import process_text_command
 from .spotify_oauth import exchange_code_for_refresh_token
 from .wav_util import simple_tone_wav
@@ -182,11 +183,14 @@ class SpotifyDJVoiceView(HomeAssistantView):
             else:
                 if not wav:
                     raise RuntimeError("Geen audio ontvangen")
-                raise RuntimeError(
-                    "Audio transcription moet via HA Assist/STT worden aangesloten; "
-                    "gebruik voorlopig X-SpotifyDJ-Text voor tekstcommando's"
-                )
+                wav_data = await request.read()
 
+                user_text = await transcribe_wav_with_ha(
+                    hass,
+                    wav_data,
+                    runtime.config,
+                )
+             
             result = await process_text_command(hass, runtime, user_text, play=True)
             response_wav = simple_tone_wav()
             _LOGGER.info("SpotifyDJ OK: %s", result)

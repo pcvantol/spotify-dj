@@ -32,6 +32,8 @@ CONF_TTS_ENGINE = "tts_engine"
 CONF_TTS_LANGUAGE = "tts_language"
 CONF_TTS_VOICE = "tts_voice"
 
+CONF_STT_ENTITY = "stt_entity_id"
+
 # Both names are kept for backwards compatibility with older modules.
 CONF_DJ_STYLE = "dj_style"
 CONF_DJ_PROFILE = "dj_profile"
