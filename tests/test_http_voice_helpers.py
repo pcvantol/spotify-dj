@@ -16,7 +16,6 @@ def install_http_stubs() -> None:
         return
 
     aiohttp = sys.modules.setdefault("aiohttp", types.ModuleType("aiohttp"))
-    aiohttp.web = types.SimpleNamespace(Response=object)
 
     homeassistant = sys.modules.setdefault(
         "homeassistant", types.ModuleType("homeassistant")
@@ -36,9 +35,18 @@ def install_http_stubs() -> None:
             self.args = args
             self.kwargs = kwargs
 
+    class Response:
+        def __init__(self, *, status=200, text=None, body=None, content_type=None, headers=None):
+            self.status = status
+            self.text = text
+            self.body = body
+            self.content_type = content_type
+            self.headers = headers or {}
+
     http.HomeAssistantView = HomeAssistantView
     core.HomeAssistant = object
     aiohttp.ClientTimeout = ClientTimeout
+    aiohttp.web = types.SimpleNamespace(Response=Response)
     aiohttp_client.async_get_clientsession = lambda hass: None
 
     homeassistant.components = components
@@ -98,7 +106,144 @@ class VoiceHttpHelperTest(unittest.TestCase):
         response = asyncio.run(self.http.SpotifyDJPairView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 401)
-        self.assertEqual(response["payload"]["error"], "Invalid pairing code")
+        self.assertEqual(response["payload"]["error"], "invalid_pair_code")
+        self.assertIn("does not match", response["payload"]["message"])
+
+    def test_pair_view_includes_spotify_refresh_token_aliases(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            config = {const.CONF_PAIR_CODE: "123456"}
+            device_status = {}
+
+            def ensure_device_token(self):
+                self.device_token = "device-token"
+                return self.device_token
+
+            def mqtt_payload(self):
+                return {"host": "mqtt.local"}
+
+            def spotify_payload(self):
+                return {
+                    "client_id": "client-id",
+                    "refresh_token": "refresh-token",
+                    "spotify_client_id": "client-id",
+                    "spotify_refresh_token": "refresh-token",
+                    "market": "NL",
+                    "scopes": ["scope-a"],
+                }
+
+            def device_language(self):
+                return "nl"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+
+        class Request:
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
+
+            async def json(self):
+                return {
+                    "device_id": "spotifydj-device",
+                    "pair_code": "123456",
+                    "local_url": "http://spotifydj.local",
+                }
+
+        response = asyncio.run(self.http.SpotifyDJPairView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 200)
+        spotify = response["payload"]["spotify"]
+        self.assertEqual(spotify["refresh_token"], "refresh-token")
+        self.assertEqual(spotify["spotify_refresh_token"], "refresh-token")
+        self.assertEqual(response["payload"]["refresh_token"], "refresh-token")
+        self.assertEqual(response["payload"]["spotify_refresh_token"], "refresh-token")
+        self.assertEqual(response["payload"]["mqtt"]["host"], "mqtt.local")
+        self.assertEqual(response["payload"]["device_language"], "nl")
+        self.assertEqual(response["payload"]["language"], "nl")
+
+    def test_status_view_includes_spotify_refresh_token_aliases(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            ota_in_progress = False
+            ota_last_error = None
+            config = {
+                const.CONF_ASSIST_PIPELINE_ID: "pipeline",
+                const.CONF_HA_EXTERNAL_URL: "https://ha.example",
+            }
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def mqtt_payload(self):
+                return {"host": "mqtt.local"}
+
+            def spotify_payload(self):
+                return {
+                    "client_id": "client-id",
+                    "refresh_token": "refresh-token",
+                    "spotify_client_id": "client-id",
+                    "spotify_refresh_token": "refresh-token",
+                }
+
+            def device_language(self):
+                return "en"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
+
+            async def json(self):
+                return {"device_id": "spotifydj-device"}
+
+        response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertEqual(response["payload"]["refresh_token"], "refresh-token")
+        self.assertEqual(response["payload"]["spotify_refresh_token"], "refresh-token")
+        self.assertEqual(response["payload"]["spotify"]["refresh_token"], "refresh-token")
+
+    def test_tts_view_returns_wav_audio_for_valid_token(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+        dj_response = importlib.import_module("custom_components.spotify_dj.dj_response")
+        hass = types.SimpleNamespace(data={})
+        token = dj_response.store_tts_audio(hass, b"RIFFxxxxWAVEdata", 120)
+        request = types.SimpleNamespace(app={"hass": hass})
+
+        response = asyncio.run(self.http.SpotifyDJTtsView(None).get(request, token))
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.content_type, "audio/wav")
+        self.assertEqual(response.body, b"RIFFxxxxWAVEdata")
+        self.assertEqual(response.headers["Content-Length"], "16")
+        self.assertIn("tts_audio", hass.data[const.DOMAIN])
+
+    def test_tts_view_returns_410_for_expired_token(self) -> None:
+        dj_response = importlib.import_module("custom_components.spotify_dj.dj_response")
+        hass = types.SimpleNamespace(data={})
+        token = dj_response.store_tts_audio(hass, b"RIFFxxxxWAVEdata", 120)
+        dj_response._store(hass)[token].expires_at = 0
+        request = types.SimpleNamespace(app={"hass": hass})
+
+        response = asyncio.run(self.http.SpotifyDJTtsView(None).get(request, token))
+
+        self.assertEqual(response.status, 410)
+
+    def test_tts_view_returns_404_for_unknown_token(self) -> None:
+        request = types.SimpleNamespace(app={"hass": types.SimpleNamespace(data={})})
+
+        response = asyncio.run(self.http.SpotifyDJTtsView(None).get(request, "unknown"))
+
+        self.assertEqual(response.status, 404)
 
 
 if __name__ == "__main__":

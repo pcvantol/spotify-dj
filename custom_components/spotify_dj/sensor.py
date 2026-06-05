@@ -51,7 +51,7 @@ class SpotifyDJBaseSensor(SensorEntity):
             self.runtime.listeners.remove(self._handle_runtime_update)
 
 class SpotifyDJStatusSensor(SpotifyDJBaseSensor):
-    _attr_name = "Status"
+    _attr_translation_key = "status"
     _attr_unique_id = "spotifydj_status"
 
     @property
@@ -65,6 +65,9 @@ class SpotifyDJStatusSensor(SpotifyDJBaseSensor):
         return {
             "last_error": self.runtime.last_error,
             "last_dj_text": self.runtime.last_dj_text,
+            "last_dj_spoken": getattr(self.runtime, "last_dj_spoken", None),
+            "last_dj_displayed": getattr(self.runtime, "last_dj_displayed", None),
+            "last_dj_response_at": getattr(self.runtime, "last_dj_response_at", None),
             "last_playback": self.runtime.last_playback,
             "device_status": self.runtime.device_status,
             "ota_in_progress": self.runtime.ota_in_progress,
@@ -72,7 +75,7 @@ class SpotifyDJStatusSensor(SpotifyDJBaseSensor):
         }
 
 class SpotifyDJLastTextSensor(SpotifyDJBaseSensor):
-    _attr_name = "Last command"
+    _attr_translation_key = "last_command"
     _attr_unique_id = "spotifydj_last_command"
 
     @property
@@ -84,7 +87,7 @@ class SpotifyDJLastTextSensor(SpotifyDJBaseSensor):
         return {"last_intent": self.runtime.last_intent}
 
 class SpotifyDJBatterySensor(SpotifyDJBaseSensor):
-    _attr_name = "Battery"
+    _attr_translation_key = "battery"
     _attr_unique_id = "spotifydj_battery"
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_device_class = SensorDeviceClass.BATTERY
@@ -95,7 +98,7 @@ class SpotifyDJBatterySensor(SpotifyDJBaseSensor):
         return self.runtime.device_status.get("battery_percent")
 
 class SpotifyDJWifiSensor(SpotifyDJBaseSensor):
-    _attr_name = "Wi-Fi RSSI"
+    _attr_translation_key = "wifi_rssi"
     _attr_unique_id = "spotifydj_wifi_rssi"
     _attr_native_unit_of_measurement = SIGNAL_STRENGTH_DECIBELS_MILLIWATT
     _attr_device_class = SensorDeviceClass.SIGNAL_STRENGTH
@@ -106,7 +109,7 @@ class SpotifyDJWifiSensor(SpotifyDJBaseSensor):
         return self.runtime.device_status.get("wifi_rssi")
 
 class SpotifyDJFirmwareSensor(SpotifyDJBaseSensor):
-    _attr_name = "Firmware version"
+    _attr_translation_key = "firmware_version"
     _attr_unique_id = "spotifydj_firmware_version"
 
     @property
@@ -114,7 +117,7 @@ class SpotifyDJFirmwareSensor(SpotifyDJBaseSensor):
         return self.runtime.device_status.get("firmware")
 
 class SpotifyDJLastTrackSensor(SpotifyDJBaseSensor):
-    _attr_name = "Last track"
+    _attr_translation_key = "last_track"
     _attr_unique_id = "spotifydj_last_track"
 
     @property

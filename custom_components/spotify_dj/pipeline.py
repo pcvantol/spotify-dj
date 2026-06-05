@@ -84,7 +84,7 @@ async def _conversation_process(
         return_response=True,
     )
     if not isinstance(result, dict):
-        raise RuntimeError("HA Assist gaf geen response-data terug")
+        raise RuntimeError("HA Assist did not return response data")
     result["pipeline_id"] = assist_context.get("pipeline_id")
     result["agent_id"] = assist_context.get("agent_id")
     return result
@@ -95,9 +95,10 @@ def _intent_from_assist_response(response: dict[str, Any], user_text: str) -> di
     response_type = conversation_response.get("response_type")
     if response_type == "error":
         speech = _speech_from_response(conversation_response)
-        raise RuntimeError(speech or "HA Assist kon de opdracht niet verwerken")
+        raise RuntimeError(speech or "HA Assist could not process the command")
 
     data = _spotifydj_data(conversation_response)
+    has_spotifydj_data = _has_spotifydj_data(conversation_response)
 
     intent = {
         "intent": data.get("intent") or "play_music",
@@ -108,11 +109,16 @@ def _intent_from_assist_response(response: dict[str, Any], user_text: str) -> di
         "query": data.get("query") or user_text,
         "spotify_search_query": data.get("spotify_search_query") or data.get("query") or user_text,
         "dj_announcement": data.get("dj_announcement")
-        or _speech_from_response(conversation_response),
+        or (_speech_from_response(conversation_response) if has_spotifydj_data else ""),
     }
     if not intent["dj_announcement"]:
         intent["dj_announcement"] = "Daar gaan we. Ik zet hem voor je klaar."
     return intent
+
+
+def _has_spotifydj_data(conversation_response: dict[str, Any]) -> bool:
+    data = conversation_response.get("data") or {}
+    return isinstance(data.get("spotify_dj"), dict)
 
 
 def _spotifydj_data(conversation_response: dict[str, Any]) -> dict[str, Any]:

@@ -1,13 +1,13 @@
 test_parse:
   name: Test Assist parser
   description: >
-    Developer test: stuur tekst door de geconfigureerde HA Assist conversation
-    pipeline en geef de SpotifyDJ intent terug. Deze action start geen Spotify
-    playback en stuurt geen TTS.
+    Developer test: send text through the configured Home Assistant Assist
+    conversation pipeline and return the SpotifyDJ intent. This action does not
+    start Spotify playback or send a DJ response.
   fields:
     text:
       name: Command text
-      description: Tekst zoals het SpotifyDJ device die na HA Assist STT zou aanleveren.
+      description: Text as the SpotifyDJ device would send it after HA Assist STT.
       example: "Ik wil het nieuwste album van Pearl Jam horen"
       required: true
       selector:
@@ -15,16 +15,16 @@ test_parse:
           multiline: false
 
 test_tts:
-  name: Test DJ response TTS
+  name: Test ESP DJ response
   description: >
-    Developer test: stuur een losse DJ response naar de geconfigureerde HA TTS
-    engine en Spotify media player. Deze action gebruikt geen Assist parser en
-    start geen Spotify playback. Gebruik deze action na setup om de gekozen
-    stem/DJ-instellingen te controleren.
+    Developer test: send a standalone DJ response to the paired SpotifyDJ
+    device. Home Assistant tries to create a temporary PCM WAV audio_url through
+    the configured TTS engine; if that fails, SpotifyDJ sends text only so the
+    device can display the response.
   fields:
     text:
       name: DJ response text
-      description: Tekst die SpotifyDJ via Home Assistant TTS moet uitspreken.
+      description: Text the SpotifyDJ device should display and speak when possible.
       example: "Daar gaan we. SpotifyDJ is gekoppeld, de stem werkt, en ik sta klaar voor je volgende plaat."
       required: true
       selector:
@@ -34,13 +34,13 @@ test_tts:
 test_command:
   name: Test full text command
   description: >
-    Developer test: gebruik exact dezelfde tekst-command route als het
-    SpotifyDJ device. De tekst gaat via HA Assist naar een SpotifyDJ intent en
-    kan daarna optioneel Spotify playback starten.
+    Developer test: use the same text-command route as the SpotifyDJ device.
+    Text goes through HA Assist to a SpotifyDJ intent, can optionally start
+    Spotify playback, and then sends the DJ response to the ESP device.
   fields:
     text:
       name: Command text
-      description: Nederlandse muziekaanvraag of commando.
+      description: Music request or command text.
       example: "Speel mijn favoriete nummers"
       required: true
       selector:
@@ -48,7 +48,7 @@ test_command:
           multiline: false
     play:
       name: Start playback
-      description: Zet uit om alleen parser/resultaat te testen zonder Spotify playback.
+      description: Turn off to test parser/result data without starting Spotify playback.
       required: false
       default: true
       selector:
@@ -57,13 +57,13 @@ test_command:
 start_spotify_oauth:
   name: Start Spotify OAuth
   description: >
-    Developer helper: maak een Spotify PKCE authorization URL aan voor ESP
-    provisioning. Open de URL, log in bij Spotify en de callback slaat de
-    refresh token op in SpotifyDJ.
+    Developer helper: create a Spotify PKCE authorization URL for ESP
+    provisioning. Open the URL, sign in to Spotify, and the callback stores the
+    refresh token in SpotifyDJ.
   fields:
     client_id:
       name: Spotify Client ID
-      description: Spotify Developer App Client ID. Laat leeg om de waarde uit SpotifyDJ opties te gebruiken.
+      description: Spotify Developer App Client ID. Leave empty to use the value from SpotifyDJ options.
       required: false
       selector:
         text:
@@ -71,9 +71,9 @@ start_spotify_oauth:
     ha_base_url:
       name: Home Assistant external URL
       description: >
-        Basis-URL die Spotify na login kan bereiken, bij voorkeur je Nabu Casa
-        URL. Laat leeg om de URL uit SpotifyDJ opties te gebruiken. De volledige
-        Redirect URI is deze URL plus /api/spotify_dj/spotify/callback.
+        Base URL Spotify can reach after login, preferably your Nabu Casa URL.
+        Leave empty to use the URL from SpotifyDJ options. The full redirect URI
+        is this URL plus /api/spotify_dj/spotify/callback.
       required: false
       example: "https://example.ui.nabu.casa"
       selector:
@@ -81,7 +81,7 @@ start_spotify_oauth:
           multiline: false
     market:
       name: Spotify market
-      description: Spotify regio voor zoeken en afspelen.
+      description: Spotify region for search and playback.
       required: false
       default: NL
       selector:
@@ -96,7 +96,7 @@ start_spotify_oauth:
           mode: dropdown
     scopes:
       name: Spotify scopes
-      description: Spotify OAuth scopes. Laat leeg voor de standaard SpotifyDJ scopes.
+      description: Spotify OAuth scopes. Leave empty for the default SpotifyDJ scopes.
       required: false
       selector:
         text:
@@ -105,7 +105,7 @@ start_spotify_oauth:
 provision_spotify_credentials:
   name: Provision Spotify credentials
   description: >
-    Developer helper: stuur de in Home Assistant opgeslagen Spotify client_id,
-    refresh_token en Assist provisioning metadata opnieuw naar het gekoppelde
-    SpotifyDJ device.
+    Developer helper: resend the Spotify client_id, refresh_token and Assist
+    provisioning metadata stored in Home Assistant to the paired SpotifyDJ
+    device.
   fields: {}

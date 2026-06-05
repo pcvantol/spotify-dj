@@ -24,16 +24,18 @@ class ServicesYamlTest(unittest.TestCase):
 
         self.assertIn("Developer test", text)
         self.assertIn("Developer helper", text)
-        self.assertIn("stem/DJ-instellingen", text)
+        self.assertIn("temporary PCM WAV audio_url", text)
         self.assertIn("/api/spotify_dj/spotify/callback", text)
         self.assertNotIn("/api/spotify_dj/spotify_callback", text)
+        self.assertNotIn("stuur", text.lower())
+        self.assertNotIn("zonder Spotify playback", text)
 
     def test_test_command_documents_play_flag(self) -> None:
         text = SERVICES.read_text()
 
         self.assertIn("play:", text)
         self.assertIn("Start playback", text)
-        self.assertIn("zonder Spotify playback", text)
+        self.assertIn("without starting Spotify playback", text)
 
 
 if __name__ == "__main__":

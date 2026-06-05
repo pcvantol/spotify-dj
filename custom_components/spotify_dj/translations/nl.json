@@ -13,15 +13,17 @@
       },
       "pair": {
         "title": "SpotifyDJ apparaat koppelen",
-        "description": "Voer de 6-cijferige koppelcode in die op het SpotifyDJ device-scherm staat. De handmatige apparaat-URL is alleen nodig als mDNS discovery niet werkt.",
+        "description": "Voer de 6-cijferige koppelcode in die op het SpotifyDJ device-scherm staat. De handmatige apparaat-URL is alleen nodig als mDNS discovery niet werkt. Spotify is een handelsmerk van Spotify AB. SpotifyDJ is niet verbonden aan, goedgekeurd door of gesponsord door Spotify AB.",
         "data": {
           "pair_code": "Koppelcode",
           "device_name": "Apparaatnaam",
+          "device_language": "Apparaattaal",
           "local_url": "Handmatige apparaat-URL"
         },
         "data_description": {
           "pair_code": "De 6-cijferige code op het apparaatdisplay.",
           "device_name": "Leesbare naam voor deze SpotifyDJ remote.",
+          "device_language": "Taal voor de UI op het SpotifyDJ device. Deze wordt tijdens pairing naar het device gestuurd.",
           "local_url": "Geavanceerde fallback, bijvoorbeeld http://spotifydj-xxxxxxxxxxxx.local."
         }
       },
@@ -41,14 +43,14 @@
       },
       "spotify": {
         "title": "Spotify koppelen",
-        "description": "Vul de Client ID van je Spotify Developer App en de HTTPS externe Home Assistant URL in. PKCE gebruikt geen client secret. De Spotify Redirect URI moet de externe URL plus /api/spotify_dj/spotify/callback zijn.",
+        "description": "Vul de HTTPS externe Home Assistant URL in. SpotifyDJ gebruikt standaard een meegeleverde Spotify Client ID; je kunt die onder geavanceerde opties overriden. PKCE gebruikt geen client secret. De Spotify Redirect URI moet de externe URL plus /api/spotify_dj/spotify/callback zijn.",
         "data": {
           "spotify_client_id": "Spotify Client ID",
           "ha_external_url": "Home Assistant externe URL",
           "spotify_market": "Spotify regio"
         },
         "data_description": {
-          "spotify_client_id": "Client ID uit je Spotify Developer App.",
+          "spotify_client_id": "Geavanceerde override voor de meegeleverde Spotify Client ID.",
           "ha_external_url": "Bereikbare HTTPS URL, bij voorkeur je Nabu Casa URL.",
           "spotify_market": "Spotify regio voor zoeken en afspelen."
         }
@@ -64,6 +66,7 @@
           "tts_engine": "TTS engine",
           "tts_language": "TTS taal",
           "tts_voice": "TTS stem",
+          "dj_response_enabled": "DJ response op apparaat afspelen",
           "dj_style": "DJ stijl",
           "dj_profile": "DJ stijl",
           "spotify_player": "Spotify media player",
@@ -79,18 +82,20 @@
           "firmware_channel": "Firmware kanaal",
           "max_audio_bytes": "Maximale audio bytes",
           "allow_ota_on_battery": "OTA op batterij toestaan",
-          "min_battery_for_ota": "Minimale batterij voor OTA"
+          "min_battery_for_ota": "Minimale batterij voor OTA",
+          "dj_response_ttl_seconds": "DJ response audio TTL seconden"
         },
         "data_description": {
           "assist_pipeline_id": "Assist pipeline die SpotifyDJ apparaten gebruiken voor spraakherkenning.",
           "tts_engine": "Home Assistant TTS entity voor DJ reacties.",
           "tts_language": "Taal die aan de TTS engine wordt meegegeven.",
           "tts_voice": "Stem die aan de TTS engine wordt meegegeven als die bekend is.",
+          "dj_response_enabled": "Maak een tijdelijke PCM WAV audio URL en stuur die met de DJ tekst naar het SpotifyDJ device.",
           "dj_style": "Toon/stijl voor SpotifyDJ aankondigingen.",
           "dj_profile": "Toon/stijl voor SpotifyDJ aankondigingen.",
-          "spotify_player": "Verplichte media player voor Spotify playback en TTS output.",
+          "spotify_player": "Verplichte media player voor Spotify playback.",
           "spotify_source": "Geavanceerde optionele override voor een Spotify Connect bron. Laat leeg voor dynamische/standaard playback.",
-          "mqtt_host": "Geavanceerde optionele MQTT broker host die naar het SpotifyDJ device wordt gestuurd. Standaard gevuld vanuit HA MQTT/Mosquitto indien bekend.",
+          "mqtt_host": "Geavanceerde optionele MQTT broker host die naar het SpotifyDJ device wordt gestuurd. Standaard homeassistant.local.",
           "mqtt_port": "MQTT broker poort, meestal 1883.",
           "mqtt_username": "Optionele MQTT gebruikersnaam voor het SpotifyDJ device.",
           "mqtt_password": "Optioneel MQTT wachtwoord voor het SpotifyDJ device. Dit wordt in diagnostics afgeschermd.",
@@ -101,7 +106,8 @@
           "firmware_channel": "Geavanceerd firmware releasekanaal.",
           "max_audio_bytes": "Compatibiliteitslimiet voor legacy audio uploads.",
           "allow_ota_on_battery": "Sta firmware updates toe als het apparaat niet via USB gevoed wordt.",
-          "min_battery_for_ota": "Minimaal batterijpercentage voordat OTA is toegestaan."
+          "min_battery_for_ota": "Minimaal batterijpercentage voordat OTA is toegestaan.",
+          "dj_response_ttl_seconds": "Aantal seconden dat de tijdelijke WAV download URL geldig blijft."
         }
       }
     },
@@ -115,7 +121,7 @@
       "oauth_setup_failed": "Spotify autorisatie kon niet worden gestart. Controleer de Client ID en externe URL en probeer opnieuw.",
       "oauth_not_completed": "Spotify autorisatie is nog niet afgerond. Geef akkoord in Spotify en ga terug naar Home Assistant.",
       "oauth_failed": "Spotify autorisatie is mislukt. Start de Spotify stap opnieuw en controleer de Redirect URI in je Spotify app.",
-      "spotify_player_required": "Kies de Spotify media player die SpotifyDJ gebruikt voor playback en TTS.",
+      "spotify_player_required": "Kies de Spotify media player die SpotifyDJ gebruikt voor playback.",
       "ble_device_required": "Selecteer een SpotifyDJ BLE device of voer het Bluetooth adres in.",
       "wifi_ssid_required": "Vul de WiFi SSID in om te provisionen.",
       "ble_wifi_failed": "WiFi provisioning via Bluetooth is mislukt. Controleer device, SSID en wachtwoord en probeer opnieuw."
@@ -128,12 +134,13 @@
     "step": {
       "init": {
         "title": "SpotifyDJ opties",
-        "description": "Pas SpotifyDJ spraak-, playback-, OTA- en firmware-instellingen aan.",
+        "description": "Pas SpotifyDJ spraak-, playback-, OTA- en firmware-instellingen aan. Spotify is een handelsmerk van Spotify AB. SpotifyDJ is niet verbonden aan, goedgekeurd door of gesponsord door Spotify AB.",
         "data": {
           "assist_pipeline_id": "Assist pipeline",
           "tts_engine": "TTS engine",
           "tts_language": "TTS taal",
           "tts_voice": "TTS stem",
+          "dj_response_enabled": "DJ response op apparaat afspelen",
           "dj_style": "DJ stijl",
           "dj_profile": "DJ stijl",
           "spotify_player": "Spotify media player",
@@ -149,13 +156,48 @@
           "firmware_channel": "Firmware kanaal",
           "max_audio_bytes": "Maximale audio bytes",
           "allow_ota_on_battery": "OTA op batterij toestaan",
-          "min_battery_for_ota": "Minimale batterij voor OTA"
+          "min_battery_for_ota": "Minimale batterij voor OTA",
+          "dj_response_ttl_seconds": "DJ response audio TTL seconden"
         },
         "data_description": {
           "assist_pipeline_id": "Assist pipeline die SpotifyDJ apparaten gebruiken voor spraakherkenning.",
-          "spotify_player": "Verplichte media player voor Spotify playback en TTS output.",
+          "spotify_player": "Verplichte media player voor Spotify playback.",
+          "dj_response_enabled": "Maak een tijdelijke PCM WAV audio URL en stuur die met de DJ tekst naar het SpotifyDJ device.",
+          "dj_response_ttl_seconds": "Aantal seconden dat de tijdelijke WAV download URL geldig blijft.",
           "allow_ota_on_battery": "Sta firmware updates toe als het apparaat niet via USB gevoed wordt."
         }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "last_command": {
+        "name": "Laatste opdracht"
+      },
+      "battery": {
+        "name": "Batterij"
+      },
+      "wifi_rssi": {
+        "name": "WiFi RSSI"
+      },
+      "firmware_version": {
+        "name": "Firmwareversie"
+      },
+      "last_track": {
+        "name": "Laatste nummer"
+      }
+    },
+    "button": {
+      "test_dj_response": {
+        "name": "Test ESP DJ response"
+      }
+    },
+    "update": {
+      "firmware": {
+        "name": "Firmware"
       }
     }
   }

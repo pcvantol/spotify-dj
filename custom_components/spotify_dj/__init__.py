@@ -17,9 +17,11 @@ from .const import (
     API_PAIR,
     API_SPOTIFY_CALLBACK,
     API_STATUS,
+    API_TTS,
     API_VOICE,
     CONF_ASSIST_PIPELINE_ID,
     CONF_DEVICE_ID,
+    CONF_DEVICE_LANGUAGE,
     CONF_DEVICE_NAME,
     CONF_HA_EXTERNAL_URL,
     CONF_LOCAL_URL,
@@ -30,16 +32,12 @@ from .const import (
     CONF_PAIR_CODE,
     CONF_SPOTIFY_CLIENT_ID,
     CONF_SPOTIFY_MARKET,
-    CONF_SPOTIFY_PLAYER,
     CONF_SPOTIFY_REFRESH_TOKEN,
     CONF_SPOTIFY_SCOPES,
-    CONF_TTS_ENGINE,
-    CONF_TTS_LANGUAGE,
+    DEFAULT_DEVICE_LANGUAGE,
     DEFAULT_MQTT_PORT,
     DEFAULT_SPOTIFY_MARKET,
     DEFAULT_SPOTIFY_SCOPES,
-    DEFAULT_TTS_ENGINE,
-    DEFAULT_TTS_LANGUAGE,
     DOMAIN,
     PLATFORMS,
     VERSION,
@@ -49,8 +47,10 @@ from .http import (
     SpotifyDJPairView,
     SpotifyDJSpotifyCallbackView,
     SpotifyDJStatusView,
+    SpotifyDJTtsView,
     SpotifyDJVoiceView,
 )
+from .dj_response import async_send_dj_response, async_send_dj_response_best_effort
 from .processor import process_text_command
 from .spotify_oauth import build_authorize_url, build_redirect_uri, create_code_verifier
 
@@ -61,6 +61,7 @@ DEFAULT_TEST_TTS_TEXT = (
     "Daar gaan we. SpotifyDJ is gekoppeld, de stem werkt, "
     "en ik sta klaar voor je volgende plaat."
 )
+MDNS_SERVICE_TYPE = "_spotifydj._tcp.local."
 
 
 @dataclass
@@ -69,6 +70,9 @@ class SpotifyDJRuntime:
     last_text: str | None = None
     last_intent: dict[str, Any] | None = None
     last_dj_text: str | None = None
+    last_dj_spoken: bool | None = None
+    last_dj_displayed: bool | None = None
+    last_dj_response_at: float | None = None
     last_error: str | None = None
     last_playback: dict[str, Any] | None = None
     device_status: dict[str, Any] = field(default_factory=dict)
@@ -96,7 +100,7 @@ class SpotifyDJRuntime:
             self.device_token = secrets.token_urlsafe(32)
         return self.device_token
 
-    def device_local_url(self) -> str | None:
+    async def async_device_local_url(self, hass: HomeAssistant) -> str | None:
         """Return the best known device base URL."""
         local_url = (
             self.device_status.get("local_url")
@@ -105,6 +109,10 @@ class SpotifyDJRuntime:
         )
         if local_url:
             return str(local_url)
+        discovered_url = await async_discover_device_url(hass, self)
+        if discovered_url:
+            self.device_status["local_url"] = discovered_url
+            return discovered_url
         device_id = self.device_status.get("device_id") or self.pairing_device_id
         device_id = device_id or self.config.get(CONF_DEVICE_ID)
         return f"http://{device_id}.local" if device_id else None
@@ -148,8 +156,33 @@ class SpotifyDJRuntime:
             "password": str(conf.get(CONF_MQTT_PASSWORD) or ""),
         }
 
+    def spotify_payload(self) -> dict[str, Any]:
+        """Return Spotify credentials for ESP provisioning when OAuth is complete."""
+        conf = self.config
+        client_id = str(conf.get(CONF_SPOTIFY_CLIENT_ID) or "").strip()
+        refresh_token = str(conf.get(CONF_SPOTIFY_REFRESH_TOKEN) or "").strip()
+        if not client_id or not refresh_token:
+            return {}
+        scopes = str(conf.get(CONF_SPOTIFY_SCOPES, DEFAULT_SPOTIFY_SCOPES)).split()
+        market = conf.get(CONF_SPOTIFY_MARKET, DEFAULT_SPOTIFY_MARKET)
+        return {
+            "client_id": client_id,
+            "refresh_token": refresh_token,
+            "spotify_client_id": client_id,
+            "spotify_refresh_token": refresh_token,
+            "spotify_market": market,
+            "spotify_scopes": scopes,
+            "market": market,
+            "scopes": scopes,
+        }
+
+    def device_language(self) -> str:
+        """Return the ESP UI language provisioned during pairing."""
+        language = str(self.config.get(CONF_DEVICE_LANGUAGE) or DEFAULT_DEVICE_LANGUAGE)
+        return "nl" if language.lower().startswith("nl") else "en"
+
     async def start_ota(self, hass: HomeAssistant, release: Any) -> None:
-        local_url = self.device_local_url()
+        local_url = await self.async_device_local_url(hass)
         if not local_url:
             raise RuntimeError(
                 "SpotifyDJ device local_url is unknown; send a /status update first"
@@ -187,20 +220,25 @@ class SpotifyDJRuntime:
 
     async def pair_device(self, hass: HomeAssistant) -> dict[str, Any]:
         conf = self.config
-        local_url = self.device_local_url()
+        local_url = await self.async_device_local_url(hass)
         if not local_url:
             raise RuntimeError("SpotifyDJ device local_url is unknown")
         token = self.ensure_device_token()
         url = local_url.rstrip("/") + "/api/device/pair"
+        spotify = self.spotify_payload()
         payload = {
             "pair_code": conf.get(CONF_PAIR_CODE),
             "device_id": conf.get(CONF_DEVICE_ID),
             "device_name": conf.get(CONF_DEVICE_NAME, "SpotifyDJ"),
+            "device_language": self.device_language(),
+            "language": self.device_language(),
             "device_token": token,
             "ha_url": conf.get(CONF_HA_EXTERNAL_URL),
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
             "mqtt": self.mqtt_payload(),
+            "spotify": spotify,
         }
+        payload.update(spotify)
         session = async_get_clientsession(hass)
         async with session.post(
             url,
@@ -218,16 +256,17 @@ class SpotifyDJRuntime:
         if not conf.get(CONF_SPOTIFY_CLIENT_ID) or not conf.get(
             CONF_SPOTIFY_REFRESH_TOKEN
         ):
-            raise RuntimeError("Spotify OAuth is nog niet geconfigureerd in SpotifyDJ")
-        local_url = self.device_local_url()
+            raise RuntimeError("Spotify OAuth is not configured in SpotifyDJ yet")
+        local_url = await self.async_device_local_url(hass)
         if not local_url:
             raise RuntimeError(
-                "SpotifyDJ device local_url is onbekend; pair eerst of stuur /status"
+                "SpotifyDJ device local_url is unknown; pair first or send /status"
             )
         url = local_url.rstrip("/") + "/api/device/provision_spotify"
         payload = {
             "spotify_client_id": conf.get(CONF_SPOTIFY_CLIENT_ID),
             "spotify_refresh_token": conf.get(CONF_SPOTIFY_REFRESH_TOKEN),
+            "spotify": self.spotify_payload(),
             "spotify_market": conf.get(CONF_SPOTIFY_MARKET, DEFAULT_SPOTIFY_MARKET),
             "spotify_scopes": str(
                 conf.get(CONF_SPOTIFY_SCOPES, DEFAULT_SPOTIFY_SCOPES)
@@ -255,25 +294,108 @@ class SpotifyDJRuntime:
                 return {"success": True, "response": text}
 
 
+async def async_discover_device_url(
+    hass: HomeAssistant,
+    runtime: SpotifyDJRuntime,
+) -> str | None:
+    """Resolve the SpotifyDJ device URL from the `_spotifydj._tcp` mDNS service."""
+    try:
+        from homeassistant.components import zeroconf
+
+        zc = await zeroconf.async_get_async_instance(hass)
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("SpotifyDJ mDNS discovery unavailable", exc_info=True)
+        return None
+
+    for service_name in _mdns_service_name_candidates(runtime):
+        info = await _async_get_mdns_service_info(zc, service_name)
+        url = _url_from_service_info(info, runtime)
+        if url:
+            _LOGGER.debug("SpotifyDJ discovered device URL via mDNS: %s", url)
+            return url
+    return None
+
+
+async def _async_get_mdns_service_info(async_zc: Any, service_name: str) -> Any:
+    """Read one mDNS service record using HA's AsyncZeroconf wrapper."""
+    getter = getattr(async_zc, "async_get_service_info", None)
+    if getter is None:
+        return None
+    try:
+        return await getter(MDNS_SERVICE_TYPE, service_name)
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug(
+            "SpotifyDJ mDNS lookup failed for %s",
+            service_name,
+            exc_info=True,
+        )
+        return None
+
+
+def _mdns_service_name_candidates(runtime: SpotifyDJRuntime) -> list[str]:
+    """Build likely `_spotifydj._tcp` instance names for the paired device."""
+    device_id = _runtime_device_id(runtime)
+    if not device_id:
+        return []
+    names = [
+        f"{device_id}.{MDNS_SERVICE_TYPE}",
+        f"{device_id.upper()}.{MDNS_SERVICE_TYPE}",
+    ]
+    if device_id.startswith("spotifydj-"):
+        suffix = device_id.removeprefix("spotifydj-")
+        names.extend(
+            [
+                f"SpotifyDJ {suffix}.{MDNS_SERVICE_TYPE}",
+                f"SpotifyDJ {suffix.upper()}.{MDNS_SERVICE_TYPE}",
+            ]
+        )
+    return list(dict.fromkeys(names))
+
+
+def _runtime_device_id(runtime: SpotifyDJRuntime) -> str:
+    """Return the known SpotifyDJ device identifier, when available."""
+    return str(
+        runtime.device_status.get("device_id")
+        or runtime.pairing_device_id
+        or runtime.config.get(CONF_DEVICE_ID)
+        or ""
+    ).strip()
+
+
+def _url_from_service_info(info: Any, runtime: SpotifyDJRuntime) -> str | None:
+    if info is None:
+        return None
+    name = str(getattr(info, "name", "") or "").lower()
+    device_id = _runtime_device_id(runtime)
+    if device_id and not _mdns_name_matches_device(name, device_id):
+        return None
+    host = (
+        getattr(info, "server", None)
+        or getattr(info, "host", None)
+        or getattr(info, "hostname", None)
+    )
+    port = int(getattr(info, "port", 80) or 80)
+    if not host:
+        return None
+    host = str(host).rstrip(".")
+    return f"http://{host}:{port}" if port != 80 else f"http://{host}"
+
+
+def _mdns_name_matches_device(name: str, device_id: str) -> bool:
+    """Match full device IDs and friendly `SpotifyDJ xxxx` mDNS names."""
+    normalized_name = name.lower()
+    normalized_id = device_id.lower()
+    if normalized_id in normalized_name:
+        return True
+    if normalized_id.startswith("spotifydj-"):
+        suffix = normalized_id.removeprefix("spotifydj-")
+        return f"spotifydj {suffix}" in normalized_name
+    return False
+
+
 def _service_text(call: ServiceCall, default: str) -> str:
     """Return normalized service text while keeping developer actions forgiving."""
     return str(call.data.get("text") or default).strip()
-
-
-def _tts_service_data(runtime: SpotifyDJRuntime, text: str) -> dict[str, str]:
-    """Build HA TTS service data from the current SpotifyDJ options."""
-    conf = runtime.config
-    player = conf.get(CONF_SPOTIFY_PLAYER)
-    if not player:
-        raise RuntimeError(
-            "Configureer eerst een Spotify/media_player in SpotifyDJ options"
-        )
-    return {
-        "entity_id": conf.get(CONF_TTS_ENGINE, DEFAULT_TTS_ENGINE),
-        "media_player_entity_id": player,
-        "message": text,
-        "language": conf.get(CONF_TTS_LANGUAGE, DEFAULT_TTS_LANGUAGE),
-    }
 
 
 async def async_speak_dj_test(
@@ -281,21 +403,10 @@ async def async_speak_dj_test(
     runtime: SpotifyDJRuntime,
     text: str,
 ) -> dict[str, Any]:
-    """Send a DJ test response through HA TTS and return user-visible details."""
-    service_data = _tts_service_data(runtime, text)
-    _LOGGER.debug(
-        "SpotifyDJ test_tts using TTS engine %s and media player %s",
-        service_data["entity_id"],
-        service_data["media_player_entity_id"],
-    )
-    await hass.services.async_call("tts", "speak", service_data, blocking=True)
-    runtime.update(last_dj_text=text, last_error=None)
-    return {
-        "success": True,
-        "text": text,
-        "tts_engine": service_data["entity_id"],
-        "media_player": service_data["media_player_entity_id"],
-    }
+    """Send a DJ test response to the SpotifyDJ device display/speaker."""
+    _LOGGER.debug("SpotifyDJ test_tts sending DJ response to device")
+    result = await async_send_dj_response(hass, runtime, text)
+    return {"text": text, **result}
 
 
 def register_http_views(hass: HomeAssistant) -> None:
@@ -306,17 +417,19 @@ def register_http_views(hass: HomeAssistant) -> None:
             SpotifyDJPairView(hass),
             SpotifyDJStatusView(hass),
             SpotifyDJEventView(hass),
+            SpotifyDJTtsView(hass),
             SpotifyDJSpotifyCallbackView(hass),
         ]:
             hass.http.register_view(view)
         hass.data[DOMAIN]["http_registered"] = True
 
         _LOGGER.info(
-            "SpotifyDJ HTTP endpoints registered: %s, %s, %s, %s, %s",
+            "SpotifyDJ HTTP endpoints registered: %s, %s, %s, %s, %s, %s",
             API_VOICE,
             API_PAIR,
             API_STATUS,
             API_EVENT,
+            API_TTS,
             API_SPOTIFY_CALLBACK,
         )
 
@@ -367,14 +480,14 @@ def _register_developer_services(
         text = _service_text(call, DEFAULT_TEST_COMMAND)
         _LOGGER.debug("SpotifyDJ developer action test_parse: %s", text)
         result = await process_text_command(hass, runtime, text, play=False)
-        _LOGGER.warning("SpotifyDJ test_parse: %s", result)
+        _LOGGER.debug("SpotifyDJ test_parse: %s", result)
         return result
 
     async def handle_test_tts(call: ServiceCall) -> dict[str, Any]:
         text = _service_text(call, DEFAULT_TEST_TTS_TEXT)
         _LOGGER.debug("SpotifyDJ developer action test_tts: %s", text)
         result = await async_speak_dj_test(hass, runtime, text)
-        _LOGGER.warning("SpotifyDJ test_tts sent text to HA TTS: %s", text)
+        _LOGGER.debug("SpotifyDJ test_tts sent DJ response to device: %s", text)
         return result
 
     async def handle_test_command(call: ServiceCall) -> dict[str, Any] | None:
@@ -386,7 +499,12 @@ def _register_developer_services(
             text,
         )
         result = await process_text_command(hass, runtime, text, play=play)
-        _LOGGER.warning("SpotifyDJ test_command: %s", result)
+        result["dj_response"] = await async_send_dj_response_best_effort(
+            hass,
+            runtime,
+            result.get("dj_text") or "",
+        )
+        _LOGGER.debug("SpotifyDJ test_command: %s", result)
         return result
 
     async def handle_start_spotify_oauth(call: ServiceCall) -> dict[str, Any]:
@@ -397,7 +515,7 @@ def _register_developer_services(
         ).strip()
         if not client_id:
             raise RuntimeError(
-                "Geef spotify_client_id mee of configureer die in SpotifyDJ options"
+                "Provide spotify_client_id or configure it in SpotifyDJ options"
             )
         base_url = (
             call.data.get("ha_base_url")

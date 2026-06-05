@@ -36,7 +36,9 @@ def install_homeassistant_stubs() -> None:
             super().__init_subclass__()
 
     class OptionsFlow:
-        pass
+        @property
+        def config_entry(self):
+            return None
 
     class ConfigEntry:
         pass
@@ -162,10 +164,12 @@ class ConfigFlowHelperTest(unittest.TestCase):
             self.const.CONF_MAX_AUDIO_BYTES,
             self.const.CONF_ALLOW_OTA_ON_BATTERY,
             self.const.CONF_MIN_BATTERY_FOR_OTA,
+            self.const.CONF_DJ_RESPONSE_TTL_SECONDS,
         }
 
         self.assertTrue(advanced_only.isdisjoint(basic_keys))
         self.assertTrue(advanced_only.issubset(advanced_keys))
+        self.assertIn(self.const.CONF_DJ_RESPONSE_ENABLED, basic_keys)
 
     def test_voice_defaults_fill_empty_values(self) -> None:
         data = self.config_flow._voice_defaults(
@@ -185,42 +189,27 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertTrue(data[self.const.CONF_ALLOW_OTA_ON_BATTERY])
         self.assertEqual(data[self.const.CONF_MIN_BATTERY_FOR_OTA], 55)
         self.assertEqual(data[self.const.CONF_MQTT_PORT], 1884)
-
-    def test_mqtt_config_from_mapping_reads_ha_mqtt_keys(self) -> None:
-        mqtt = self.config_flow._mqtt_config_from_mapping(
-            {
-                "broker": "core-mosquitto",
-                "port": 1884,
-                "username": "mqtt-user",
-                "password": "mqtt-pass",
-            }
+        self.assertTrue(data[self.const.CONF_DJ_RESPONSE_ENABLED])
+        self.assertEqual(
+            data[self.const.CONF_DJ_RESPONSE_TTL_SECONDS],
+            self.const.DEFAULT_DJ_RESPONSE_TTL_SECONDS,
         )
 
-        self.assertEqual(mqtt[self.const.CONF_MQTT_HOST], "core-mosquitto")
-        self.assertEqual(mqtt[self.const.CONF_MQTT_PORT], 1884)
-        self.assertEqual(mqtt[self.const.CONF_MQTT_USERNAME], "mqtt-user")
-        self.assertEqual(mqtt[self.const.CONF_MQTT_PASSWORD], "mqtt-pass")
-
-    def test_mqtt_defaults_from_ha_do_not_override_existing_values(self) -> None:
-        class ConfigEntries:
-            def async_entries(self, domain):
-                if domain != "mqtt":
-                    return []
-                return [
-                    types.SimpleNamespace(
-                        data={
-                            "broker": "core-mosquitto",
-                            "port": 1883,
-                            "username": "detected",
-                            "password": "detected-secret",
-                        },
-                        options={},
-                    )
-                ]
-
-        hass = types.SimpleNamespace(config_entries=ConfigEntries())
+    def test_mqtt_defaults_use_static_homeassistant_host(self) -> None:
         defaults = self.config_flow._merged_mqtt_defaults(
-            hass,
+            types.SimpleNamespace(),
+            {},
+        )
+
+        self.assertEqual(
+            defaults[self.const.CONF_MQTT_HOST],
+            self.const.DEFAULT_MQTT_HOST,
+        )
+        self.assertEqual(defaults[self.const.CONF_MQTT_PORT], self.const.DEFAULT_MQTT_PORT)
+
+    def test_mqtt_defaults_do_not_override_existing_values(self) -> None:
+        defaults = self.config_flow._merged_mqtt_defaults(
+            types.SimpleNamespace(),
             {
                 self.const.CONF_MQTT_HOST: "manual-mqtt",
                 self.const.CONF_MQTT_PORT: 1884,
@@ -229,8 +218,6 @@ class ConfigFlowHelperTest(unittest.TestCase):
 
         self.assertEqual(defaults[self.const.CONF_MQTT_HOST], "manual-mqtt")
         self.assertEqual(defaults[self.const.CONF_MQTT_PORT], 1884)
-        self.assertEqual(defaults[self.const.CONF_MQTT_USERNAME], "detected")
-        self.assertEqual(defaults[self.const.CONF_MQTT_PASSWORD], "detected-secret")
 
     def test_voice_errors_require_spotify_player(self) -> None:
         errors = self.config_flow._voice_errors({self.const.CONF_SPOTIFY_PLAYER: ""})
@@ -248,6 +235,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
 
     def test_user_schema_hides_manual_device_url_until_advanced(self) -> None:
         flow = self.config_flow.SpotifyDJConfigFlow()
+        flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="nl-NL"))
 
         basic_keys = {marker.key for marker in flow._user_schema()}
         flow.show_advanced_options = True
@@ -255,6 +243,14 @@ class ConfigFlowHelperTest(unittest.TestCase):
 
         self.assertNotIn(self.const.CONF_LOCAL_URL, basic_keys)
         self.assertIn(self.const.CONF_LOCAL_URL, advanced_keys)
+        self.assertIn(self.const.CONF_DEVICE_LANGUAGE, basic_keys)
+
+    def test_device_language_default_uses_ha_language_when_supported(self) -> None:
+        nl_hass = types.SimpleNamespace(config=types.SimpleNamespace(language="nl-NL"))
+        en_hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
+
+        self.assertEqual(self.config_flow._ha_device_language(nl_hass), "nl")
+        self.assertEqual(self.config_flow._ha_device_language(en_hass), "en")
 
     def test_ble_wifi_schema_uses_discovered_devices_when_available(self) -> None:
         schema = self.config_flow._ble_wifi_schema({"AA:BB": "SpotifyDJ 1234"})
@@ -263,6 +259,23 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertIn(self.const.CONF_BLE_ADDRESS, keys)
         self.assertIn(self.const.CONF_WIFI_SSID, keys)
         self.assertIn(self.const.CONF_WIFI_PASSWORD, keys)
+
+    def test_spotify_client_id_is_advanced_override(self) -> None:
+        basic_schema = self.config_flow._spotify_schema(include_advanced=False)
+        advanced_schema = self.config_flow._spotify_schema(include_advanced=True)
+
+        basic_keys = {marker.key for marker in basic_schema}
+        advanced_keys = {marker.key for marker in advanced_schema}
+
+        self.assertNotIn(self.const.CONF_SPOTIFY_CLIENT_ID, basic_keys)
+        self.assertIn(self.const.CONF_SPOTIFY_CLIENT_ID, advanced_keys)
+
+    def test_options_flow_init_does_not_assign_read_only_config_entry(self) -> None:
+        entry = types.SimpleNamespace(data={}, options={})
+
+        flow = self.config_flow.SpotifyDJOptionsFlow(entry)
+
+        self.assertIs(flow._config_entry, entry)
 
 
 if __name__ == "__main__":

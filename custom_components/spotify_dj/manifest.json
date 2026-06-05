@@ -1,17 +1,17 @@
 {
   "domain": "spotify_dj",
   "name": "SpotifyDJ",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "documentation": "https://github.com/pcvantol/spotify-dj",
   "issue_tracker": "https://github.com/pcvantol/spotify-dj/issues",
   "dependencies": [
     "http",
+    "zeroconf",
     "bluetooth",
     "bluetooth_adapters",
     "conversation",
     "assist_pipeline",
-    "tts",
-    "spotify"
+    "tts"
   ],
   "codeowners": [
     "@pcvantol"

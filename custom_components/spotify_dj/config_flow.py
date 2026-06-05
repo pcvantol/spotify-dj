@@ -19,8 +19,11 @@ from .const import (
     CONF_ASSIST_PIPELINE_ID,
     CONF_BLE_ADDRESS,
     CONF_DEVICE_ID,
+    CONF_DEVICE_LANGUAGE,
     CONF_DEVICE_NAME,
     CONF_DEVICE_TOKEN,
+    CONF_DJ_RESPONSE_ENABLED,
+    CONF_DJ_RESPONSE_TTL_SECONDS,
     CONF_DJ_PROFILE,
     CONF_DJ_STYLE,
     CONF_FIRMWARE_ASSET_PREFIX,
@@ -51,6 +54,9 @@ from .const import (
     CONF_WIFI_SSID,
     DEFAULT_ASSIST_PIPELINE_ID,
     DEFAULT_DEVICE_NAME,
+    DEFAULT_DEVICE_LANGUAGE,
+    DEFAULT_DJ_RESPONSE_ENABLED,
+    DEFAULT_DJ_RESPONSE_TTL_SECONDS,
     DEFAULT_DJ_STYLE,
     DEFAULT_FIRMWARE_ASSET_PREFIX,
     DEFAULT_FIRMWARE_CHANNEL,
@@ -58,8 +64,10 @@ from .const import (
     DEFAULT_FIRMWARE_REPO,
     DEFAULT_MAX_AUDIO_BYTES,
     DEFAULT_MIN_BATTERY_FOR_OTA,
+    DEFAULT_MQTT_HOST,
     DEFAULT_MQTT_PORT,
     DEFAULT_SETUP_METHOD,
+    DEFAULT_SPOTIFY_CLIENT_ID,
     DEFAULT_SPOTIFY_MARKET,
     DEFAULT_SPOTIFY_SCOPES,
     DEFAULT_TTS_ENGINE,
@@ -77,6 +85,7 @@ from .spotify_oauth import build_authorize_url, build_redirect_uri, create_code_
 _LOGGER = logging.getLogger(__name__)
 
 FIRMWARE_CHANNEL_NAMES = {"stable": "Stable", "beta": "Beta"}
+DEVICE_LANGUAGE_NAMES = {"en": "English", "nl": "Nederlands"}
 SPOTIFY_MARKET_NAMES = {
     "NL": "Netherlands",
     "BE": "Belgium",
@@ -126,62 +135,20 @@ def _int(value: Any, default: int) -> int:
         return default
 
 
+def _ha_device_language(hass: Any) -> str:
+    """Return supported device UI language from the current HA language."""
+    language = str(getattr(getattr(hass, "config", None), "language", "") or "").lower()
+    return "nl" if language.startswith("nl") else DEFAULT_DEVICE_LANGUAGE
+
+
 def _merged_mqtt_defaults(hass: Any, source: dict[str, Any]) -> dict[str, Any]:
-    """Use HA MQTT integration settings as defaults when SpotifyDJ has none."""
+    """Use static MQTT defaults when SpotifyDJ has no stored values."""
     merged = dict(source)
-    mqtt = _mqtt_config_from_ha(hass)
-    for key, value in mqtt.items():
-        if _clean(merged.get(key), "") == "":
-            merged[key] = value
+    if _clean(merged.get(CONF_MQTT_HOST), "") == "":
+        merged[CONF_MQTT_HOST] = DEFAULT_MQTT_HOST
+    if _clean(merged.get(CONF_MQTT_PORT), "") == "":
+        merged[CONF_MQTT_PORT] = DEFAULT_MQTT_PORT
     return merged
-
-
-def _mqtt_config_from_ha(hass: Any) -> dict[str, Any]:
-    """Read MQTT broker defaults from HA's MQTT config entry, when available."""
-    entries = getattr(getattr(hass, "config_entries", None), "async_entries", None)
-    if not entries:
-        return {}
-    try:
-        mqtt_entries = entries("mqtt")
-    except Exception:  # noqa: BLE001
-        _LOGGER.debug("SpotifyDJ could not read HA MQTT config entries", exc_info=True)
-        return {}
-    for entry in mqtt_entries or []:
-        data = dict(getattr(entry, "data", {}) or {})
-        data.update(dict(getattr(entry, "options", {}) or {}))
-        mqtt = _mqtt_config_from_mapping(data)
-        if mqtt.get(CONF_MQTT_HOST):
-            _LOGGER.debug("SpotifyDJ found HA MQTT broker defaults")
-            return mqtt
-    return {}
-
-
-def _mqtt_config_from_mapping(data: dict[str, Any]) -> dict[str, Any]:
-    """Normalize common HA MQTT config keys to SpotifyDJ config keys."""
-    host = _clean(
-        data.get(CONF_MQTT_HOST)
-        or data.get("broker")
-        or data.get("host")
-        or data.get("server"),
-        "",
-    )
-    if not host:
-        return {}
-    return {
-        CONF_MQTT_HOST: host,
-        CONF_MQTT_PORT: _int(
-            data.get(CONF_MQTT_PORT) or data.get("port"),
-            DEFAULT_MQTT_PORT,
-        ),
-        CONF_MQTT_USERNAME: _clean(
-            data.get(CONF_MQTT_USERNAME) or data.get("username"),
-            "",
-        ),
-        CONF_MQTT_PASSWORD: _clean(
-            data.get(CONF_MQTT_PASSWORD) or data.get("password"),
-            "",
-        ),
-    }
 
 
 def _is_https_url(value: str) -> bool:
@@ -239,6 +206,25 @@ def _ble_wifi_schema(devices: dict[str, str]) -> dict[Any, Any]:
         vol.Required(CONF_WIFI_SSID): str,
         vol.Optional(CONF_WIFI_PASSWORD, default=""): str,
     }
+
+
+def _spotify_schema(include_advanced: bool = False) -> dict[Any, Any]:
+    """Build Spotify OAuth fields; Client ID is an advanced override."""
+    schema: dict[Any, Any] = {
+        vol.Required(CONF_HA_EXTERNAL_URL): str,
+        vol.Optional(
+            CONF_SPOTIFY_MARKET,
+            default=DEFAULT_SPOTIFY_MARKET,
+        ): vol.In(SPOTIFY_MARKET_NAMES),
+    }
+    if include_advanced:
+        schema[
+            vol.Optional(
+                CONF_SPOTIFY_CLIENT_ID,
+                default=DEFAULT_SPOTIFY_CLIENT_ID,
+            )
+        ] = str
+    return schema
 
 
 def _voice_name(voice: Any) -> tuple[str, str] | None:
@@ -330,6 +316,13 @@ def _base_voice_schema(
         ): str,
         vol.Optional(CONF_TTS_VOICE, default=tts_voice): voice_validator,
         vol.Optional(
+            CONF_DJ_RESPONSE_ENABLED,
+            default=defaults.get(
+                CONF_DJ_RESPONSE_ENABLED,
+                DEFAULT_DJ_RESPONSE_ENABLED,
+            ),
+        ): bool,
+        vol.Optional(
             CONF_DJ_STYLE,
             default=defaults.get(CONF_DJ_STYLE, DEFAULT_DJ_STYLE),
         ): vol.In(DJ_STYLE_NAMES),
@@ -399,6 +392,13 @@ def _advanced_voice_schema(defaults: dict[str, Any]) -> dict[Any, Any]:
             CONF_MIN_BATTERY_FOR_OTA,
             default=defaults.get(CONF_MIN_BATTERY_FOR_OTA, DEFAULT_MIN_BATTERY_FOR_OTA),
         ): int,
+        vol.Optional(
+            CONF_DJ_RESPONSE_TTL_SECONDS,
+            default=defaults.get(
+                CONF_DJ_RESPONSE_TTL_SECONDS,
+                DEFAULT_DJ_RESPONSE_TTL_SECONDS,
+            ),
+        ): int,
     }
 
 
@@ -454,6 +454,14 @@ def _voice_defaults(data: dict[str, Any] | None = None) -> dict[str, Any]:
         CONF_TTS_ENGINE: _clean(source.get(CONF_TTS_ENGINE), DEFAULT_TTS_ENGINE),
         CONF_TTS_LANGUAGE: _clean(source.get(CONF_TTS_LANGUAGE), DEFAULT_TTS_LANGUAGE),
         CONF_TTS_VOICE: _clean(source.get(CONF_TTS_VOICE), DEFAULT_TTS_VOICE),
+        CONF_DJ_RESPONSE_ENABLED: _bool(
+            source.get(CONF_DJ_RESPONSE_ENABLED),
+            DEFAULT_DJ_RESPONSE_ENABLED,
+        ),
+        CONF_DJ_RESPONSE_TTL_SECONDS: _int(
+            source.get(CONF_DJ_RESPONSE_TTL_SECONDS),
+            DEFAULT_DJ_RESPONSE_TTL_SECONDS,
+        ),
         CONF_DJ_STYLE: dj_style,
         CONF_DJ_PROFILE: dj_style,
         CONF_FIRMWARE_REPO: _clean(
@@ -594,6 +602,10 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         user_input.get(CONF_DEVICE_NAME),
                         DEFAULT_DEVICE_NAME,
                     ),
+                    CONF_DEVICE_LANGUAGE: _clean(
+                        user_input.get(CONF_DEVICE_LANGUAGE),
+                        _ha_device_language(getattr(self, "hass", None)),
+                    ),
                     CONF_DEVICE_TOKEN: secrets.token_urlsafe(32),
                     CONF_LOCAL_URL: _clean(user_input.get(CONF_LOCAL_URL), ""),
                 }
@@ -613,6 +625,10 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_DEVICE_NAME,
                 default=DEFAULT_DEVICE_NAME,
             ): str,
+            vol.Optional(
+                CONF_DEVICE_LANGUAGE,
+                default=_ha_device_language(getattr(self, "hass", None)),
+            ): vol.In(DEVICE_LANGUAGE_NAMES),
         }
         if getattr(self, "show_advanced_options", False):
             schema[vol.Optional(CONF_LOCAL_URL, default="")] = str
@@ -626,7 +642,10 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            client_id = str(user_input.get(CONF_SPOTIFY_CLIENT_ID, "")).strip()
+            client_id = str(
+                user_input.get(CONF_SPOTIFY_CLIENT_ID)
+                or DEFAULT_SPOTIFY_CLIENT_ID
+            ).strip()
             external_url = str(user_input.get(CONF_HA_EXTERNAL_URL, "")).strip().rstrip("/")
             if not client_id:
                 errors[CONF_SPOTIFY_CLIENT_ID] = "spotify_client_id_required"
@@ -648,14 +667,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="spotify",
             data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_SPOTIFY_CLIENT_ID): str,
-                    vol.Required(CONF_HA_EXTERNAL_URL): str,
-                    vol.Optional(
-                        CONF_SPOTIFY_MARKET,
-                        default=DEFAULT_SPOTIFY_MARKET,
-                    ): vol.In(SPOTIFY_MARKET_NAMES),
-                }
+                _spotify_schema(getattr(self, "show_advanced_options", False))
             ),
             errors=errors,
             description_placeholders={
@@ -808,14 +820,14 @@ class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
     """Handle SpotifyDJ options."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
+        self._config_entry = config_entry
 
     async def async_step_init(
         self,
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Manage SpotifyDJ options."""
-        current = {**self.config_entry.data, **self.config_entry.options}
+        current = {**self._config_entry.data, **self._config_entry.options}
         defaults = _voice_defaults(_merged_mqtt_defaults(self.hass, current))
         errors: dict[str, str] = {}
         if user_input is not None:

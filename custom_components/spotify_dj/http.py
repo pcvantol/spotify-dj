@@ -11,6 +11,7 @@ from .const import (
     API_EVENT,
     API_PAIR,
     API_STATUS,
+    API_TTS,
     API_VOICE,
     CONF_ASSIST_PIPELINE_ID,
     CONF_HA_EXTERNAL_URL,
@@ -23,6 +24,7 @@ from .const import (
     DEFAULT_SPOTIFY_MARKET,
     DEFAULT_SPOTIFY_SCOPES,
 )
+from .dj_response import async_send_dj_response_best_effort, get_tts_audio
 from .processor import process_text_command
 from .spotify_oauth import exchange_code_for_refresh_token
 
@@ -33,8 +35,29 @@ def _runtime(hass):
     return hass.data.get(DOMAIN, {}).get("runtime")
 
 
-def _json_error(view: HomeAssistantView, error: str, status_code: int):
-    return view.json({"success": False, "error": error}, status_code=status_code)
+ERROR_MESSAGES = {
+    "not_configured": "SpotifyDJ is not configured.",
+    "invalid_json": "Send valid JSON.",
+    "missing_pair_data": "Send both device_id and pair_code.",
+    "invalid_pair_code": "The pairing code does not match this SpotifyDJ setup.",
+    "unauthorized": "The SpotifyDJ device token is missing or invalid.",
+}
+
+
+def _json_error(
+    view: HomeAssistantView,
+    error: str,
+    status_code: int,
+    message: str | None = None,
+):
+    return view.json(
+        {
+            "success": False,
+            "error": error,
+            "message": message or ERROR_MESSAGES.get(error, error),
+        },
+        status_code=status_code,
+    )
 
 
 def _missing_text_response(view: HomeAssistantView):
@@ -72,21 +95,21 @@ class SpotifyDJPairView(HomeAssistantView):
         hass = request.app["hass"]
         runtime = _runtime(hass)
         if runtime is None:
-            return _json_error(self, "SpotifyDJ is not configured", 503)
+            return _json_error(self, "not_configured", 503)
         try:
             data = await request.json()
         except Exception:  # noqa: BLE001
-            return _json_error(self, "Invalid JSON", 400)
+            return _json_error(self, "invalid_json", 400)
 
         device_id = data.get("device_id")
         pair_code = str(data.get("pair_code") or "")
         if not device_id or not pair_code:
-            return _json_error(self, "Missing device_id or pair_code", 400)
+            return _json_error(self, "missing_pair_data", 400)
         conf = runtime.config
         expected_pair_code = str(conf.get(CONF_PAIR_CODE) or "").strip()
         if expected_pair_code and pair_code != expected_pair_code:
-            runtime.update(last_error="Invalid pairing code")
-            return _json_error(self, "Invalid pairing code", 401)
+            runtime.update(last_error=ERROR_MESSAGES["invalid_pair_code"])
+            return _json_error(self, "invalid_pair_code", 401)
 
         # Pairing accepts the first device/code and returns a per-device token.
         token = runtime.ensure_device_token()
@@ -108,20 +131,19 @@ class SpotifyDJPairView(HomeAssistantView):
             "device_token": token,
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
             "ha_url": conf.get(CONF_HA_EXTERNAL_URL, ""),
+            "device_language": runtime.device_language(),
+            "language": runtime.device_language(),
             "mqtt": runtime.mqtt_payload(),
             "api_base": "/api/spotify_dj",
             "voice_path": API_VOICE,
             "status_path": API_STATUS,
             "event_path": API_EVENT,
         }
-        # If Spotify was already provisioned in HA, include the credentials once during pairing.
-        if conf.get(CONF_SPOTIFY_CLIENT_ID) and conf.get(CONF_SPOTIFY_REFRESH_TOKEN):
-            response["spotify"] = {
-                "client_id": conf.get(CONF_SPOTIFY_CLIENT_ID),
-                "refresh_token": conf.get(CONF_SPOTIFY_REFRESH_TOKEN),
-                "market": conf.get(CONF_SPOTIFY_MARKET, DEFAULT_SPOTIFY_MARKET),
-                "scopes": conf.get(CONF_SPOTIFY_SCOPES, DEFAULT_SPOTIFY_SCOPES).split(),
-            }
+        # If Spotify was already provisioned in HA, include credentials during pairing.
+        spotify = runtime.spotify_payload()
+        if spotify:
+            response["spotify"] = spotify
+            response.update(spotify)
         return self.json(response)
 
 
@@ -137,13 +159,13 @@ class SpotifyDJStatusView(HomeAssistantView):
         hass = request.app["hass"]
         runtime = _runtime(hass)
         if runtime is None:
-            return _json_error(self, "SpotifyDJ is not configured", 503)
+            return _json_error(self, "not_configured", 503)
         try:
             data = await request.json()
         except Exception:  # noqa: BLE001
-            return _json_error(self, "Invalid JSON", 400)
+            return _json_error(self, "invalid_json", 400)
         if not runtime.authorize_device_request(request.headers, data.get("device_id")):
-            return _json_error(self, "Unauthorized", 401)
+            return _json_error(self, "unauthorized", 401)
         runtime.device_status.update(data)
         # OTA lifecycle hints from ESP.
         if data.get("ota_state") in {"idle", "success", "failed"}:
@@ -152,15 +174,20 @@ class SpotifyDJStatusView(HomeAssistantView):
             runtime.ota_last_error = data.get("ota_error")
         runtime.update(last_error=None)
         conf = runtime.config
-        return self.json(
-            {
-                "success": True,
-                "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
-                "ha_url": conf.get(CONF_HA_EXTERNAL_URL, ""),
-                "device_token": runtime.device_token or "",
-                "mqtt": runtime.mqtt_payload(),
-            }
-        )
+        response = {
+            "success": True,
+            "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
+            "ha_url": conf.get(CONF_HA_EXTERNAL_URL, ""),
+            "device_token": runtime.device_token or "",
+            "device_language": runtime.device_language(),
+            "language": runtime.device_language(),
+            "mqtt": runtime.mqtt_payload(),
+        }
+        spotify = runtime.spotify_payload()
+        if spotify:
+            response["spotify"] = spotify
+            response.update(spotify)
+        return self.json(response)
 
 
 class SpotifyDJEventView(HomeAssistantView):
@@ -175,17 +202,17 @@ class SpotifyDJEventView(HomeAssistantView):
         hass = request.app["hass"]
         runtime = _runtime(hass)
         if runtime is None:
-            return _json_error(self, "SpotifyDJ is not configured", 503)
+            return _json_error(self, "not_configured", 503)
         try:
             data = await request.json()
         except Exception:  # noqa: BLE001
-            return _json_error(self, "Invalid JSON", 400)
+            return _json_error(self, "invalid_json", 400)
         if not runtime.authorize_device_request(request.headers, data.get("device_id")):
-            return _json_error(self, "Unauthorized", 401)
+            return _json_error(self, "unauthorized", 401)
         event_type = data.get("type") or data.get("event")
         runtime.device_status["last_event"] = data
         runtime.update(last_error=None)
-        _LOGGER.info("SpotifyDJ event %s: %s", event_type, data)
+        _LOGGER.info("SpotifyDJ event received: %s", event_type)
         return self.json({"success": True})
 
 
@@ -201,9 +228,9 @@ class SpotifyDJVoiceView(HomeAssistantView):
         hass = request.app["hass"]
         runtime = _runtime(hass)
         if runtime is None:
-            return _json_error(self, "SpotifyDJ is not configured", 503)
+            return _json_error(self, "not_configured", 503)
         if not runtime.authorize_device_request(request.headers):
-            return _json_error(self, "Unauthorized", 401)
+            return _json_error(self, "unauthorized", 401)
 
         try:
             content_type = request.headers.get("Content-Type", "")
@@ -228,6 +255,11 @@ class SpotifyDJVoiceView(HomeAssistantView):
 
             _LOGGER.debug("SpotifyDJ command: %s", user_text)
             result = await process_text_command(hass, runtime, user_text, play=True)
+            result["dj_response"] = await async_send_dj_response_best_effort(
+                hass,
+                runtime,
+                result.get("dj_text") or "",
+            )
             _LOGGER.debug("SpotifyDJ result: %s", result)
             return self.json({"success": True, **result})
 
@@ -242,6 +274,27 @@ class SpotifyDJVoiceView(HomeAssistantView):
                 },
                 status_code=500,
             )
+
+
+class SpotifyDJTtsView(HomeAssistantView):
+    url = API_TTS
+    name = "api:spotify_dj:tts"
+    requires_auth = False
+
+    def __init__(self, hass):
+        self.hass = hass
+
+    async def get(self, request, token: str):
+        status, audio = get_tts_audio(request.app["hass"], token)
+        if status == 404:
+            return web.Response(status=404, text="SpotifyDJ TTS audio not found")
+        if status == 410:
+            return web.Response(status=410, text="SpotifyDJ TTS audio expired")
+        return web.Response(
+            body=audio,
+            content_type="audio/wav",
+            headers={"Content-Length": str(len(audio or b""))},
+        )
 
 
 class SpotifyDJSpotifyCallbackView(HomeAssistantView):

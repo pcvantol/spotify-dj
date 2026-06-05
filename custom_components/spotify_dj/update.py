@@ -29,7 +29,7 @@ async def async_setup_entry(
 
 class SpotifyDJFirmwareUpdate(UpdateEntity):
     _attr_has_entity_name = True
-    _attr_name = "Firmware"
+    _attr_translation_key = "firmware"
     _attr_unique_id = "spotifydj_firmware_update"
     _attr_supported_features = (
         UpdateEntityFeature.INSTALL

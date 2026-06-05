@@ -13,15 +13,17 @@
       },
       "pair": {
         "title": "Pair SpotifyDJ device",
-        "description": "Enter the 6 digit pairing code shown on the SpotifyDJ device display. The manual device URL is only needed when mDNS discovery is unavailable.",
+        "description": "Enter the 6 digit pairing code shown on the SpotifyDJ device display. The manual device URL is only needed when mDNS discovery is unavailable. Spotify is a trademark of Spotify AB. SpotifyDJ is not affiliated with, endorsed by, or sponsored by Spotify AB.",
         "data": {
           "pair_code": "Pairing code",
           "device_name": "Device name",
+          "device_language": "Device language",
           "local_url": "Manual device URL"
         },
         "data_description": {
           "pair_code": "The 6 digit code shown on the device display.",
           "device_name": "Friendly name for this SpotifyDJ remote.",
+          "device_language": "Language for the SpotifyDJ device UI. This is sent to the device during pairing.",
           "local_url": "Advanced fallback, for example http://spotifydj-xxxxxxxxxxxx.local."
         }
       },
@@ -41,14 +43,14 @@
       },
       "spotify": {
         "title": "Connect Spotify",
-        "description": "Enter your Spotify Developer App Client ID and the HTTPS Home Assistant external URL. PKCE does not require a client secret. The Spotify redirect URI must be the external URL plus /api/spotify_dj/spotify/callback.",
+        "description": "Enter the HTTPS Home Assistant external URL. SpotifyDJ uses a bundled Spotify Client ID by default; you can override it in advanced options. PKCE does not require a client secret. The Spotify redirect URI must be the external URL plus /api/spotify_dj/spotify/callback.",
         "data": {
           "spotify_client_id": "Spotify Client ID",
           "ha_external_url": "Home Assistant external URL",
           "spotify_market": "Spotify market"
         },
         "data_description": {
-          "spotify_client_id": "Client ID from your Spotify Developer App.",
+          "spotify_client_id": "Advanced override for the bundled Spotify Client ID.",
           "ha_external_url": "Reachable HTTPS URL, preferably your Nabu Casa URL.",
           "spotify_market": "Spotify market used for search and playback requests."
         }
@@ -64,6 +66,7 @@
           "tts_engine": "TTS engine",
           "tts_language": "TTS language",
           "tts_voice": "TTS voice",
+          "dj_response_enabled": "Play DJ response on device",
           "dj_style": "DJ style",
           "dj_profile": "DJ style",
           "spotify_player": "Spotify media player",
@@ -79,18 +82,20 @@
           "firmware_channel": "Firmware channel",
           "max_audio_bytes": "Maximum audio bytes",
           "allow_ota_on_battery": "Allow OTA on battery",
-          "min_battery_for_ota": "Minimum battery for OTA"
+          "min_battery_for_ota": "Minimum battery for OTA",
+          "dj_response_ttl_seconds": "DJ response audio TTL seconds"
         },
         "data_description": {
           "assist_pipeline_id": "Assist pipeline used by SpotifyDJ devices for speech recognition.",
           "tts_engine": "Home Assistant TTS entity used for DJ responses.",
           "tts_language": "Language passed to the TTS engine.",
           "tts_voice": "Voice passed to the TTS engine when supported.",
+          "dj_response_enabled": "Create a temporary PCM WAV audio URL and send it with the DJ text to the SpotifyDJ device.",
           "dj_style": "Tone used for SpotifyDJ announcements.",
           "dj_profile": "Tone used for SpotifyDJ announcements.",
-          "spotify_player": "Required media player used for Spotify playback and TTS output.",
+          "spotify_player": "Required media player used for Spotify playback.",
           "spotify_source": "Advanced optional override for a Spotify Connect source. Leave empty for dynamic/default playback.",
-          "mqtt_host": "Advanced optional MQTT broker host provisioned to the SpotifyDJ device. Defaults to HA MQTT/Mosquitto when known.",
+          "mqtt_host": "Advanced optional MQTT broker host provisioned to the SpotifyDJ device. Defaults to homeassistant.local.",
           "mqtt_port": "MQTT broker port, usually 1883.",
           "mqtt_username": "Optional MQTT username provisioned to the SpotifyDJ device.",
           "mqtt_password": "Optional MQTT password provisioned to the SpotifyDJ device. It is redacted from diagnostics.",
@@ -101,7 +106,8 @@
           "firmware_channel": "Advanced firmware release channel.",
           "max_audio_bytes": "Compatibility limit for legacy audio uploads.",
           "allow_ota_on_battery": "Allow firmware updates while the device is not USB powered.",
-          "min_battery_for_ota": "Minimum battery percentage before OTA is allowed."
+          "min_battery_for_ota": "Minimum battery percentage before OTA is allowed.",
+          "dj_response_ttl_seconds": "Number of seconds the temporary WAV download URL remains valid."
         }
       }
     },
@@ -115,7 +121,7 @@
       "oauth_setup_failed": "Spotify authorization could not be started. Check the Client ID and external URL, then try again.",
       "oauth_not_completed": "Spotify authorization has not completed yet. Approve access in Spotify and return to Home Assistant.",
       "oauth_failed": "Spotify authorization failed. Start the Spotify step again and check the redirect URI in your Spotify app.",
-      "spotify_player_required": "Select the Spotify media player SpotifyDJ should use for playback and TTS.",
+      "spotify_player_required": "Select the Spotify media player SpotifyDJ should use for playback.",
       "ble_device_required": "Select a SpotifyDJ BLE device or enter its Bluetooth address.",
       "wifi_ssid_required": "Enter the WiFi SSID to provision.",
       "ble_wifi_failed": "WiFi provisioning over Bluetooth failed. Check the selected device, SSID and password, then try again."
@@ -128,12 +134,13 @@
     "step": {
       "init": {
         "title": "SpotifyDJ options",
-        "description": "Adjust SpotifyDJ voice, playback, OTA and firmware settings.",
+        "description": "Adjust SpotifyDJ voice, playback, OTA and firmware settings. Spotify is a trademark of Spotify AB. SpotifyDJ is not affiliated with, endorsed by, or sponsored by Spotify AB.",
         "data": {
           "assist_pipeline_id": "Assist pipeline",
           "tts_engine": "TTS engine",
           "tts_language": "TTS language",
           "tts_voice": "TTS voice",
+          "dj_response_enabled": "Play DJ response on device",
           "dj_style": "DJ style",
           "dj_profile": "DJ style",
           "spotify_player": "Spotify media player",
@@ -149,13 +156,48 @@
           "firmware_channel": "Firmware channel",
           "max_audio_bytes": "Maximum audio bytes",
           "allow_ota_on_battery": "Allow OTA on battery",
-          "min_battery_for_ota": "Minimum battery for OTA"
+          "min_battery_for_ota": "Minimum battery for OTA",
+          "dj_response_ttl_seconds": "DJ response audio TTL seconds"
         },
         "data_description": {
           "assist_pipeline_id": "Assist pipeline used by SpotifyDJ devices for speech recognition.",
-          "spotify_player": "Required media player used for Spotify playback and TTS output.",
+          "spotify_player": "Required media player used for Spotify playback.",
+          "dj_response_enabled": "Create a temporary PCM WAV audio URL and send it with the DJ text to the SpotifyDJ device.",
+          "dj_response_ttl_seconds": "Number of seconds the temporary WAV download URL remains valid.",
           "allow_ota_on_battery": "Allow firmware updates while the device is not USB powered."
         }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "last_command": {
+        "name": "Last command"
+      },
+      "battery": {
+        "name": "Battery"
+      },
+      "wifi_rssi": {
+        "name": "Wi-Fi RSSI"
+      },
+      "firmware_version": {
+        "name": "Firmware version"
+      },
+      "last_track": {
+        "name": "Last track"
+      }
+    },
+    "button": {
+      "test_dj_response": {
+        "name": "Test ESP DJ response"
+      }
+    },
+    "update": {
+      "firmware": {
+        "name": "Firmware"
       }
     }
   }

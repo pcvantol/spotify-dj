@@ -25,6 +25,17 @@ CONFIG_FLOW_ERROR_KEYS = {
     "ble_wifi_failed",
 }
 
+ENTITY_TRANSLATION_KEYS = {
+    ("sensor", "status"),
+    ("sensor", "last_command"),
+    ("sensor", "battery"),
+    ("sensor", "wifi_rssi"),
+    ("sensor", "firmware_version"),
+    ("sensor", "last_track"),
+    ("button", "test_dj_response"),
+    ("update", "firmware"),
+}
+
 
 class TranslationTest(unittest.TestCase):
     def test_config_flow_error_keys_are_translated(self) -> None:
@@ -34,6 +45,25 @@ class TranslationTest(unittest.TestCase):
                 errors = data["config"]["error"]
                 missing = CONFIG_FLOW_ERROR_KEYS - set(errors)
                 self.assertFalse(missing, f"Missing {language} translations: {sorted(missing)}")
+
+    def test_entity_translation_keys_are_translated(self) -> None:
+        for language in ("en", "nl"):
+            with self.subTest(language=language):
+                data = json.loads((TRANSLATIONS / f"{language}.json").read_text())
+                entity = data["entity"]
+                missing = [
+                    f"{platform}.{key}"
+                    for platform, key in ENTITY_TRANSLATION_KEYS
+                    if key not in entity.get(platform, {})
+                ]
+                self.assertFalse(missing, f"Missing {language} entity translations: {missing}")
+
+    def test_entities_use_translation_keys(self) -> None:
+        for filename in ("sensor.py", "button.py", "update.py"):
+            with self.subTest(filename=filename):
+                text = (INTEGRATION / filename).read_text()
+                self.assertIn("_attr_translation_key", text)
+                self.assertNotIn("_attr_name =", text)
 
     def test_no_legacy_branding_in_user_facing_integration_files(self) -> None:
         checked_files = [

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import importlib
 from pathlib import Path
 import sys
@@ -54,26 +55,7 @@ class TtsHelperTest(unittest.TestCase):
         sys.modules.pop("custom_components.spotify_dj", None)
         cls.integration = importlib.import_module("custom_components.spotify_dj")
         cls.const = importlib.import_module("custom_components.spotify_dj.const")
-
-    def test_tts_service_data_uses_configured_player_and_defaults(self) -> None:
-        runtime = types.SimpleNamespace(
-            config={
-                self.const.CONF_SPOTIFY_PLAYER: "media_player.spotify",
-            }
-        )
-
-        data = self.integration._tts_service_data(runtime, "Test tekst")
-
-        self.assertEqual(data["entity_id"], self.const.DEFAULT_TTS_ENGINE)
-        self.assertEqual(data["media_player_entity_id"], "media_player.spotify")
-        self.assertEqual(data["message"], "Test tekst")
-        self.assertEqual(data["language"], self.const.DEFAULT_TTS_LANGUAGE)
-
-    def test_tts_service_data_requires_player(self) -> None:
-        runtime = types.SimpleNamespace(config={})
-
-        with self.assertRaisesRegex(RuntimeError, "Spotify/media_player"):
-            self.integration._tts_service_data(runtime, "Test tekst")
+        cls.dj_response = importlib.import_module("custom_components.spotify_dj.dj_response")
 
     def test_mqtt_payload_is_empty_without_host(self) -> None:
         entry = types.SimpleNamespace(data={}, options={})
@@ -102,6 +84,168 @@ class TtsHelperTest(unittest.TestCase):
                 "password": "secret",
             },
         )
+
+    def test_spotify_payload_contains_refresh_token_aliases(self) -> None:
+        entry = types.SimpleNamespace(
+            data={
+                self.const.CONF_SPOTIFY_CLIENT_ID: "client-id",
+                self.const.CONF_SPOTIFY_REFRESH_TOKEN: "refresh-token",
+                self.const.CONF_SPOTIFY_MARKET: "NL",
+                self.const.CONF_SPOTIFY_SCOPES: "scope-a scope-b",
+            },
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+
+        payload = runtime.spotify_payload()
+
+        self.assertEqual(payload["client_id"], "client-id")
+        self.assertEqual(payload["refresh_token"], "refresh-token")
+        self.assertEqual(payload["spotify_client_id"], "client-id")
+        self.assertEqual(payload["spotify_refresh_token"], "refresh-token")
+        self.assertEqual(payload["market"], "NL")
+        self.assertEqual(payload["scopes"], ["scope-a", "scope-b"])
+
+    def test_pair_device_payload_includes_spotify_credentials_when_available(self) -> None:
+        class Response:
+            status = 200
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def text(self):
+                return '{"success": true}'
+
+        class Session:
+            def __init__(self):
+                self.calls = []
+
+            def post(self, url, **kwargs):
+                self.calls.append({"url": url, **kwargs})
+                return Response()
+
+        entry = types.SimpleNamespace(
+            data={
+                self.const.CONF_DEVICE_ID: "spotifydj-123456",
+                self.const.CONF_PAIR_CODE: "123456",
+                self.const.CONF_DEVICE_LANGUAGE: "nl",
+                self.const.CONF_SPOTIFY_CLIENT_ID: "client-id",
+                self.const.CONF_SPOTIFY_REFRESH_TOKEN: "refresh-token",
+            },
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime.device_status["local_url"] = "http://spotifydj.local"
+        session = Session()
+        original_session = self.integration.async_get_clientsession
+        self.integration.async_get_clientsession = lambda hass: session
+        try:
+            result = asyncio.run(runtime.pair_device(object()))
+        finally:
+            self.integration.async_get_clientsession = original_session
+
+        self.assertTrue(result["success"])
+        payload = session.calls[0]["json"]
+        self.assertEqual(payload["device_language"], "nl")
+        self.assertEqual(payload["language"], "nl")
+        self.assertEqual(payload["spotify"]["refresh_token"], "refresh-token")
+        self.assertEqual(payload["spotify"]["spotify_refresh_token"], "refresh-token")
+        self.assertEqual(payload["refresh_token"], "refresh-token")
+        self.assertEqual(payload["spotify_refresh_token"], "refresh-token")
+
+    def test_url_from_service_info_matches_device_id(self) -> None:
+        entry = types.SimpleNamespace(
+            data={self.const.CONF_DEVICE_ID: "spotifydj-123456"},
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        info = types.SimpleNamespace(
+            name="spotifydj-123456._spotifydj._tcp.local.",
+            server="spotifydj-123456.local.",
+            port=8080,
+        )
+
+        url = self.integration._url_from_service_info(info, runtime)
+
+        self.assertEqual(url, "http://spotifydj-123456.local:8080")
+
+    def test_url_from_service_info_matches_friendly_mdns_name(self) -> None:
+        entry = types.SimpleNamespace(
+            data={self.const.CONF_DEVICE_ID: "spotifydj-123456"},
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        info = types.SimpleNamespace(
+            name="SpotifyDJ 123456._spotifydj._tcp.local.",
+            server="spotifydj-123456.local.",
+            port=80,
+        )
+
+        url = self.integration._url_from_service_info(info, runtime)
+
+        self.assertEqual(url, "http://spotifydj-123456.local")
+
+    def test_url_from_service_info_ignores_other_devices(self) -> None:
+        entry = types.SimpleNamespace(
+            data={self.const.CONF_DEVICE_ID: "spotifydj-123456"},
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        info = types.SimpleNamespace(
+            name="spotifydj-other._spotifydj._tcp.local.",
+            server="spotifydj-other.local.",
+            port=80,
+        )
+
+        self.assertIsNone(self.integration._url_from_service_info(info, runtime))
+
+    def test_mdns_service_name_candidates_include_device_and_friendly_names(self) -> None:
+        entry = types.SimpleNamespace(
+            data={self.const.CONF_DEVICE_ID: "spotifydj-123456"},
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+
+        names = self.integration._mdns_service_name_candidates(runtime)
+
+        self.assertIn("spotifydj-123456._spotifydj._tcp.local.", names)
+        self.assertIn("SpotifyDJ 123456._spotifydj._tcp.local.", names)
+
+    def test_device_local_url_falls_back_to_mdns_hostname(self) -> None:
+        entry = types.SimpleNamespace(
+            data={self.const.CONF_DEVICE_ID: "spotifydj-123456"},
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+
+        url = asyncio.run(runtime.async_device_local_url(hass=object()))
+
+        self.assertEqual(url, "http://spotifydj-123456.local")
+
+    def test_tts_audio_store_returns_wav_and_unknown_404(self) -> None:
+        hass = types.SimpleNamespace(data={})
+
+        token = self.dj_response.store_tts_audio(hass, b"RIFFxxxxWAVEdata", 120)
+
+        status, audio = self.dj_response.get_tts_audio(hass, token)
+        self.assertEqual(status, 200)
+        self.assertEqual(audio, b"RIFFxxxxWAVEdata")
+        status, audio = self.dj_response.get_tts_audio(hass, "missing")
+        self.assertEqual(status, 404)
+        self.assertIsNone(audio)
+
+    def test_tts_audio_store_expired_returns_410(self) -> None:
+        hass = types.SimpleNamespace(data={})
+
+        token = self.dj_response.store_tts_audio(hass, b"RIFFxxxxWAVEdata", 1)
+        self.dj_response._store(hass)[token].expires_at = 0
+
+        status, audio = self.dj_response.get_tts_audio(hass, token)
+        self.assertEqual(status, 410)
+        self.assertIsNone(audio)
 
 
 if __name__ == "__main__":

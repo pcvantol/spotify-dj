@@ -22,6 +22,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+
 @dataclass(slots=True)
 class FirmwareRelease:
     version: str
@@ -59,72 +60,111 @@ def is_newer(latest: str | None, installed: str | None) -> bool:
         return latest_n != installed_n
 
 
-async def fetch_latest_firmware_release(hass: HomeAssistant, config: dict[str, Any]) -> FirmwareRelease | None:
+@dataclass(slots=True)
+class FirmwareAssets:
+    firmware: dict[str, Any] | None = None
+    manifest: dict[str, Any] | None = None
+    sha256: dict[str, Any] | None = None
+
+
+async def fetch_latest_firmware_release(
+    hass: HomeAssistant,
+    config: dict[str, Any],
+) -> FirmwareRelease | None:
     repo = config.get(CONF_FIRMWARE_REPO, DEFAULT_FIRMWARE_REPO).strip()
     if not repo or "/" not in repo:
         return None
-    url = f"https://api.github.com/repos/{repo}/releases/latest"
+
     session = async_get_clientsession(hass)
-    async with session.get(url, headers={"Accept": "application/vnd.github+json"}, timeout=ClientTimeout(total=20)) as resp:
-        if resp.status == 404:
-            _LOGGER.warning("SpotifyDJ firmware repo has no latest release: %s", repo)
-            return None
-        resp.raise_for_status()
-        release = await resp.json()
+    release = await _fetch_latest_release_json(session, repo)
+    if release is None:
+        return None
 
     version = normalize_version(release.get("tag_name")) or "0.0.0"
-    assets = release.get("assets", [])
     prefix = config.get(CONF_FIRMWARE_ASSET_PREFIX, DEFAULT_FIRMWARE_ASSET_PREFIX)
     device = config.get(CONF_FIRMWARE_DEVICE, DEFAULT_FIRMWARE_DEVICE)
+    assets = _select_release_assets(release.get("assets", []), prefix)
 
-    firmware_asset = None
-    manifest_asset = None
-    sha_asset = None
-    for asset in assets:
-        name = asset.get("name", "")
-        if name.endswith(".bin") and prefix in name:
-            firmware_asset = asset
-        elif name in {"spotifydj-firmware-manifest.json", "manifest.json"}:
-            manifest_asset = asset
-        elif name.endswith(".sha256") or name == "sha256.txt":
-            sha_asset = asset
-
-    if firmware_asset is None:
+    if assets.firmware is None:
         _LOGGER.warning("SpotifyDJ latest release %s has no matching .bin asset with prefix %s", version, prefix)
         return None
 
-    manifest: dict[str, Any] = {}
-    if manifest_asset:
-        try:
-            async with session.get(manifest_asset["browser_download_url"], timeout=ClientTimeout(total=15)) as resp:
-                if resp.ok:
-                    manifest = await resp.json()
-        except Exception as exc:  # noqa: BLE001
-            _LOGGER.warning("SpotifyDJ could not read firmware manifest: %s", exc)
-
-    sha256 = manifest.get("sha256")
-    if not sha256 and sha_asset:
-        try:
-            async with session.get(sha_asset["browser_download_url"], timeout=ClientTimeout(total=15)) as resp:
-                if resp.ok:
-                    text = await resp.text()
-                    match = re.search(r"\b[a-fA-F0-9]{64}\b", text)
-                    if match:
-                        sha256 = match.group(0).lower()
-        except Exception as exc:  # noqa: BLE001
-            _LOGGER.warning("SpotifyDJ could not read sha256 asset: %s", exc)
+    manifest = await _fetch_manifest(session, assets.manifest)
+    sha256 = manifest.get("sha256") or await _fetch_sha256(session, assets.sha256)
 
     return FirmwareRelease(
         version=normalize_version(manifest.get("version")) or version,
         title=release.get("name") or release.get("tag_name") or version,
         body=release.get("body"),
-        firmware_url=firmware_asset["browser_download_url"],
-        firmware_asset=firmware_asset["name"],
-        manifest_url=manifest_asset["browser_download_url"] if manifest_asset else None,
+        firmware_url=assets.firmware["browser_download_url"],
+        firmware_asset=assets.firmware["name"],
+        manifest_url=_asset_download_url(assets.manifest),
         sha256=sha256,
         device=manifest.get("device") or device,
         min_ha_integration=manifest.get("min_ha_integration"),
     )
+
+
+async def _fetch_latest_release_json(session: Any, repo: str) -> dict[str, Any] | None:
+    url = f"https://api.github.com/repos/{repo}/releases/latest"
+    async with session.get(
+        url,
+        headers={"Accept": "application/vnd.github+json"},
+        timeout=ClientTimeout(total=20),
+    ) as resp:
+        if resp.status == 404:
+            _LOGGER.warning("SpotifyDJ firmware repo has no latest release: %s", repo)
+            return None
+        resp.raise_for_status()
+        return await resp.json()
+
+
+def _select_release_assets(assets: list[dict[str, Any]], prefix: str) -> FirmwareAssets:
+    selected = FirmwareAssets()
+    for asset in assets:
+        name = asset.get("name", "")
+        if name.endswith(".bin") and prefix in name:
+            selected.firmware = asset
+        elif name in {"spotifydj-firmware-manifest.json", "manifest.json"}:
+            selected.manifest = asset
+        elif name.endswith(".sha256") or name == "sha256.txt":
+            selected.sha256 = asset
+    return selected
+
+
+async def _fetch_manifest(session: Any, asset: dict[str, Any] | None) -> dict[str, Any]:
+    if asset is None:
+        return {}
+    try:
+        async with session.get(
+            asset["browser_download_url"],
+            timeout=ClientTimeout(total=15),
+        ) as resp:
+            return await resp.json() if resp.ok else {}
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.warning("SpotifyDJ could not read firmware manifest: %s", exc)
+        return {}
+
+
+async def _fetch_sha256(session: Any, asset: dict[str, Any] | None) -> str | None:
+    if asset is None:
+        return None
+    try:
+        async with session.get(
+            asset["browser_download_url"],
+            timeout=ClientTimeout(total=15),
+        ) as resp:
+            if not resp.ok:
+                return None
+            match = re.search(r"\b[a-fA-F0-9]{64}\b", await resp.text())
+            return match.group(0).lower() if match else None
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.warning("SpotifyDJ could not read sha256 asset: %s", exc)
+        return None
+
+
+def _asset_download_url(asset: dict[str, Any] | None) -> str | None:
+    return asset["browser_download_url"] if asset else None
 
 
 def sha256_hex(data: bytes) -> str:

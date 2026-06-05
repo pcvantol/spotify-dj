@@ -46,13 +46,13 @@ class AssistPipelineTest(unittest.TestCase):
         self.assertEqual(intent["spotify_search_query"], "Pearl Jam Black")
         self.assertEqual(intent["dj_announcement"], "Pearl Jam staat klaar.")
 
-    def test_intent_from_assist_response_uses_speech_as_dj_response(self) -> None:
+    def test_intent_from_spotifydj_data_uses_speech_as_dj_response(self) -> None:
         intent = self.pipeline._intent_from_assist_response(
             {
                 "response": {
                     "response_type": "query_answer",
                     "speech": {"plain": {"speech": "Ik zet Pearl Jam voor je klaar."}},
-                    "data": {},
+                    "data": {"spotify_dj": {"type": "search"}},
                 }
             },
             "Speel Pearl Jam",
@@ -61,6 +61,29 @@ class AssistPipelineTest(unittest.TestCase):
         self.assertEqual(intent["type"], "search")
         self.assertEqual(intent["spotify_search_query"], "Speel Pearl Jam")
         self.assertEqual(intent["dj_announcement"], "Ik zet Pearl Jam voor je klaar.")
+
+    def test_generic_assist_music_refusal_is_not_used_as_dj_response(self) -> None:
+        intent = self.pipeline._intent_from_assist_response(
+            {
+                "response": {
+                    "response_type": "query_answer",
+                    "speech": {
+                        "plain": {
+                            "speech": (
+                                "Ik kan geen muziek afspelen. Ik kan alleen apparaten "
+                                "in je huis bedienen, zoals lampen, gordijnen en sensoren."
+                            )
+                        }
+                    },
+                    "data": {},
+                }
+            },
+            "Speel Pearl Jam",
+        )
+
+        self.assertEqual(intent["type"], "search")
+        self.assertEqual(intent["spotify_search_query"], "Speel Pearl Jam")
+        self.assertEqual(intent["dj_announcement"], "Daar gaan we. Ik zet hem voor je klaar.")
 
     def test_intent_from_assist_response_raises_clear_error(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "Niet begrepen"):

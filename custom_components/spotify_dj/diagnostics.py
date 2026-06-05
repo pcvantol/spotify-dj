@@ -6,20 +6,36 @@ from homeassistant.config_entries import ConfigEntry
 
 from .const import DOMAIN
 
-_REDACT_KEYS = {"device_token", "mqtt_password", "spotify_refresh_token"}
+_REDACT_KEY_PARTS = ("token", "password", "secret")
+LEGAL_DIAGNOSTICS = {
+    "copyright": "Copyright (c) 2026 Peter van Tol. All rights reserved.",
+    "spotify_trademark": "Spotify is a trademark of Spotify AB.",
+    "affiliation": (
+        "SpotifyDJ is not affiliated with, endorsed by, or sponsored by Spotify AB."
+    ),
+}
 
 
 def _redact(value: Any) -> Any:
     if isinstance(value, dict):
-        return {k: ("REDACTED" if k in _REDACT_KEYS else _redact(v)) for k, v in value.items()}
+        return {
+            key: ("REDACTED" if _is_sensitive_key(key) else _redact(item))
+            for key, item in value.items()
+        }
     if isinstance(value, list):
         return [_redact(v) for v in value]
     return value
 
 
+def _is_sensitive_key(key: Any) -> bool:
+    normalized = str(key).lower()
+    return any(part in normalized for part in _REDACT_KEY_PARTS)
+
+
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
     runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     return {
+        "legal": LEGAL_DIAGNOSTICS,
         "entry": {
             "title": entry.title,
             "data": _redact(dict(entry.data)),
@@ -29,6 +45,9 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "last_text": getattr(runtime, "last_text", None),
             "last_intent": getattr(runtime, "last_intent", None),
             "last_dj_text": getattr(runtime, "last_dj_text", None),
+            "last_dj_spoken": getattr(runtime, "last_dj_spoken", None),
+            "last_dj_displayed": getattr(runtime, "last_dj_displayed", None),
+            "last_dj_response_at": getattr(runtime, "last_dj_response_at", None),
             "last_error": getattr(runtime, "last_error", None),
             "device_status": getattr(runtime, "device_status", {}),
             "ota_in_progress": getattr(runtime, "ota_in_progress", False),
