@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.7.4
+## 2.7.5
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -8,7 +8,7 @@
 - Keep voice and AI settings in the config flow and options flow with safe defaults.
 - Route test parse/command services through HA Assist instead of the legacy direct AI parser.
 - Ignore generic HA Assist smart-home refusal text as `dj_announcement` when no explicit SpotifyDJ intent data is returned.
-- Route DJ responses to the SpotifyDJ device through HA-generated temporary PCM WAV URLs and `/api/device/dj_response`.
+- Route DJ responses to the SpotifyDJ device through HA-generated temporary WAV/MP3 URLs and `/api/device/dj_response`.
 - Refactor the voice HTTP endpoint to accept text commands only after ESP-side HA Assist websocket STT.
 - Return controlled JSON errors for legacy WAV uploads and missing text instead of running STT inside the integration.
 - Include `assist_pipeline_id`, `ha_url`, and `device_token` in ESP provisioning/status payloads where applicable.
@@ -41,6 +41,9 @@
 - Ignore obsolete `spotifydj-[6-digit-code].local` fallbacks so provisioning can use the real device-reported `spotifydj-[device-suffix].local` URL.
 - Discover a single visible `_spotifydj._tcp` mDNS device when setup only has a short 6-digit pairing code.
 - Replace HA's deprecated `show_advanced_options` property with an integration-local advanced-options checkbox.
-- Treat HA TTS MP3/non-WAV output as a quiet text-only DJ-response fallback instead of a warning.
+- Treat unknown HA TTS audio output as a quiet text-only DJ-response fallback instead of a warning.
 - Restore mDNS service info lookup after the 2.7.3 discovery regression so pairing can resolve the real device URL.
 - Keep `number.spotifydj_volume` within Home Assistant's 0–60 range and expose unknown `-1` values as unavailable.
+- Send MP3 DJ response audio URLs to ESP firmware that supports MP3 playback instead of falling back to text-only.
+- Refresh `info.md` and examples to remove old branding/AI/WAV-only references and document current SpotifyDJ endpoints.
+- Add a dry-run-first cleanup helper for old semantic-version GitHub releases and tags.

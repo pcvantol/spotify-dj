@@ -295,19 +295,27 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["payload"]["spotify_refresh_token"], "refresh-token")
         self.assertEqual(response["payload"]["spotify"]["refresh_token"], "refresh-token")
 
-    def test_tts_view_returns_wav_audio_for_valid_token(self) -> None:
+    def test_tts_view_returns_audio_for_valid_token(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
         dj_response = importlib.import_module("custom_components.spotify_dj.dj_response")
         hass = types.SimpleNamespace(data={})
-        token = dj_response.store_tts_audio(hass, b"RIFFxxxxWAVEdata", 120)
+        token = dj_response.store_tts_audio(
+            hass,
+            b"ID3 mp3 data",
+            120,
+            content_type="audio/mpeg",
+            extension="mp3",
+        )
         request = types.SimpleNamespace(app={"hass": hass})
 
-        response = asyncio.run(self.http.SpotifyDJTtsView(None).get(request, token))
+        response = asyncio.run(
+            self.http.SpotifyDJTtsView(None).get(request, token, "mp3")
+        )
 
         self.assertEqual(response.status, 200)
-        self.assertEqual(response.content_type, "audio/wav")
-        self.assertEqual(response.body, b"RIFFxxxxWAVEdata")
-        self.assertEqual(response.headers["Content-Length"], "16")
+        self.assertEqual(response.content_type, "audio/mpeg")
+        self.assertEqual(response.body, b"ID3 mp3 data")
+        self.assertEqual(response.headers["Content-Length"], "12")
         self.assertIn("tts_audio", hass.data[const.DOMAIN])
 
     def test_tts_view_returns_410_for_expired_token(self) -> None:

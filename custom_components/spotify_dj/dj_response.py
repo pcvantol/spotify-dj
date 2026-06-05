@@ -21,16 +21,18 @@ from .const import (
     DEFAULT_DJ_RESPONSE_TTL_SECONDS,
     DOMAIN,
 )
-from .tts import UnsupportedTtsAudioError, create_tts_wav
+from .tts import UnsupportedTtsAudioError, TtsAudio, create_tts_audio
 
 _LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
 class TtsAudioItem:
-    """Temporary WAV audio item served to the paired SpotifyDJ device."""
+    """Temporary audio item served to the paired SpotifyDJ device."""
 
     data: bytes
+    content_type: str
+    extension: str
     expires_at: float
 
 
@@ -47,7 +49,7 @@ def cleanup_tts_audio(hass: HomeAssistant, now: float | None = None) -> None:
             store.pop(token, None)
 
 
-def get_tts_audio(hass: HomeAssistant, token: str) -> tuple[int, bytes | None]:
+def get_tts_audio(hass: HomeAssistant, token: str) -> tuple[int, TtsAudioItem | None]:
     """Return status code and audio bytes for a temporary TTS token."""
     store = _store(hass)
     item = store.get(token)
@@ -56,19 +58,23 @@ def get_tts_audio(hass: HomeAssistant, token: str) -> tuple[int, bytes | None]:
     if item.expires_at <= time.time():
         store.pop(token, None)
         return 410, None
-    return 200, item.data
+    return 200, item
 
 
 def store_tts_audio(
     hass: HomeAssistant,
     data: bytes,
     ttl_seconds: int = DEFAULT_DJ_RESPONSE_TTL_SECONDS,
+    content_type: str = "audio/wav",
+    extension: str = "wav",
 ) -> str:
-    """Store WAV bytes temporarily and return a random download token."""
+    """Store playable audio bytes temporarily and return a random download token."""
     cleanup_tts_audio(hass)
     token = secrets.token_urlsafe(24)
     _store(hass)[token] = TtsAudioItem(
         data=data,
+        content_type=content_type,
+        extension=extension,
         expires_at=time.time() + max(1, int(ttl_seconds)),
     )
     return token
@@ -79,12 +85,12 @@ async def async_create_dj_audio_url(
     runtime: Any,
     text: str,
 ) -> str | None:
-    """Create a temporary absolute WAV URL for the ESP, if HA TTS can produce WAV."""
+    """Create a temporary absolute audio URL for the ESP, if HA TTS can produce it."""
     conf = runtime.config
     if not conf.get(CONF_DJ_RESPONSE_ENABLED, DEFAULT_DJ_RESPONSE_ENABLED):
         return None
     try:
-        wav = await create_tts_wav(hass, text, conf)
+        audio = await create_tts_audio(hass, text, conf)
     except UnsupportedTtsAudioError as exc:
         _LOGGER.debug(
             "SpotifyDJ DJ response audio skipped; HA TTS returned unsupported ESP audio: %s",
@@ -94,16 +100,22 @@ async def async_create_dj_audio_url(
     except Exception as exc:  # noqa: BLE001
         _LOGGER.warning("SpotifyDJ could not generate DJ response TTS: %s", exc)
         return None
-    if not _looks_like_wav(wav):
-        _LOGGER.warning("SpotifyDJ TTS provider did not return PCM WAV audio")
+    if not _is_supported_audio(audio):
+        _LOGGER.warning("SpotifyDJ TTS provider did not return supported WAV/MP3 audio")
         return None
     ttl = int(conf.get(CONF_DJ_RESPONSE_TTL_SECONDS, DEFAULT_DJ_RESPONSE_TTL_SECONDS))
-    token = store_tts_audio(hass, wav, ttl)
+    token = store_tts_audio(
+        hass,
+        audio.data,
+        ttl,
+        content_type=audio.content_type,
+        extension=audio.extension,
+    )
     base_url = await _async_ha_base_url(hass, conf)
     if not base_url:
         _LOGGER.warning("SpotifyDJ cannot build HA URL for DJ response audio")
         return None
-    return f"{base_url.rstrip('/')}{API_TTS_BASE}/{token}.wav"
+    return f"{base_url.rstrip('/')}{API_TTS_BASE}/{token}.{audio.extension}"
 
 
 async def async_send_dj_response(
@@ -173,8 +185,8 @@ async def async_send_dj_response_best_effort(
         }
 
 
-def _looks_like_wav(data: bytes) -> bool:
-    return data.startswith(b"RIFF") and data[8:12] == b"WAVE"
+def _is_supported_audio(audio: TtsAudio) -> bool:
+    return audio.extension in {"wav", "mp3"} and bool(audio.data)
 
 
 async def _async_ha_base_url(hass: HomeAssistant, conf: dict[str, Any]) -> str:

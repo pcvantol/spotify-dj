@@ -18,7 +18,7 @@ Architectuur beslissingen:
 - HA integration orchestreert pairing, OAuth, OTA, status, Assist/TTS en provisioning; ESP firmware blijft eigenaar van device runtime/audio/UI.
 - ESP gebruikt officiële HA Assist websocket API voor STT en stuurt alleen herkende tekst naar `POST /api/spotify_dj/voice` met `X-SpotifyDJ-Text`.
 - Actieve HA routes gebruiken geen directe externe AI/STT/TTS APIs; gebruik HA Assist en HA TTS.
-- DJ responses spelen op het SpotifyDJ device af, niet via Spotify Connect of HA media_player; HA post `text` plus optionele tijdelijke PCM WAV `audio_url` naar `/api/device/dj_response`.
+- DJ responses spelen op het SpotifyDJ device af, niet via Spotify Connect of HA media_player; HA post `text` plus optionele tijdelijke WAV/MP3 `audio_url` naar `/api/device/dj_response`.
 - Fallback DJ responses bij command/playback fouten moeten de gekozen `device_language` volgen (`en`/`nl`).
 - Spotify OAuth loopt via HA external step met PKCE; geen handmatig `oauth_result` veld.
 - BLE provisioning doet alleen WiFi SSID/password; geen Spotify credentials, MQTT credentials of device tokens via BLE.
@@ -48,7 +48,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.7.4`.
+- Actuele integratieversie: `2.7.5`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -94,8 +94,8 @@ HA integration:
 - Config-flow foutpaden moeten heldere NL/EN gebruikersmeldingen hebben, bijvoorbeeld bij lege of foutieve koppelcode/device-suffix, ontbrekende Spotify Client ID, foutieve external URL en OAuth fouten.
 - Bestaande modules niet verwijderen, zoals `wav_util.py`, `pipeline.py`.
 - Actieve routes gebruiken HA Assist/TTS en geen directe externe AI/STT/TTS API.
-- DJ responses worden niet via Spotify Connect of HA media_player afgespeeld; HA genereert waar mogelijk een tijdelijke PCM WAV `audio_url` en POST `text` + optionele `audio_url` naar ESP endpoint `/api/device/dj_response`.
-- Als HA TTS MP3/non-WAV audio teruggeeft, stuur text-only DJ response zonder warning; echte TTS/device errors mogen wel warning blijven.
+- DJ responses worden niet via Spotify Connect of HA media_player afgespeeld; HA genereert waar mogelijk een tijdelijke WAV/MP3 `audio_url` en POST `text` + optionele `audio_url` naar ESP endpoint `/api/device/dj_response`.
+- Als HA TTS WAV of MP3 audio teruggeeft, mag HA een tijdelijke `audio_url` meesturen; ESP bepaalt wav/mp3/unknown. Alleen onbekende audio wordt text-only zonder warning.
 - ESP firmware doet microfoon-STT via de officiële HA Assist websocket API en stuurt herkende tekst naar `POST /api/spotify_dj/voice` met `X-SpotifyDJ-Text`.
 - `POST /api/spotify_dj/voice` accepteert tekstcommands, geen WAV-transcriptie; legacy `audio/wav` uploads krijgen een gecontroleerde JSON foutmelding.
 
@@ -152,6 +152,7 @@ README/release:
   - `git push origin main`
   - `git push origin vX.Y.Z`
   - `gh release create vX.Y.Z --title "SpotifyDJ vX.Y.Z" --notes-file CHANGELOG.md`
+  - Optioneel oude semver releases/tags opruimen met `./cleanup_old_releases.sh --keep 1 --execute`.
   - HACS update-info refresh/redownload.
   - Nieuwe release installeren vanuit HACS.
   - Home Assistant restart.

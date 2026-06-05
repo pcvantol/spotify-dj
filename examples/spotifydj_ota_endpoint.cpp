@@ -1,24 +1,27 @@
-// Minimal ESP32-side OTA endpoint sketch fragment for SpotifyDJ v0.6.0.
-// Integrate this into your existing WebServer/AsyncWebServer stack.
+// Minimal SpotifyDJ device-side OTA endpoint sketch fragment.
+// Integrate this into the existing WebServer/AsyncWebServer stack.
+// Endpoint: POST /api/device/ota
 
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
 #include <ArduinoJson.h>
 
-String deviceToken;   // loaded from NVS after pairing
-String deviceId;      // spotifydj-<chipid>
-String firmwareVersion = "1.0.0";
+String deviceToken;       // loaded from NVS after pairing
+String deviceId;          // spotifydj-XXXXXXXXXXXX
+String firmwareVersion;   // injected from firmware build metadata
+
+static const char* OTA_TARGET_DEVICE = "lilygo-t-embed-s3";
 
 bool authorizeSpotifyDJRequest(const String& authHeader, const String& headerDeviceId) {
   String expected = "Bearer " + deviceToken;
   return deviceToken.length() > 0 && authHeader == expected && headerDeviceId == deviceId;
 }
 
-// Pseudocode handler body:
+// Pseudocode handler body. Adapt to WebServer or AsyncWebServer.
 void handleOtaRequest(const String& jsonBody) {
   JsonDocument doc;
   if (deserializeJson(doc, jsonBody)) {
-    // return HTTP 400
+    // HTTP 400 {"success":false,"error":"invalid_json"}
     return;
   }
 
@@ -26,13 +29,19 @@ void handleOtaRequest(const String& jsonBody) {
   String url = doc["url"].as<String>();
   String sha256 = doc["sha256"].as<String>();
   String device = doc["device"].as<String>();
+  String asset = doc["asset"].as<String>();
 
-  if (device != "lilygo-t-embed-s3") {
-    // return HTTP 400 wrong device
+  if (device != OTA_TARGET_DEVICE) {
+    // HTTP 400 {"success":false,"error":"wrong_device_target","message":"Wrong device target"}
     return;
   }
 
-  // Recommended: require USB power or battery > 40%.
+  if (url.isEmpty() || sha256.isEmpty() || asset.isEmpty()) {
+    // HTTP 400 {"success":false,"error":"missing_ota_fields"}
+    return;
+  }
+
+  // Recommended: require USB power or enough battery before starting OTA.
   // Recommended: verify SHA-256 before Update.end(true), or use esp_https_ota with validation.
 
   WiFiClientSecure client;

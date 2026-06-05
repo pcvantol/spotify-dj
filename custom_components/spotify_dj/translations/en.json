@@ -95,7 +95,7 @@
           "tts_engine": "Home Assistant TTS entity used for DJ responses.",
           "tts_language": "Language passed to the TTS engine.",
           "tts_voice": "Voice passed to the TTS engine when supported.",
-          "dj_response_enabled": "Create a temporary PCM WAV audio URL and send it with the DJ text to the SpotifyDJ device.",
+          "dj_response_enabled": "Create a temporary WAV or MP3 audio URL and send it with the DJ text to the SpotifyDJ device.",
           "dj_style": "Tone used for SpotifyDJ announcements.",
           "dj_profile": "Tone used for SpotifyDJ announcements.",
           "spotify_player": "Required media player used for Spotify playback.",
@@ -169,7 +169,7 @@
         "data_description": {
           "assist_pipeline_id": "Assist pipeline used by SpotifyDJ devices for speech recognition.",
           "spotify_player": "Required media player used for Spotify playback.",
-          "dj_response_enabled": "Create a temporary PCM WAV audio URL and send it with the DJ text to the SpotifyDJ device.",
+          "dj_response_enabled": "Create a temporary WAV or MP3 audio URL and send it with the DJ text to the SpotifyDJ device.",
           "dj_response_ttl_seconds": "Number of seconds the temporary WAV download URL remains valid.",
           "allow_ota_on_battery": "Allow firmware updates while the device is not USB powered.",
           "show_advanced_options": "Show manual and firmware/OTA override fields."

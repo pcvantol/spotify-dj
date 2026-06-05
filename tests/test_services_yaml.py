@@ -24,7 +24,7 @@ class ServicesYamlTest(unittest.TestCase):
 
         self.assertIn("Developer test", text)
         self.assertIn("Developer helper", text)
-        self.assertIn("temporary PCM WAV audio_url", text)
+        self.assertIn("temporary WAV or MP3 audio_url", text)
         self.assertIn("/api/spotify_dj/spotify/callback", text)
         self.assertNotIn("/api/spotify_dj/spotify_callback", text)
         self.assertNotIn("stuur", text.lower())

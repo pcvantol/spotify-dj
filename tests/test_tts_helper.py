@@ -425,7 +425,9 @@ class TtsHelperTest(unittest.TestCase):
 
         status, audio = self.dj_response.get_tts_audio(hass, token)
         self.assertEqual(status, 200)
-        self.assertEqual(audio, b"RIFFxxxxWAVEdata")
+        self.assertEqual(audio.data, b"RIFFxxxxWAVEdata")
+        self.assertEqual(audio.content_type, "audio/wav")
+        self.assertEqual(audio.extension, "wav")
         status, audio = self.dj_response.get_tts_audio(hass, "missing")
         self.assertEqual(status, 404)
         self.assertIsNone(audio)

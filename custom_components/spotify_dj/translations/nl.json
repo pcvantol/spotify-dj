@@ -95,7 +95,7 @@
           "tts_engine": "Home Assistant TTS entity voor DJ reacties.",
           "tts_language": "Taal die aan de TTS engine wordt meegegeven.",
           "tts_voice": "Stem die aan de TTS engine wordt meegegeven als die bekend is.",
-          "dj_response_enabled": "Maak een tijdelijke PCM WAV audio URL en stuur die met de DJ tekst naar het SpotifyDJ device.",
+          "dj_response_enabled": "Maak een tijdelijke WAV of MP3 audio URL en stuur die met de DJ tekst naar het SpotifyDJ device.",
           "dj_style": "Toon/stijl voor SpotifyDJ aankondigingen.",
           "dj_profile": "Toon/stijl voor SpotifyDJ aankondigingen.",
           "spotify_player": "Verplichte media player voor Spotify playback.",
@@ -169,7 +169,7 @@
         "data_description": {
           "assist_pipeline_id": "Assist pipeline die SpotifyDJ apparaten gebruiken voor spraakherkenning.",
           "spotify_player": "Verplichte media player voor Spotify playback.",
-          "dj_response_enabled": "Maak een tijdelijke PCM WAV audio URL en stuur die met de DJ tekst naar het SpotifyDJ device.",
+          "dj_response_enabled": "Maak een tijdelijke WAV of MP3 audio URL en stuur die met de DJ tekst naar het SpotifyDJ device.",
           "dj_response_ttl_seconds": "Aantal seconden dat de tijdelijke WAV download URL geldig blijft.",
           "allow_ota_on_battery": "Sta firmware updates toe als het apparaat niet via USB gevoed wordt.",
           "show_advanced_options": "Toon handmatige en firmware/OTA overridevelden."

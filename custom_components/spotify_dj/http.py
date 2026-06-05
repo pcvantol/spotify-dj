@@ -359,16 +359,18 @@ class SpotifyDJTtsView(HomeAssistantView):
     def __init__(self, hass):
         self.hass = hass
 
-    async def get(self, request, token: str):
+    async def get(self, request, token: str, extension: str = "wav"):
         status, audio = get_tts_audio(request.app["hass"], token)
         if status == 404:
             return web.Response(status=404, text="SpotifyDJ TTS audio not found")
         if status == 410:
             return web.Response(status=410, text="SpotifyDJ TTS audio expired")
+        if audio is None or extension.lower() != audio.extension:
+            return web.Response(status=404, text="SpotifyDJ TTS audio type not found")
         return web.Response(
-            body=audio,
-            content_type="audio/wav",
-            headers={"Content-Length": str(len(audio or b""))},
+            body=audio.data,
+            content_type=audio.content_type,
+            headers={"Content-Length": str(len(audio.data))},
         )
 
 

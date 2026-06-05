@@ -18,7 +18,7 @@ test_tts:
   name: Test ESP DJ response
   description: >
     Developer test: send a standalone DJ response to the paired SpotifyDJ
-    device. Home Assistant tries to create a temporary PCM WAV audio_url through
+    device. Home Assistant tries to create a temporary WAV or MP3 audio_url through
     the configured TTS engine; if that fails, SpotifyDJ sends text only so the
     device can display the response.
   fields:

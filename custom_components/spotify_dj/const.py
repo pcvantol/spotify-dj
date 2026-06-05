@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "spotify_dj"
 NAME = "SpotifyDJ"
-VERSION = "2.7.4"
+VERSION = "2.7.5"
 
 API_BASE = "/api/spotify_dj"
 API_PAIR = f"{API_BASE}/pair"
@@ -11,7 +11,7 @@ API_VOICE = f"{API_BASE}/voice"
 API_STATUS = f"{API_BASE}/status"
 API_EVENT = f"{API_BASE}/event"
 API_TTS_BASE = f"{API_BASE}/tts"
-API_TTS = f"{API_TTS_BASE}/{{token}}.wav"
+API_TTS = f"{API_TTS_BASE}/{{token}}.{{extension}}"
 API_SPOTIFY_CALLBACK = f"{API_BASE}/spotify/callback"
 
 CONF_DEVICE_ID = "device_id"

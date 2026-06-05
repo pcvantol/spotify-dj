@@ -90,7 +90,7 @@ class DjResponseTest(unittest.TestCase):
         cls.dj_response = importlib.import_module("custom_components.spotify_dj.dj_response")
 
     def tearDown(self) -> None:
-        self.dj_response.create_tts_wav = lambda hass, text, conf: None
+        self.dj_response.create_tts_audio = lambda hass, text, conf: None
 
     def test_send_dj_response_with_successful_pcm_wav_url(self) -> None:
         hass = types.SimpleNamespace(data={})
@@ -98,9 +98,13 @@ class DjResponseTest(unittest.TestCase):
         session = FakeSession(FakeResponse(200, {"success": True, "spoken": True, "displayed": True}))
 
         async def create_wav(hass, text, conf):
-            return b"RIFFxxxxWAVEdata"
+            return self.dj_response.TtsAudio(
+                b"RIFFxxxxWAVEdata",
+                "wav",
+                "audio/wav",
+            )
 
-        self.dj_response.create_tts_wav = create_wav
+        self.dj_response.create_tts_audio = create_wav
         self.dj_response.async_get_clientsession = lambda hass: session
 
         result = asyncio.run(
@@ -111,8 +115,32 @@ class DjResponseTest(unittest.TestCase):
         self.assertEqual(session.calls[0]["url"], "http://spotifydj.local/api/device/dj_response")
         self.assertEqual(payload["text"], "Daar gaan we")
         self.assertIn("/api/spotify_dj/tts/", payload["audio_url"])
+        self.assertTrue(payload["audio_url"].endswith(".wav"))
         self.assertTrue(result["spoken"])
         self.assertTrue(runtime.updated["last_dj_spoken"])
+
+    def test_send_dj_response_with_successful_mp3_url(self) -> None:
+        hass = types.SimpleNamespace(data={})
+        runtime = Runtime({self.const.CONF_HA_EXTERNAL_URL: "http://ha.local:8123"})
+        session = FakeSession(FakeResponse(200, {"success": True, "spoken": True}))
+
+        async def create_mp3(hass, text, conf):
+            return self.dj_response.TtsAudio(
+                b"ID3 mp3 data",
+                "mp3",
+                "audio/mpeg",
+            )
+
+        self.dj_response.create_tts_audio = create_mp3
+        self.dj_response.async_get_clientsession = lambda hass: session
+
+        result = asyncio.run(
+            self.dj_response.async_send_dj_response(hass, runtime, "MP3")
+        )
+
+        payload = session.calls[0]["json"]
+        self.assertTrue(payload["audio_url"].endswith(".mp3"))
+        self.assertTrue(result["spoken"])
 
     def test_tts_failure_sends_text_only_payload(self) -> None:
         hass = types.SimpleNamespace(data={})
@@ -122,7 +150,7 @@ class DjResponseTest(unittest.TestCase):
         async def fail_tts(hass, text, conf):
             raise RuntimeError("tts failed")
 
-        self.dj_response.create_tts_wav = fail_tts
+        self.dj_response.create_tts_audio = fail_tts
         self.dj_response.async_get_clientsession = lambda hass: session
 
         result = asyncio.run(
@@ -134,15 +162,19 @@ class DjResponseTest(unittest.TestCase):
         self.assertFalse(result["spoken"])
         self.assertTrue(result["displayed"])
 
-    def test_non_wav_tts_sends_text_only_payload(self) -> None:
+    def test_unknown_tts_audio_sends_text_only_payload(self) -> None:
         hass = types.SimpleNamespace(data={})
         runtime = Runtime({self.const.CONF_HA_EXTERNAL_URL: "http://ha.local:8123"})
         session = FakeSession(FakeResponse(200, {"success": True, "spoken": False, "displayed": True}))
 
-        async def create_mp3(hass, text, conf):
-            return b"ID3 mp3 data"
+        async def create_unknown(hass, text, conf):
+            return self.dj_response.TtsAudio(
+                b"unknown",
+                "unknown",
+                "application/octet-stream",
+            )
 
-        self.dj_response.create_tts_wav = create_mp3
+        self.dj_response.create_tts_audio = create_unknown
         self.dj_response.async_get_clientsession = lambda hass: session
 
         asyncio.run(self.dj_response.async_send_dj_response(hass, runtime, "Tekst"))
@@ -159,7 +191,7 @@ class DjResponseTest(unittest.TestCase):
                 "Home Assistant TTS returned unsupported audio type mp3"
             )
 
-        self.dj_response.create_tts_wav = create_mp3
+        self.dj_response.create_tts_audio = create_mp3
         self.dj_response.async_get_clientsession = lambda hass: session
 
         with self.assertNoLogs(self.dj_response._LOGGER, level="WARNING"):
@@ -178,7 +210,7 @@ class DjResponseTest(unittest.TestCase):
         async def fail_tts(hass, text, conf):
             raise RuntimeError("tts failed")
 
-        self.dj_response.create_tts_wav = fail_tts
+        self.dj_response.create_tts_audio = fail_tts
         self.dj_response.async_get_clientsession = lambda hass: session
 
         result = asyncio.run(

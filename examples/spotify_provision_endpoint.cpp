@@ -1,5 +1,5 @@
-// ESP32/LilyGO-side endpoint for SpotifyDJ v0.7.0 Spotify provisioning.
-// Add this to your existing WebServer/AsyncWebServer stack.
+// Minimal SpotifyDJ device-side Spotify provisioning endpoint example.
+// Add this to the existing WebServer/AsyncWebServer stack.
 // Endpoint: POST /api/device/provision_spotify
 
 #include <ArduinoJson.h>
@@ -39,7 +39,5 @@ void handleProvisionSpotify(const String& jsonBody) {
   spotifyPrefs.end();
 
   // Optional: immediately refresh access token once to validate credentials.
-  // bool ok = SpotifyApi.refreshAccessToken(clientId, refreshToken);
-
   // HTTP 200 {"success":true,"spotify_configured":true}
 }
