@@ -373,6 +373,35 @@ Example manifest:
 
 The firmware version is injected through PlatformIO build flags from the Git tag.
 
+Recommended firmware source release helper:
+
+```bash
+./release.sh 2.3.0
+```
+
+In the private `spotify-dj-app` repository, the firmware release script should
+validate the semantic version, update firmware version metadata, run the
+PlatformIO build, rename the firmware binary to `spotifydj-device-vX.Y.Z.bin`,
+calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
+
+Preview the firmware release flow without changing files:
+
+```bash
+./release.sh 2.3.0 --dry-run
+```
+
+When publishing to the public firmware repository, use the firmware script's
+public-repo option if available:
+
+```bash
+./release.sh 2.3.0 --publish-firmware-repo ../spotify-dj-firmware
+```
+
+The public `spotify-dj-firmware` repository should contain only the release
+binary, `firmware_manifest.json`, release metadata and non-secret documentation.
+Do not publish firmware source code, NVS secrets, device tokens, Spotify refresh
+tokens or Home Assistant tokens.
+
 ## HACS Release Workflow
 
 Use this checklist for every Home Assistant integration release.
@@ -439,6 +468,8 @@ Home Assistant / HACS verification:
 Firmware release cross-check, when publishing firmware as well:
 
 - Build firmware from the private `spotify-dj-app` repository.
+- Prefer the private firmware repo one-liner: `./release.sh X.Y.Z`.
+- Use `./release.sh X.Y.Z --dry-run` before publishing when in doubt.
 - Publish binaries to the public `spotify-dj-firmware` repository.
 - Name the release asset `spotifydj-device-vX.Y.Z.bin`.
 - Update `firmware_manifest.json` with `version`, `asset`, `sha256` and `min_ha_integration`.

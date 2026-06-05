@@ -92,11 +92,18 @@ ESP firmware:
 Firmware releases:
 - Build vanuit private repo `spotify-dj-app`.
 - Publish binaries naar public repo `spotify-dj-firmware`.
+- Private firmware repo moet bij voorkeur een eigen `release.sh` one-liner hebben:
+  - `./release.sh X.Y.Z`
+  - `./release.sh X.Y.Z --dry-run`
+  - optioneel `./release.sh X.Y.Z --publish-firmware-repo ../spotify-dj-firmware`
+- ESP firmware release-script moet semantic version valideren, firmware metadata bijwerken, PlatformIO build draaien, binary renamen, SHA256 berekenen, `firmware_manifest.json` bijwerken, committen, taggen en pushen.
 - Release asset naam:
   `spotifydj-device-vX.Y.Z.bin`
 - Manifest:
   `firmware_manifest.json`
 - Firmwareversie wordt via PlatformIO build flags uit Git tag geïnjecteerd.
+- Public firmware repo mag alleen release binary, `firmware_manifest.json`, release metadata en niet-geheime documentatie bevatten.
+- Public firmware repo mag geen firmware source, NVS secrets, device tokens, Spotify refresh tokens of Home Assistant tokens bevatten.
 
 README/release:
 - README moet actueel blijven voor HACS installatie, Spotify OAuth, endpoints, OTA en release workflow.
@@ -133,6 +140,8 @@ README/release:
   - Status, last command, last track en firmware update entities controleren.
 - Firmware release cross-check:
   - Build firmware vanuit private repo `spotify-dj-app`.
+  - Gebruik bij voorkeur `./release.sh X.Y.Z` in de private firmware repo.
+  - Gebruik `./release.sh X.Y.Z --dry-run` bij twijfel voordat gepubliceerd wordt.
   - Publish binaries naar public repo `spotify-dj-firmware`.
   - Release asset naam is `spotifydj-device-vX.Y.Z.bin`.
   - Update `firmware_manifest.json` met `version`, `asset`, `sha256` en `min_ha_integration`.
