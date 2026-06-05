@@ -42,6 +42,38 @@ ERROR_MESSAGES = {
     "invalid_pair_code": "The pairing code does not match this SpotifyDJ setup.",
     "unauthorized": "The SpotifyDJ device token is missing or invalid.",
 }
+DJ_FAILURE_TEXTS = {
+    "assist": {
+        "en": (
+            "Sorry, I could not process your voice command with Home Assistant Assist. "
+            "Check the selected Assist pipeline and try again."
+        ),
+        "nl": (
+            "Sorry, ik kon je spraakopdracht niet verwerken met Home Assistant Assist. "
+            "Controleer de gekozen Assist pipeline en probeer het opnieuw."
+        ),
+    },
+    "spotify": {
+        "en": (
+            "Sorry, I understood your request, but I could not start Spotify playback. "
+            "Check whether a Spotify playback device is available and try again."
+        ),
+        "nl": (
+            "Sorry, ik heb je verzoek begrepen, maar ik kon Spotify niet starten. "
+            "Controleer of er een Spotify afspeelapparaat beschikbaar is en probeer het opnieuw."
+        ),
+    },
+    "generic": {
+        "en": (
+            "Sorry, something went wrong while handling your SpotifyDJ command. "
+            "Please try again."
+        ),
+        "nl": (
+            "Sorry, er ging iets mis bij het verwerken van je SpotifyDJ opdracht. "
+            "Probeer het opnieuw."
+        ),
+    },
+}
 
 
 def _json_error(
@@ -81,6 +113,44 @@ def _text_from_payload(headers: Any, data: dict[str, Any] | None) -> str:
     if data and data.get("text"):
         return str(data["text"]).strip()
     return ""
+
+
+def _device_language(runtime: Any) -> str:
+    language_getter = getattr(runtime, "device_language", None)
+    if callable(language_getter):
+        language = str(language_getter() or "").lower()
+    else:
+        language = ""
+    return "nl" if language.startswith("nl") else "en"
+
+
+def _failure_kind(exc: Exception) -> str:
+    text = str(exc).lower()
+    if any(word in text for word in ("assist", "conversation", "pipeline")):
+        return "assist"
+    if any(
+        word in text
+        for word in ("spotify", "playback", "media_player", "play_media", "player")
+    ):
+        return "spotify"
+    return "generic"
+
+
+def _command_failed_text(runtime: Any, exc: Exception | None = None) -> str:
+    kind = _failure_kind(exc) if exc else "generic"
+    return DJ_FAILURE_TEXTS[kind][_device_language(runtime)]
+
+
+async def _send_failure_dj_response(
+    hass: Any,
+    runtime: Any,
+    exc: Exception | None = None,
+) -> dict[str, Any]:
+    return await async_send_dj_response_best_effort(
+        hass,
+        runtime,
+        _command_failed_text(runtime, exc),
+    )
 
 
 class SpotifyDJPairView(HomeAssistantView):
@@ -266,11 +336,16 @@ class SpotifyDJVoiceView(HomeAssistantView):
         except Exception as exc:  # noqa: BLE001
             _LOGGER.exception("SpotifyDJ request failed: %s", exc)
             runtime.update(last_error=str(exc))
+            dj_response = await _send_failure_dj_response(hass, runtime, exc)
+            dj_text = _command_failed_text(runtime, exc)
+            runtime.update(last_error=str(exc))
             return self.json(
                 {
                     "success": False,
                     "error": "command_failed",
                     "message": str(exc),
+                    "dj_text": dj_text,
+                    "dj_response": dj_response,
                 },
                 status_code=500,
             )

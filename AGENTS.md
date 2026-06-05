@@ -19,6 +19,7 @@ Architectuur beslissingen:
 - ESP gebruikt officiële HA Assist websocket API voor STT en stuurt alleen herkende tekst naar `POST /api/spotify_dj/voice` met `X-SpotifyDJ-Text`.
 - Actieve HA routes gebruiken geen directe externe AI/STT/TTS APIs; gebruik HA Assist en HA TTS.
 - DJ responses spelen op het SpotifyDJ device af, niet via Spotify Connect of HA media_player; HA post `text` plus optionele tijdelijke PCM WAV `audio_url` naar `/api/device/dj_response`.
+- Fallback DJ responses bij command/playback fouten moeten de gekozen `device_language` volgen (`en`/`nl`).
 - Spotify OAuth loopt via HA external step met PKCE; geen handmatig `oauth_result` veld.
 - BLE provisioning doet alleen WiFi SSID/password; geen Spotify credentials, MQTT credentials of device tokens via BLE.
 - Runtime discovery prefereert device-reported `local_url` en `_spotifydj._tcp` mDNS; setup mag `http://spotifydj-<koppelcode>.local` als fallback opslaan.
@@ -47,7 +48,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.5.1`.
+- Actuele integratieversie: `2.6.0`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.

@@ -88,6 +88,89 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertIn("X-SpotifyDJ-Text", response["payload"]["message"])
         self.assertIn("HA Assist pipeline", response["payload"]["message"])
 
+    def test_command_failed_text_uses_device_language(self) -> None:
+        nl_runtime = types.SimpleNamespace(device_language=lambda: "nl")
+        en_runtime = types.SimpleNamespace(device_language=lambda: "en")
+        unknown_runtime = types.SimpleNamespace()
+
+        self.assertIn(
+            "Spotify niet starten",
+            self.http._command_failed_text(
+                nl_runtime,
+                RuntimeError("Spotify playback device unavailable"),
+            ),
+        )
+        self.assertIn(
+            "could not start Spotify playback",
+            self.http._command_failed_text(
+                en_runtime,
+                RuntimeError("media_player.play_media failed"),
+            ),
+        )
+        self.assertIn(
+            "Assist pipeline",
+            self.http._command_failed_text(
+                en_runtime,
+                RuntimeError("HA Assist pipeline failed"),
+            ),
+        )
+        self.assertIn(
+            "something went wrong",
+            self.http._command_failed_text(unknown_runtime),
+        )
+
+    def test_voice_view_sends_friendly_dj_response_on_command_failure(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def device_language(self):
+                return "nl"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+        hass = types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})
+        sent_responses = []
+
+        async def fail_command(hass, runtime, user_text, play=True):
+            raise RuntimeError("Spotify playback device unavailable")
+
+        async def send_failure(hass, runtime, exc=None):
+            runtime.update(last_error="ESP DJ response failed")
+            sent_responses.append(self.http._command_failed_text(runtime, exc))
+            return {"success": True, "spoken": False}
+
+        original_command = self.http.process_text_command
+        original_failure = self.http._send_failure_dj_response
+        self.http.process_text_command = fail_command
+        self.http._send_failure_dj_response = send_failure
+
+        class Request:
+            headers = {"X-SpotifyDJ-Text": "Play Pearl Jam"}
+            app = {"hass": hass}
+
+            async def read(self):
+                return b""
+
+        try:
+            response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+        finally:
+            self.http.process_text_command = original_command
+            self.http._send_failure_dj_response = original_failure
+
+        self.assertEqual(response["status_code"], 500)
+        self.assertEqual(response["payload"]["error"], "command_failed")
+        self.assertIn("Spotify niet starten", response["payload"]["dj_text"])
+        self.assertEqual(response["payload"]["dj_response"], {"success": True, "spoken": False})
+        self.assertEqual(sent_responses, [response["payload"]["dj_text"]])
+        self.assertEqual(runtime.last_update["last_error"], "Spotify playback device unavailable")
+
     def test_pair_view_rejects_wrong_pair_code(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
 

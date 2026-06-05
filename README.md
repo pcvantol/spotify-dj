@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 
 ## Current Version
 
-- Home Assistant integration: `2.5.1`
+- Home Assistant integration: `2.6.0`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: SpotifyDJ device
@@ -203,6 +203,12 @@ text -> HA Assist conversation pipeline -> SpotifyDJ intent -> Spotify -> ESP DJ
 
 `spotify_dj.test_command` accepts `text` and optional `play`. With `play: false`, it uses the same command parser path without starting Spotify playback.
 
+If command processing or Spotify playback fails, SpotifyDJ still sends a
+friendly DJ response to the ESP device when possible, so the user hears or sees
+what went wrong instead of only receiving an HTTP error. This fallback text uses
+the SpotifyDJ device language selected during pairing (`en` or `nl`) and
+distinguishes Assist pipeline failures from Spotify playback failures.
+
 If HA Assist returns a generic smart-home answer such as "I cannot play music",
 SpotifyDJ does not use that sentence as the DJ announcement. It keeps the
 Spotify search intent based on the original command and falls back to the
@@ -244,6 +250,17 @@ DJ response audio flow:
 ```text
 dj_text -> HA TTS backend -> temporary PCM WAV URL -> POST /api/device/dj_response -> ESP speaker/display
 ```
+
+DJ response failure handling:
+
+| Failure | ESP/user feedback |
+| --- | --- |
+| HA Assist pipeline cannot process the command | Localized DJ response asks the user to check the selected Assist pipeline. |
+| Spotify playback cannot start | Localized DJ response asks the user to check Spotify playback device availability. |
+| HA TTS cannot generate PCM WAV | ESP receives text-only DJ response without `audio_url`. |
+| HA TTS returns non-WAV audio | ESP receives text-only DJ response without `audio_url`. |
+| ESP `/api/device/dj_response` fails | Voice command returns a controlled `command_failed` JSON response and keeps the original Assist/Spotify error in runtime state. |
+| Temporary WAV URL is unknown or expired | `GET /api/spotify_dj/tts/{token}.wav` returns `404` or `410`; trigger the DJ response again. |
 
 Home Assistant posts this payload to the paired SpotifyDJ device:
 
@@ -381,11 +398,11 @@ Example manifest:
 
 ```json
 {
-  "version": "2.5.1",
+  "version": "2.6.0",
   "device": "spotifydj-device",
-  "asset": "spotifydj-device-v2.5.1.bin",
+  "asset": "spotifydj-device-v2.6.0.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-  "min_ha_integration": "2.5.1"
+  "min_ha_integration": "2.6.0"
 }
 ```
 
@@ -394,7 +411,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 2.5.1
+./release.sh 2.6.0
 ```
 
 In the private `spotify-dj-app` repository, the firmware release script should
@@ -405,7 +422,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 2.5.1 --dry-run
+./release.sh 2.6.0 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -461,11 +478,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v2.5.1"
-git tag v2.5.1
+git commit -m "Release SpotifyDJ v2.6.0"
+git tag v2.6.0
 git push origin main
-git push origin v2.5.1
-gh release create v2.5.1 --title "SpotifyDJ v2.5.1" --notes-file CHANGELOG.md
+git push origin v2.6.0
+gh release create v2.6.0 --title "SpotifyDJ v2.6.0" --notes-file CHANGELOG.md
 ```
 
 Home Assistant / HACS verification:
@@ -513,6 +530,7 @@ These tests use local stubs for Home Assistant imports and focus on pure Spotify
 - If OTA is blocked, check battery level, USB power, and the OTA battery options.
 - If provisioning fails, pair the SpotifyDJ device first and run `spotify_dj.provision_spotify_credentials` again.
 - If WiFi/MQTT provisioning works but Spotify does not, pair again after OAuth or run `spotify_dj.provision_spotify_credentials`; pair/status payloads should include both top-level `spotify_refresh_token` and `spotify.refresh_token`.
+- If a PTT command cannot start Spotify playback, the ESP should receive a friendly DJ response; check that the configured Spotify media player is available and has an active Spotify Connect target.
 - If `/api/spotify_dj/voice` returns `missing_text`, update the ESP firmware to run HA Assist websocket STT and send `X-SpotifyDJ-Text`.
 - If `spoken=false`, HA did not provide a compatible WAV URL or the ESP could not play it; the text response should still be displayed.
 - If the ESP reports `401` for `/api/device/dj_response`, pair the device again so the device token is refreshed.
