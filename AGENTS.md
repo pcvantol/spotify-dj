@@ -48,11 +48,13 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.6.0`.
+- Actuele integratieversie: `2.6.1`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
 - Spotify OAuth gebruikt standaard de ingebouwde Spotify Client ID; toon `spotify_client_id` alleen advanced en prefilled voor override.
+- Spotify OAuth scopes moeten `playlist-read-private` bevatten zodat ESP private/eigen `SpotifyDJ Liked Proxy` playlists via `/me/playlists` kan vinden.
+- Oude config entries zonder `playlist-read-private` moeten via diagnostics/repairs duidelijke reauthorize + `spotify_dj.provision_spotify_credentials` instructies krijgen.
 - Redirect path: `/api/spotify_dj/spotify/callback`
 - Geen handmatig `oauth_result` veld tonen.
 - Config flow ondersteunt optionele BLE WiFi provisioning vóór normale pairing.

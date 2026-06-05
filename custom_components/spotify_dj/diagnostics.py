@@ -4,7 +4,8 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
-from .const import DOMAIN
+from .const import CONF_SPOTIFY_SCOPES, DOMAIN, SPOTIFY_SCOPES
+from .spotify_oauth import missing_spotify_scopes, normalize_spotify_scopes
 
 _REDACT_KEY_PARTS = ("token", "password", "secret")
 LEGAL_DIAGNOSTICS = {
@@ -34,8 +35,16 @@ def _is_sensitive_key(key: Any) -> bool:
 
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
     runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    configured_scopes = entry.data.get(CONF_SPOTIFY_SCOPES)
+    missing_scopes = missing_spotify_scopes(configured_scopes)
     return {
         "legal": LEGAL_DIAGNOSTICS,
+        "spotify_oauth": {
+            "configured_scopes": normalize_spotify_scopes(configured_scopes),
+            "required_scopes": SPOTIFY_SCOPES,
+            "missing_scopes": missing_scopes,
+            "reauthorization_required": bool(missing_scopes),
+        },
         "entry": {
             "title": entry.title,
             "data": _redact(dict(entry.data)),

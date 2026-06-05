@@ -52,7 +52,13 @@ from .http import (
 )
 from .dj_response import async_send_dj_response, async_send_dj_response_best_effort
 from .processor import process_text_command
-from .spotify_oauth import build_authorize_url, build_redirect_uri, create_code_verifier
+from .repairs import async_create_fixable_issues
+from .spotify_oauth import (
+    build_authorize_url,
+    build_redirect_uri,
+    create_code_verifier,
+    ensure_spotify_scopes,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -522,11 +528,11 @@ def _register_developer_services(
             or runtime.config.get(CONF_HA_EXTERNAL_URL)
             or "http://homeassistant.local:8123"
         ).strip()
-        scopes = (
+        scopes = ensure_spotify_scopes(
             call.data.get("scopes")
             or runtime.config.get(CONF_SPOTIFY_SCOPES)
             or DEFAULT_SPOTIFY_SCOPES
-        ).strip()
+        )
         market = (
             call.data.get("market")
             or runtime.config.get(CONF_SPOTIFY_MARKET)
@@ -593,6 +599,7 @@ def _register_developer_services(
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     runtime = _restore_runtime(hass, entry)
+    await async_create_fixable_issues(hass, entry)
     await _try_initial_device_provisioning(hass, runtime)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     _register_developer_services(hass, entry, runtime)

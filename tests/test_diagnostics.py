@@ -60,7 +60,10 @@ class DiagnosticsTest(unittest.TestCase):
         entry = types.SimpleNamespace(
             entry_id="entry-1",
             title="SpotifyDJ",
-            data={"spotify_refresh_token": "refresh-secret"},
+            data={
+                "spotify_refresh_token": "refresh-secret",
+                "spotify_scopes": "user-read-playback-state user-modify-playback-state",
+            },
             options={"mqtt_password": "mqtt-secret"},
         )
         hass = types.SimpleNamespace(data={"spotify_dj": {"entry-1": None}})
@@ -81,6 +84,11 @@ class DiagnosticsTest(unittest.TestCase):
             result["legal"]["affiliation"],
             "SpotifyDJ is not affiliated with, endorsed by, or sponsored by Spotify AB.",
         )
+        self.assertIn(
+            "playlist-read-private",
+            result["spotify_oauth"]["missing_scopes"],
+        )
+        self.assertTrue(result["spotify_oauth"]["reauthorization_required"])
         self.assertEqual(result["entry"]["data"]["spotify_refresh_token"], "REDACTED")
         self.assertEqual(result["entry"]["options"]["mqtt_password"], "REDACTED")
 

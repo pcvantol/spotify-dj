@@ -200,5 +200,11 @@
         "name": "Firmware"
       }
     }
+  },
+  "issues": {
+    "missing_spotify_oauth_scopes": {
+      "title": "Spotify authorization is missing playlist scope",
+      "description": "SpotifyDJ now requires the Spotify OAuth scope playlist-read-private so the device can find private SpotifyDJ Liked Proxy playlists via /me/playlists. Start Spotify OAuth again from the SpotifyDJ developer action or re-add the integration, then run spotify_dj.provision_spotify_credentials."
+    }
   }
 }

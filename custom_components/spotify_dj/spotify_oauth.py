@@ -9,10 +9,50 @@ from aiohttp import ClientTimeout
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import API_SPOTIFY_CALLBACK
+from .const import API_SPOTIFY_CALLBACK, SPOTIFY_SCOPES
 
 SPOTIFY_AUTHORIZE_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
+
+
+def normalize_spotify_scopes(
+    scopes: str | list[str] | tuple[str, ...] | None,
+) -> list[str]:
+    """Return unique Spotify scopes while preserving configured order."""
+    if isinstance(scopes, str):
+        values = scopes.split()
+    elif scopes:
+        values = [str(scope).strip() for scope in scopes]
+    else:
+        values = []
+    seen: set[str] = set()
+    normalized: list[str] = []
+    for scope in values:
+        if scope and scope not in seen:
+            normalized.append(scope)
+            seen.add(scope)
+    return normalized
+
+
+def missing_spotify_scopes(
+    scopes: str | list[str] | tuple[str, ...] | None,
+) -> list[str]:
+    """Return SpotifyDJ required scopes missing from a stored OAuth scope list."""
+    existing = set(normalize_spotify_scopes(scopes))
+    return [scope for scope in SPOTIFY_SCOPES if scope not in existing]
+
+
+def ensure_spotify_scopes(
+    scopes: str | list[str] | tuple[str, ...] | None,
+) -> str:
+    """Append any newly required SpotifyDJ scopes to an OAuth scope string."""
+    normalized = normalize_spotify_scopes(scopes)
+    existing = set(normalized)
+    for scope in SPOTIFY_SCOPES:
+        if scope not in existing:
+            normalized.append(scope)
+            existing.add(scope)
+    return " ".join(normalized)
 
 
 def create_code_verifier() -> str:

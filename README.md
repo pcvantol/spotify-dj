@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 
 ## Current Version
 
-- Home Assistant integration: `2.6.0`
+- Home Assistant integration: `2.6.1`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: SpotifyDJ device
@@ -85,6 +85,22 @@ Copyright (c) 2026 Peter van Tol. All rights reserved.
 
 SpotifyDJ includes a default Spotify Client ID. PKCE is used, so no client secret is required. You only need your own Spotify Developer App Client ID if you want to override the bundled app in advanced setup.
 
+SpotifyDJ requests these Spotify OAuth scopes:
+
+- `user-read-playback-state`
+- `user-modify-playback-state`
+- `user-read-currently-playing`
+- `user-library-read`
+- `playlist-read-private`
+- `playlist-read-collaborative`
+- `user-read-recently-played`
+- `user-top-read`
+
+`playlist-read-private` is required when the ESP firmware searches `/me/playlists`
+for a private or user-owned `SpotifyDJ Liked Proxy` playlist. Existing users who
+authorized Spotify before this scope was added must authorize Spotify again and
+then run `spotify_dj.provision_spotify_credentials`.
+
 Add this redirect URI to the Spotify app:
 
 ```text
@@ -131,6 +147,11 @@ The config flow and options flow include safe defaults for optional voice fields
 - Liked proxy playlist URI
 - Firmware repository/channel/options
 - OTA battery safety options
+
+The liked proxy playlist can be private. If it is private, make sure Spotify has
+been reauthorized with `playlist-read-private`; diagnostics and Home Assistant
+repairs show a warning when the stored OAuth scope list is missing required
+SpotifyDJ scopes.
 
 Where Home Assistant exposes choices, SpotifyDJ shows populated dropdowns for Assist pipeline, TTS entity, known TTS voices, Spotify media player, Spotify market, DJ style, and firmware channel. Stored custom values remain selectable so existing setups keep working. The Spotify media player is required. Spotify source override, MQTT broker settings, firmware repository settings, firmware channel, manual device URL, max audio bytes, and OTA battery settings are shown only when advanced options are enabled. The manual device URL is normally not needed: SpotifyDJ stores an automatic `http://spotifydj-<pair-code>.local` fallback during setup, resolves the device through `_spotifydj._tcp` mDNS, and then uses the device-reported `local_url` when available.
 
@@ -398,11 +419,11 @@ Example manifest:
 
 ```json
 {
-  "version": "2.6.0",
+  "version": "2.6.1",
   "device": "spotifydj-device",
-  "asset": "spotifydj-device-v2.6.0.bin",
+  "asset": "spotifydj-device-v2.6.1.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-  "min_ha_integration": "2.6.0"
+  "min_ha_integration": "2.6.1"
 }
 ```
 
@@ -411,7 +432,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 2.6.0
+./release.sh 2.6.1
 ```
 
 In the private `spotify-dj-app` repository, the firmware release script should
@@ -422,7 +443,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 2.6.0 --dry-run
+./release.sh 2.6.1 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -478,11 +499,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v2.6.0"
-git tag v2.6.0
+git commit -m "Release SpotifyDJ v2.6.1"
+git tag v2.6.1
 git push origin main
-git push origin v2.6.0
-gh release create v2.6.0 --title "SpotifyDJ v2.6.0" --notes-file CHANGELOG.md
+git push origin v2.6.1
+gh release create v2.6.1 --title "SpotifyDJ v2.6.1" --notes-file CHANGELOG.md
 ```
 
 Home Assistant / HACS verification:
@@ -530,6 +551,7 @@ These tests use local stubs for Home Assistant imports and focus on pure Spotify
 - If OTA is blocked, check battery level, USB power, and the OTA battery options.
 - If provisioning fails, pair the SpotifyDJ device first and run `spotify_dj.provision_spotify_credentials` again.
 - If WiFi/MQTT provisioning works but Spotify does not, pair again after OAuth or run `spotify_dj.provision_spotify_credentials`; pair/status payloads should include both top-level `spotify_refresh_token` and `spotify.refresh_token`.
+- If the ESP cannot find a private `SpotifyDJ Liked Proxy` playlist, reauthorize Spotify so the refresh token includes `playlist-read-private`, then run `spotify_dj.provision_spotify_credentials`.
 - If a PTT command cannot start Spotify playback, the ESP should receive a friendly DJ response; check that the configured Spotify media player is available and has an active Spotify Connect target.
 - If `/api/spotify_dj/voice` returns `missing_text`, update the ESP firmware to run HA Assist websocket STT and send `X-SpotifyDJ-Text`.
 - If `spoken=false`, HA did not provide a compatible WAV URL or the ESP could not play it; the text response should still be displayed.

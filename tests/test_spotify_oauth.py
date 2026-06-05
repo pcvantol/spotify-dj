@@ -55,10 +55,11 @@ class SpotifyOAuthTest(unittest.TestCase):
         )
 
     def test_authorize_url_contains_pkce_parameters(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
         url = self.oauth.build_authorize_url(
             "client-id",
             "https://example.ui.nabu.casa/api/spotify_dj/spotify/callback",
-            "user-read-playback-state user-modify-playback-state",
+            const.DEFAULT_SPOTIFY_SCOPES,
             "state-value",
             "verifier-value",
         )
@@ -72,7 +73,26 @@ class SpotifyOAuthTest(unittest.TestCase):
         self.assertEqual(query["response_type"], ["code"])
         self.assertEqual(query["code_challenge_method"], ["S256"])
         self.assertEqual(query["state"], ["state-value"])
+        self.assertIn("playlist-read-private", query["scope"][0].split())
         self.assertIn("code_challenge", query)
+
+    def test_ensure_spotify_scopes_adds_playlist_read_private(self) -> None:
+        scopes = self.oauth.ensure_spotify_scopes(
+            "user-read-playback-state user-modify-playback-state"
+        )
+
+        self.assertIn("playlist-read-private", scopes.split())
+        self.assertEqual(
+            self.oauth.missing_spotify_scopes(scopes),
+            [],
+        )
+
+    def test_missing_spotify_scopes_reports_old_tokens(self) -> None:
+        missing = self.oauth.missing_spotify_scopes(
+            "user-read-playback-state user-modify-playback-state"
+        )
+
+        self.assertIn("playlist-read-private", missing)
 
 
 if __name__ == "__main__":
