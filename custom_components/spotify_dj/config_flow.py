@@ -141,6 +141,14 @@ def _ha_device_language(hass: Any) -> str:
     return "nl" if language.startswith("nl") else DEFAULT_DEVICE_LANGUAGE
 
 
+def _default_local_url(pair_code: str | None) -> str:
+    """Return the expected mDNS URL derived from the device pairing code."""
+    normalized = str(pair_code or "").strip()
+    if len(normalized) != 6 or not normalized.isdigit():
+        return ""
+    return f"http://spotifydj-{normalized}.local"
+
+
 def _merged_mqtt_defaults(hass: Any, source: dict[str, Any]) -> dict[str, Any]:
     """Use static MQTT defaults when SpotifyDJ has no stored values."""
     merged = dict(source)
@@ -587,6 +595,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             pair_code = str(user_input.get(CONF_PAIR_CODE, "")).strip()
+            self._last_pair_code = pair_code
             if not pair_code:
                 errors[CONF_PAIR_CODE] = "missing_pair_code"
             elif len(pair_code) != 6 or not pair_code.isdigit():
@@ -607,7 +616,10 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         _ha_device_language(getattr(self, "hass", None)),
                     ),
                     CONF_DEVICE_TOKEN: secrets.token_urlsafe(32),
-                    CONF_LOCAL_URL: _clean(user_input.get(CONF_LOCAL_URL), ""),
+                    CONF_LOCAL_URL: _clean(
+                        user_input.get(CONF_LOCAL_URL),
+                        _default_local_url(pair_code),
+                    ),
                 }
                 return await self.async_step_spotify()
 
@@ -619,6 +631,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _user_schema(self) -> dict[Any, Any]:
         """Build pairing schema; manual device URL is advanced-only."""
+        pair_code = getattr(self, "_last_pair_code", "")
         schema: dict[Any, Any] = {
             vol.Required(CONF_PAIR_CODE): str,
             vol.Optional(
@@ -631,7 +644,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ): vol.In(DEVICE_LANGUAGE_NAMES),
         }
         if getattr(self, "show_advanced_options", False):
-            schema[vol.Optional(CONF_LOCAL_URL, default="")] = str
+            schema[vol.Optional(CONF_LOCAL_URL, default=_default_local_url(pair_code))] = str
         return schema
 
     async def async_step_spotify(

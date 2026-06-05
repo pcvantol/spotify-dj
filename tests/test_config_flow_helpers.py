@@ -245,6 +245,27 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertIn(self.const.CONF_LOCAL_URL, advanced_keys)
         self.assertIn(self.const.CONF_DEVICE_LANGUAGE, basic_keys)
 
+    def test_user_schema_prefills_manual_device_url_from_pair_code(self) -> None:
+        flow = self.config_flow.SpotifyDJConfigFlow()
+        flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
+        flow.show_advanced_options = True
+        flow._last_pair_code = "123456"
+
+        schema = flow._user_schema()
+        local_url_marker = next(
+            marker for marker in schema if marker.key == self.const.CONF_LOCAL_URL
+        )
+
+        self.assertEqual(local_url_marker.default, "http://spotifydj-123456.local")
+
+    def test_default_local_url_requires_six_digit_pair_code(self) -> None:
+        self.assertEqual(
+            self.config_flow._default_local_url("123456"),
+            "http://spotifydj-123456.local",
+        )
+        self.assertEqual(self.config_flow._default_local_url("abc123"), "")
+        self.assertEqual(self.config_flow._default_local_url("12345"), "")
+
     def test_device_language_default_uses_ha_language_when_supported(self) -> None:
         nl_hass = types.SimpleNamespace(config=types.SimpleNamespace(language="nl-NL"))
         en_hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))

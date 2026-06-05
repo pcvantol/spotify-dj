@@ -33,7 +33,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.3.0`.
+- Actuele integratieversie: `2.5.0`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -71,6 +71,7 @@ HA integration:
   - `affiliation`: `SpotifyDJ is not affiliated with, endorsed by, or sponsored by Spotify AB.`
 - Config-flow/options-flow UI moet subtiel en kort de Spotify trademark/non-affiliation notice tonen zonder UX te vervuilen.
 - Verberg lokale/manual device URL in de normale flow; toon die alleen onder HA advanced options als mDNS/manual override nodig is.
+- Als manual device URL leeg is tijdens setup, sla automatisch `http://spotifydj-<koppelcode>.local` op als fallback; runtime blijft device-reported `local_url` en `_spotifydj._tcp` mDNS prefereren.
 - Alle SpotifyDJ entities moeten onder één HA device vallen met hetzelfde device identifier.
 - Config-flow foutpaden moeten heldere NL/EN gebruikersmeldingen hebben, bijvoorbeeld bij lege of foutieve koppelcode, ontbrekende Spotify Client ID, foutieve external URL en OAuth fouten.
 - Bestaande modules niet verwijderen, zoals `wav_util.py`, `pipeline.py`.

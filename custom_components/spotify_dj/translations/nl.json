@@ -24,7 +24,7 @@
           "pair_code": "De 6-cijferige code op het apparaatdisplay.",
           "device_name": "Leesbare naam voor deze SpotifyDJ remote.",
           "device_language": "Taal voor de UI op het SpotifyDJ device. Deze wordt tijdens pairing naar het device gestuurd.",
-          "local_url": "Geavanceerde fallback, bijvoorbeeld http://spotifydj-xxxxxxxxxxxx.local."
+          "local_url": "Geavanceerde fallback. SpotifyDJ gebruikt automatisch http://spotifydj-<koppelcode>.local als dit veld leeg is."
         }
       },
       "ble_wifi": {

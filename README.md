@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 
 ## Current Version
 
-- Home Assistant integration: `2.3.0`
+- Home Assistant integration: `2.5.0`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: SpotifyDJ device
@@ -114,7 +114,7 @@ The config flow and options flow include safe defaults for optional voice fields
 - Firmware repository/channel/options
 - OTA battery safety options
 
-Where Home Assistant exposes choices, SpotifyDJ shows populated dropdowns for Assist pipeline, TTS entity, known TTS voices, Spotify media player, Spotify market, DJ style, and firmware channel. Stored custom values remain selectable so existing setups keep working. The Spotify media player is required. Spotify source override, MQTT broker settings, firmware repository settings, firmware channel, manual device URL, max audio bytes, and OTA battery settings are shown only when advanced options are enabled. The manual device URL is normally not needed: SpotifyDJ resolves the device automatically through `_spotifydj._tcp` mDNS and falls back to `http://<device_id>.local`.
+Where Home Assistant exposes choices, SpotifyDJ shows populated dropdowns for Assist pipeline, TTS entity, known TTS voices, Spotify media player, Spotify market, DJ style, and firmware channel. Stored custom values remain selectable so existing setups keep working. The Spotify media player is required. Spotify source override, MQTT broker settings, firmware repository settings, firmware channel, manual device URL, max audio bytes, and OTA battery settings are shown only when advanced options are enabled. The manual device URL is normally not needed: SpotifyDJ stores an automatic `http://spotifydj-<pair-code>.local` fallback during setup, resolves the device through `_spotifydj._tcp` mDNS, and then uses the device-reported `local_url` when available.
 
 Advanced MQTT settings can provision these fields to the SpotifyDJ device when `mqtt_host` is set. The MQTT host field defaults to `homeassistant.local`; override it in advanced options if your broker uses a different host name or IP address.
 
@@ -339,7 +339,7 @@ POST /api/device/dj_response
 GET  /api/device/info
 ```
 
-The integration uses the device `local_url` from pairing/status when provided. If the field is empty, it automatically resolves the `_spotifydj._tcp` mDNS service for the paired device and then falls back to `http://<device_id>.local`.
+The integration uses the device `local_url` from pairing/status when provided. If the field is empty, it automatically resolves the `_spotifydj._tcp` mDNS service for the paired device and then falls back to `http://<device_id>.local`. During setup, an empty advanced manual URL is stored as `http://spotifydj-<pair-code>.local`.
 
 ## Firmware OTA Releases
 
@@ -363,11 +363,11 @@ Example manifest:
 
 ```json
 {
-  "version": "2.3.0",
+  "version": "2.5.0",
   "device": "spotifydj-device",
-  "asset": "spotifydj-device-v2.3.0.bin",
+  "asset": "spotifydj-device-v2.5.0.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-  "min_ha_integration": "2.3.0"
+  "min_ha_integration": "2.5.0"
 }
 ```
 
@@ -376,7 +376,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 2.3.0
+./release.sh 2.5.0
 ```
 
 In the private `spotify-dj-app` repository, the firmware release script should
@@ -387,7 +387,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 2.3.0 --dry-run
+./release.sh 2.5.0 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -443,11 +443,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v2.3.0"
-git tag v2.3.0
+git commit -m "Release SpotifyDJ v2.5.0"
+git tag v2.5.0
 git push origin main
-git push origin v2.3.0
-gh release create v2.3.0 --title "SpotifyDJ v2.3.0" --notes-file CHANGELOG.md
+git push origin v2.5.0
+gh release create v2.5.0 --title "SpotifyDJ v2.5.0" --notes-file CHANGELOG.md
 ```
 
 Home Assistant / HACS verification:
