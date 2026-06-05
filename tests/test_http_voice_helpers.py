@@ -608,6 +608,55 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(text, "Speel via OpenAI")
         self.assertEqual(calls, ["openai"])
 
+    def test_transcribe_wav_falls_back_to_first_stt_entity(self) -> None:
+        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        stt_module = types.ModuleType("homeassistant.components.stt")
+        pipeline_module = types.ModuleType(
+            "homeassistant.components.assist_pipeline.pipeline"
+        )
+        calls = []
+
+        class SpeechMetadata:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        class AudioFormats:
+            WAV = "wav"
+
+        class AudioCodecs:
+            PCM = "pcm"
+
+        class States:
+            def async_entity_ids(self, domain):
+                self.domain = domain
+                return ["stt.openai_stt"]
+
+        async def async_process_audio_stream(hass, metadata, stream, engine=None):
+            calls.append(engine)
+            async for _chunk in stream:
+                pass
+            return {"text": "OpenAI entity fallback"}
+
+        stt_module.SpeechMetadata = SpeechMetadata
+        stt_module.AudioFormats = AudioFormats
+        stt_module.AudioCodecs = AudioCodecs
+        stt_module.async_process_audio_stream = async_process_audio_stream
+        pipeline_module.async_get_pipelines = lambda hass: []
+        originals = self._install_stt_modules(stt_module, pipeline_module)
+        try:
+            text = asyncio.run(
+                assist_stt.transcribe_wav_with_assist(
+                    types.SimpleNamespace(data={}, states=States()),
+                    b"RIFFxxxxWAVEdata",
+                    {},
+                )
+            )
+        finally:
+            self._restore_modules(originals)
+
+        self.assertEqual(text, "OpenAI entity fallback")
+        self.assertEqual(calls, ["stt.openai_stt"])
+
     def test_transcribe_wav_finds_default_cloud_stt_pipeline(self) -> None:
         assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
         stt_module = types.ModuleType("homeassistant.components.stt")

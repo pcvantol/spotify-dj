@@ -165,6 +165,14 @@ def _resolve_stt_info(
             _first_attr(pipeline, "stt_language", "language")
             or language
         )
+    if not engine:
+        engine = _first_stt_entity(hass)
+        if engine:
+            pipeline_name = pipeline_name or "Home Assistant STT entity fallback"
+            _LOGGER.debug(
+                "SpotifyDJ STT provider selected from HA stt entity fallback: %s",
+                engine,
+            )
     return SttInfo(
         ha_version=_ha_version(),
         pipeline_id=pipeline_id,
@@ -235,6 +243,17 @@ def _get_assist_pipeline(hass: HomeAssistant, pipeline_id: str | None) -> Any | 
     if available:
         return available[0]
     return None
+
+
+def _first_stt_entity(hass: HomeAssistant) -> str | None:
+    states = getattr(hass, "states", None)
+    if not states or not hasattr(states, "async_entity_ids"):
+        return None
+    try:
+        entity_ids = sorted(states.async_entity_ids("stt"))
+    except Exception:  # noqa: BLE001
+        return None
+    return str(entity_ids[0]) if entity_ids else None
 
 
 def _find_pipeline(
