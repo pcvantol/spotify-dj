@@ -87,7 +87,7 @@ async def transcribe_wav_with_assist(
         info.channels,
     )
     if not info.engine:
-        raise SpotifyDJNoSttProviderError(_no_stt_provider_message())
+        return await _transcribe_with_assist_pipeline(hass, wav, info)
 
     try:
         from homeassistant.components import stt
@@ -107,6 +107,52 @@ async def transcribe_wav_with_assist(
         info.engine,
     )
     return _require_text(_text_from_stt_result(result))
+
+
+async def _transcribe_with_assist_pipeline(
+    hass: HomeAssistant,
+    wav: bytes,
+    info: SttInfo,
+) -> str:
+    """Use HA's supported Assist audio pipeline helper as final STT fallback."""
+    try:
+        from homeassistant.components import stt
+        from homeassistant.components.assist_pipeline import async_pipeline_from_audio_stream
+        from homeassistant.components.assist_pipeline.pipeline import PipelineStage
+        from homeassistant.core import Context
+    except Exception as exc:  # noqa: BLE001
+        raise SpotifyDJNoSttProviderError(_no_stt_provider_message()) from exc
+
+    events: list[Any] = []
+
+    async def event_callback(event: Any) -> None:
+        events.append(event)
+
+    _LOGGER.debug(
+        "SpotifyDJ STT fallback: using HA Assist audio pipeline helper "
+        "pipeline_id=%s language=%s audio_format=%s",
+        info.pipeline_id,
+        info.language,
+        info.audio_format,
+    )
+    try:
+        await async_pipeline_from_audio_stream(
+            hass,
+            context=Context(),
+            event_callback=event_callback,
+            stt_metadata=_speech_metadata(stt, info),
+            stt_stream=_audio_chunks(wav),
+            pipeline_id=info.pipeline_id,
+            start_stage=PipelineStage.STT,
+            end_stage=PipelineStage.STT,
+        )
+    except Exception as exc:  # noqa: BLE001
+        message = str(exc)
+        if "speech-to-text" in message or "does not support" in message:
+            raise SpotifyDJNoSttProviderError(_no_stt_provider_message()) from exc
+        raise SpotifyDJSttError(f"HA Assist STT failed: {message}") from exc
+
+    return _require_text(_text_from_pipeline_events(events))
 
 
 def detect_stt_support(hass: HomeAssistant, conf: dict[str, Any]) -> dict[str, Any]:
@@ -372,6 +418,32 @@ def _text_from_stt_result(result: Any) -> str:
     if text:
         return str(text).strip()
     return ""
+
+
+def _text_from_pipeline_events(events: list[Any]) -> str:
+    for event in reversed(events):
+        data = _event_data(event)
+        for key in ("text", "stt_text"):
+            value = data.get(key)
+            if value:
+                return str(value).strip()
+        stt_output = data.get("stt_output")
+        if isinstance(stt_output, dict) and stt_output.get("text"):
+            return str(stt_output["text"]).strip()
+        text = getattr(stt_output, "text", None)
+        if text:
+            return str(text).strip()
+    return ""
+
+
+def _event_data(event: Any) -> dict[str, Any]:
+    if isinstance(event, dict):
+        data = event.get("data", event)
+    else:
+        data = getattr(event, "data", None) or getattr(event, "as_dict", lambda: {})()
+        if isinstance(data, dict) and "data" in data:
+            data = data["data"]
+    return data if isinstance(data, dict) else {}
 
 
 def _require_text(value: Any) -> str:

@@ -16,7 +16,7 @@ Belangrijke repos:
 
 Architectuur beslissingen:
 - HA integration orchestreert pairing, OAuth, OTA, status, Assist/TTS en provisioning; ESP firmware blijft eigenaar van device runtime/audio/UI.
-- ESP uploadt raw WAV audio naar `POST /api/spotify_dj/voice`; de HA integration doet Assist/STT intern via HA `stt.async_process_audio_stream` met eerst `stt_engine` uit options, daarna opgeslagen Assist pipeline, HA preferred/default pipeline, eerste pipeline met STT of eerste HA `stt.*` entity, en geeft tekst plus optionele WAV/MP3 `audio_url` terug.
+- ESP uploadt raw WAV audio naar `POST /api/spotify_dj/voice`; de HA integration doet Assist/STT intern via HA `stt.async_process_audio_stream` met eerst `stt_engine` uit options, daarna opgeslagen Assist pipeline, HA preferred/default pipeline, eerste pipeline met STT, eerste HA `stt.*` entity of als laatste HA `assist_pipeline.async_pipeline_from_audio_stream`, en geeft tekst plus optionele WAV/MP3 `audio_url` terug.
 - Actieve HA routes gebruiken geen directe externe AI/STT/TTS APIs; gebruik HA Assist en HA TTS.
 - DJ responses spelen op het SpotifyDJ device af, niet via Spotify Connect of HA media_player; HA post `text` plus optionele tijdelijke WAV/MP3 `audio_url` naar `/api/device/dj_response`.
 - Fallback DJ responses bij command/playback fouten moeten de gekozen `device_language` volgen (`en`/`nl`).
@@ -50,7 +50,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.9.5`.
+- Actuele integratieversie: `2.9.6`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.

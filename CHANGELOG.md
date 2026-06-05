@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.5
+## 2.9.6
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -54,3 +54,4 @@
 - Treat text-only `/api/spotify_dj/voice` requests as direct DJ-response tests instead of Spotify playback commands.
 - Add `stt_engine` voice option and prefer it for raw WAV PTT STT before Assist pipeline fallback.
 - Fall back to the first Home Assistant `stt.*` entity, such as `stt.openai_stt`, when no explicit STT option or pipeline provider is resolved.
+- Use Home Assistant's official Assist audio pipeline helper as a final STT fallback before returning 503.

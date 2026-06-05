@@ -43,7 +43,11 @@ def install_http_stubs() -> None:
             self.content_type = content_type
             self.headers = headers or {}
 
+    class Context:
+        pass
+
     http.HomeAssistantView = HomeAssistantView
+    core.Context = Context
     core.HomeAssistant = object
     aiohttp.ClientTimeout = ClientTimeout
     aiohttp.web = types.SimpleNamespace(Response=Response)
@@ -656,6 +660,66 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         self.assertEqual(text, "OpenAI entity fallback")
         self.assertEqual(calls, ["stt.openai_stt"])
+
+    def test_transcribe_wav_uses_assist_pipeline_helper_when_no_engine_resolved(self) -> None:
+        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        stt_module = types.ModuleType("homeassistant.components.stt")
+        assist_pkg = types.ModuleType("homeassistant.components.assist_pipeline")
+        pipeline_module = types.ModuleType(
+            "homeassistant.components.assist_pipeline.pipeline"
+        )
+        calls = []
+
+        class SpeechMetadata:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        class AudioFormats:
+            WAV = "wav"
+
+        class AudioCodecs:
+            PCM = "pcm"
+
+        class PipelineStage:
+            STT = "stt"
+
+        async def async_pipeline_from_audio_stream(*args, **kwargs):
+            calls.append({"args": args, **kwargs})
+            chunks = []
+            async for chunk in kwargs["stt_stream"]:
+                chunks.append(chunk)
+            await kwargs["event_callback"](
+                {"type": "stt-end", "data": {"stt_output": {"text": "Pipeline text"}}}
+            )
+
+        stt_module.SpeechMetadata = SpeechMetadata
+        stt_module.AudioFormats = AudioFormats
+        stt_module.AudioCodecs = AudioCodecs
+        assist_pkg.async_pipeline_from_audio_stream = async_pipeline_from_audio_stream
+        pipeline_module.PipelineStage = PipelineStage
+        pipeline_module.async_get_pipelines = lambda hass: []
+
+        originals = self._install_stt_modules(stt_module, pipeline_module)
+        original_assist = sys.modules.get("homeassistant.components.assist_pipeline")
+        sys.modules["homeassistant.components.assist_pipeline"] = assist_pkg
+        try:
+            text = asyncio.run(
+                assist_stt.transcribe_wav_with_assist(
+                    types.SimpleNamespace(data={}),
+                    b"RIFFxxxxWAVEdata",
+                    {},
+                )
+            )
+        finally:
+            if original_assist is None:
+                sys.modules.pop("homeassistant.components.assist_pipeline", None)
+            else:
+                sys.modules["homeassistant.components.assist_pipeline"] = original_assist
+            self._restore_modules(originals)
+
+        self.assertEqual(text, "Pipeline text")
+        self.assertEqual(calls[0]["start_stage"], "stt")
+        self.assertEqual(calls[0]["end_stage"], "stt")
 
     def test_transcribe_wav_finds_default_cloud_stt_pipeline(self) -> None:
         assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
