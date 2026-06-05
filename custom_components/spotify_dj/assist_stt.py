@@ -32,6 +32,7 @@ class SttInfo:
 
     ha_version: str
     pipeline_id: str | None
+    pipeline_name: str | None
     engine: str | None
     language: str
     audio_format: str
@@ -54,11 +55,15 @@ async def transcribe_wav_with_assist(
 
     info = _resolve_stt_info(hass, wav, conf)
     _LOGGER.debug(
-        "SpotifyDJ STT request: ha_version=%s pipeline_id=%s stt_engine=%s "
-        "audio_format=%s sample_rate=%s channels=%s",
+        "SpotifyDJ STT request: ha_version=%s pipeline_id=%s pipeline_name=%s "
+        "language=%s stt_engine=%s stt_available=%s audio_format=%s "
+        "sample_rate=%s channels=%s",
         info.ha_version,
         info.pipeline_id,
+        info.pipeline_name,
+        info.language,
         info.engine,
+        bool(info.engine),
         info.audio_format,
         info.sample_rate,
         info.channels,
@@ -98,6 +103,7 @@ def detect_stt_support(hass: HomeAssistant, conf: dict[str, Any]) -> dict[str, A
     return {
         "ha_version": info.ha_version,
         "pipeline_id": info.pipeline_id,
+        "pipeline_name": info.pipeline_name,
         "stt_engine": info.engine,
         "language": info.language,
         "audio_format": info.audio_format,
@@ -115,15 +121,23 @@ def _resolve_stt_info(
     pipeline_id = str(conf.get(CONF_ASSIST_PIPELINE_ID) or "").strip() or None
     language = str(conf.get(CONF_TTS_LANGUAGE) or DEFAULT_TTS_LANGUAGE)
     engine = None
+    pipeline_name = None
     pipeline = _get_assist_pipeline(hass, pipeline_id)
     if pipeline is not None:
         pipeline_id = str(
-            getattr(pipeline, "id", None)
-            or getattr(pipeline, "conversation_id", None)
+            _pipeline_attr(pipeline, "id")
+            or _pipeline_attr(pipeline, "conversation_id")
             or pipeline_id
             or ""
         ) or None
-        engine = _first_attr(pipeline, "stt_engine", "stt_engine_id", "stt_provider")
+        pipeline_name = _pipeline_attr(pipeline, "name")
+        engine = _first_attr(
+            pipeline,
+            "stt_engine",
+            "stt_engine_id",
+            "stt_provider",
+            "stt_provider_id",
+        )
         language = (
             _first_attr(pipeline, "stt_language", "language")
             or language
@@ -131,6 +145,7 @@ def _resolve_stt_info(
     return SttInfo(
         ha_version=_ha_version(),
         pipeline_id=pipeline_id,
+        pipeline_name=str(pipeline_name).strip() if pipeline_name else None,
         engine=str(engine).strip() if engine else None,
         language=str(language),
         audio_format="wav",
@@ -148,34 +163,85 @@ def _get_assist_pipeline(hass: HomeAssistant, pipeline_id: str | None) -> Any | 
         _LOGGER.debug("SpotifyDJ Assist pipeline registry unavailable: %s", exc)
         return None
 
+    available = _pipeline_list(pipelines)
+
     if pipeline_id:
-        getter = getattr(pipelines, "async_get_pipeline", None)
-        if callable(getter):
-            try:
-                return getter(pipeline_id)
-            except Exception:  # noqa: BLE001
-                return None
-        mapping = getattr(pipelines, "pipelines", None)
-        if isinstance(mapping, dict):
-            return mapping.get(pipeline_id)
+        pipeline = _find_pipeline(pipelines, available, pipeline_id)
+        if pipeline is not None:
+            return pipeline
+        _LOGGER.warning(
+            "SpotifyDJ configured Assist pipeline %s was not found; falling back "
+            "to Home Assistant preferred/default pipeline",
+            pipeline_id,
+        )
 
     current_getter = getattr(pipelines, "async_get_preferred_pipeline", None)
     if callable(current_getter):
         try:
-            return current_getter()
+            preferred = current_getter()
+            if preferred is not None and _pipeline_has_stt(preferred):
+                return preferred
         except Exception:  # noqa: BLE001
-            return None
+            _LOGGER.debug("SpotifyDJ preferred Assist pipeline lookup failed")
     current = getattr(pipelines, "preferred_pipeline", None) or getattr(
         pipelines,
         "current_pipeline",
         None,
     )
-    if current is not None:
+    if current is not None and _pipeline_has_stt(current):
         return current
-    mapping = getattr(pipelines, "pipelines", None)
-    if isinstance(mapping, dict) and mapping:
-        return next(iter(mapping.values()))
+
+    for pipeline in available:
+        if _pipeline_has_stt(pipeline):
+            return pipeline
+    if available:
+        return available[0]
     return None
+
+
+def _find_pipeline(
+    pipelines: Any,
+    available: list[Any],
+    pipeline_id: str,
+) -> Any | None:
+    getter = getattr(pipelines, "async_get_pipeline", None)
+    if callable(getter):
+        try:
+            pipeline = getter(pipeline_id)
+            if pipeline is not None:
+                return pipeline
+        except Exception:  # noqa: BLE001
+            return None
+    for pipeline in available:
+        if str(_pipeline_attr(pipeline, "id") or "") == pipeline_id:
+            return pipeline
+    return None
+
+
+def _pipeline_list(pipelines: Any) -> list[Any]:
+    if isinstance(pipelines, dict):
+        return list(pipelines.values())
+    mapping = getattr(pipelines, "pipelines", None)
+    if isinstance(mapping, dict):
+        return list(mapping.values())
+    if isinstance(mapping, list | tuple):
+        return list(mapping)
+    try:
+        return list(pipelines)
+    except TypeError:
+        return []
+
+
+def _pipeline_has_stt(pipeline: Any) -> bool:
+    return bool(
+        _first_attr(
+            pipeline,
+            "stt_engine",
+            "stt_engine_id",
+            "stt_provider",
+            "stt_provider_id",
+        )
+    )
 
 
 def _speech_metadata(stt: Any, info: SttInfo) -> Any:
@@ -260,10 +326,16 @@ def _require_text(value: Any) -> str:
 
 def _first_attr(obj: Any, *names: str) -> Any:
     for name in names:
-        value = getattr(obj, name, None)
+        value = _pipeline_attr(obj, name)
         if value:
             return value
     return None
+
+
+def _pipeline_attr(obj: Any, name: str) -> Any:
+    if isinstance(obj, dict):
+        return obj.get(name)
+    return getattr(obj, name, None)
 
 
 def _ha_version() -> str:

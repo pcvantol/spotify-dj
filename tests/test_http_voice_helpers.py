@@ -435,6 +435,149 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         self.assertEqual(text, "Speel Pearl Jam")
 
+    def test_transcribe_wav_finds_default_cloud_stt_pipeline(self) -> None:
+        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        stt_module = types.ModuleType("homeassistant.components.stt")
+        pipeline_module = types.ModuleType(
+            "homeassistant.components.assist_pipeline.pipeline"
+        )
+        calls = []
+
+        class SpeechMetadata:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        class AudioFormats:
+            WAV = "wav"
+
+        class AudioCodecs:
+            PCM = "pcm"
+
+        async def async_process_audio_stream(hass, metadata, stream, engine=None):
+            calls.append(
+                {
+                    "engine": engine,
+                    "language": metadata.kwargs["language"],
+                    "audio": b"".join([chunk async for chunk in stream]),
+                }
+            )
+            return {"text": "Speel Eefje de Visser"}
+
+        stt_module.SpeechMetadata = SpeechMetadata
+        stt_module.AudioFormats = AudioFormats
+        stt_module.AudioCodecs = AudioCodecs
+        stt_module.async_process_audio_stream = async_process_audio_stream
+        pipeline_module.async_get_pipelines = lambda hass: [
+            types.SimpleNamespace(
+                id="default",
+                name="Home Assistant Cloud",
+                stt_engine="cloud",
+                stt_language="nl-NL",
+            )
+        ]
+
+        originals = self._install_stt_modules(stt_module, pipeline_module)
+        try:
+            text = asyncio.run(
+                assist_stt.transcribe_wav_with_assist(
+                    types.SimpleNamespace(data={}),
+                    b"RIFFxxxxWAVEdata",
+                    {},
+                )
+            )
+        finally:
+            self._restore_modules(originals)
+
+        self.assertEqual(text, "Speel Eefje de Visser")
+        self.assertEqual(calls[0]["engine"], "cloud")
+        self.assertEqual(calls[0]["language"], "nl-NL")
+        self.assertEqual(calls[0]["audio"], b"RIFFxxxxWAVEdata")
+
+    def test_transcribe_wav_missing_stored_pipeline_falls_back_to_default(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        stt_module = types.ModuleType("homeassistant.components.stt")
+        pipeline_module = types.ModuleType(
+            "homeassistant.components.assist_pipeline.pipeline"
+        )
+
+        class SpeechMetadata:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        class AudioFormats:
+            WAV = "wav"
+
+        class AudioCodecs:
+            PCM = "pcm"
+
+        async def async_process_audio_stream(hass, metadata, stream, engine=None):
+            return types.SimpleNamespace(text=f"engine={engine}")
+
+        class Pipelines:
+            def __init__(self):
+                self.default = types.SimpleNamespace(
+                    id="default",
+                    name="Default Assist",
+                    stt_engine="cloud",
+                    stt_language="nl-NL",
+                )
+
+            def async_get_pipeline(self, pipeline_id):
+                return None
+
+            def async_get_preferred_pipeline(self):
+                return self.default
+
+        stt_module.SpeechMetadata = SpeechMetadata
+        stt_module.AudioFormats = AudioFormats
+        stt_module.AudioCodecs = AudioCodecs
+        stt_module.async_process_audio_stream = async_process_audio_stream
+        pipeline_module.async_get_pipelines = lambda hass: Pipelines()
+
+        originals = self._install_stt_modules(stt_module, pipeline_module)
+        try:
+            text = asyncio.run(
+                assist_stt.transcribe_wav_with_assist(
+                    types.SimpleNamespace(data={}),
+                    b"RIFFxxxxWAVEdata",
+                    {const.CONF_ASSIST_PIPELINE_ID: "deleted-pipeline"},
+                )
+            )
+        finally:
+            self._restore_modules(originals)
+
+        self.assertEqual(text, "engine=cloud")
+
+    def test_transcribe_wav_pipeline_without_stt_returns_no_provider(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        stt_module = types.ModuleType("homeassistant.components.stt")
+        pipeline_module = types.ModuleType(
+            "homeassistant.components.assist_pipeline.pipeline"
+        )
+
+        class Pipelines:
+            def async_get_pipeline(self, pipeline_id):
+                return types.SimpleNamespace(id=pipeline_id, name="No STT")
+
+        stt_module.async_process_audio_stream = object()
+        pipeline_module.async_get_pipelines = lambda hass: Pipelines()
+        originals = self._install_stt_modules(stt_module, pipeline_module)
+        try:
+            with self.assertRaises(assist_stt.SpotifyDJNoSttProviderError) as raised:
+                asyncio.run(
+                    assist_stt.transcribe_wav_with_assist(
+                        types.SimpleNamespace(data={}),
+                        b"RIFFxxxxWAVEdata",
+                        {const.CONF_ASSIST_PIPELINE_ID: "no-stt"},
+                    )
+                )
+        finally:
+            self._restore_modules(originals)
+
+        self.assertEqual(str(raised.exception), assist_stt.NO_STT_PROVIDER)
+
     def test_transcribe_wav_no_stt_provider_error(self) -> None:
         assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
         originals = {
@@ -464,6 +607,30 @@ class VoiceHttpHelperTest(unittest.TestCase):
                     sys.modules[name] = original
 
         self.assertEqual(str(raised.exception), assist_stt.NO_STT_PROVIDER)
+
+    def _install_stt_modules(self, stt_module, pipeline_module):
+        assist_pkg = types.ModuleType("homeassistant.components.assist_pipeline")
+        originals = {
+            name: sys.modules.get(name)
+            for name in (
+                "homeassistant.components.stt",
+                "homeassistant.components.assist_pipeline",
+                "homeassistant.components.assist_pipeline.pipeline",
+            )
+        }
+        sys.modules["homeassistant.components.stt"] = stt_module
+        sys.modules["homeassistant.components.assist_pipeline"] = assist_pkg
+        sys.modules[
+            "homeassistant.components.assist_pipeline.pipeline"
+        ] = pipeline_module
+        return originals
+
+    def _restore_modules(self, originals):
+        for name, original in originals.items():
+            if original is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = original
 
     def test_pair_view_rejects_wrong_pair_code(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")

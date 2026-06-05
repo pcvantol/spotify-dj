@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 
 ## Current Version
 
-- Home Assistant integration: `2.9.1`
+- Home Assistant integration: `2.9.2`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: SpotifyDJ device
@@ -36,7 +36,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 SpotifyDJ intentionally separates Home Assistant orchestration from firmware
 runtime behavior. These decisions are part of the integration contract:
 
-- **HA-native Assist/STT**: microphone audio is transcribed by this integration through Home Assistant's supported `stt.async_process_audio_stream` helper, using the selected Assist pipeline STT engine where available. The ESP uploads raw WAV audio to `POST /api/spotify_dj/voice` using its SpotifyDJ device token; no Home Assistant websocket token is sent to the ESP.
+- **HA-native Assist/STT**: microphone audio is transcribed by this integration through Home Assistant's supported `stt.async_process_audio_stream` helper. SpotifyDJ uses the configured Assist pipeline, falls back to Home Assistant's preferred/default pipeline, then the first pipeline with STT. The ESP uploads raw WAV audio to `POST /api/spotify_dj/voice` using its SpotifyDJ device token; no Home Assistant websocket token is sent to the ESP.
 - **No direct external AI/STT/TTS APIs**: active Home Assistant routes use HA Assist and HA TTS only. OpenAI or other direct external AI/STT/TTS clients are not part of the active voice path.
 - **Device speaker for DJ responses**: DJ responses are not played through Spotify Connect or a Home Assistant media player. Home Assistant creates a temporary WAV or MP3 URL when possible and posts `text` plus optional `audio_url` to the ESP endpoint `/api/device/dj_response`.
 - **ESP owns Spotify runtime playback**: Home Assistant provisions Spotify OAuth metadata, pairing data and optional MQTT settings. The SpotifyDJ device can continue using Spotify APIs independently after provisioning.
@@ -402,11 +402,15 @@ JSON/text commands remain supported for developer tests and diagnostics through
 `X-SpotifyDJ-Text` or `{ "text": "Play Pearl Jam" }`.
 
 Home Assistant must have an Assist pipeline with an STT provider configured.
-SpotifyDJ resolves the selected pipeline's STT engine and sends WAV audio to
-Home Assistant's supported `stt.async_process_audio_stream` API. At startup the
-integration logs the Home Assistant version, selected pipeline id, STT engine,
-and audio format. If no STT provider is configured, `/api/spotify_dj/voice`
-returns `503` with `No Home Assistant STT provider configured`.
+SpotifyDJ resolves the selected pipeline's STT engine, or if no pipeline is
+stored, Home Assistant's preferred/default Assist pipeline such as Home
+Assistant Cloud STT. If a stored pipeline was removed, SpotifyDJ falls back to
+the preferred/default pipeline. It then sends WAV audio to Home Assistant's
+supported `stt.async_process_audio_stream` API. At startup the integration logs
+the Home Assistant version, selected pipeline id/name, language, STT engine,
+availability and audio format. If the selected pipeline truly has no STT
+provider, `/api/spotify_dj/voice` returns `503` with
+`No Home Assistant STT provider configured`.
 
 ## ESP Device Endpoints
 
@@ -445,12 +449,12 @@ Example manifest:
 
 ```json
 {
-  "version": "2.9.1",
+  "version": "2.9.2",
   "device": "lilygo-t-embed-s3",
-  "asset": "spotifydj-device-v2.9.1.bin",
+  "asset": "spotifydj-device-v2.9.2.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "2.9.1"
+  "min_ha_integration": "2.9.2"
 }
 ```
 
@@ -465,7 +469,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 2.9.1
+./release.sh 2.9.2
 ```
 
 In the private `spotify-dj-app` repository, the firmware release script should
@@ -476,7 +480,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 2.9.1 --dry-run
+./release.sh 2.9.2 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -532,11 +536,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v2.9.1"
-git tag v2.9.1
+git commit -m "Release SpotifyDJ v2.9.2"
+git tag v2.9.2
 git push origin main
-git push origin v2.9.1
-gh release create v2.9.1 --title "SpotifyDJ v2.9.1" --notes-file CHANGELOG.md
+git push origin v2.9.2
+gh release create v2.9.2 --title "SpotifyDJ v2.9.2" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:
@@ -595,7 +599,7 @@ These tests use local stubs for Home Assistant imports and focus on pure Spotify
 - If OTA is blocked, check battery level, USB power, and the OTA battery options.
 - If provisioning fails, pair the SpotifyDJ device first and run `spotify_dj.provision_spotify_credentials` again.
 - If provisioning says `local_url is unknown`, make sure the device advertises `_spotifydj._tcp` mDNS or temporarily enable advanced options and enter the manual device URL, for example `http://spotifydj-90B70990A994.local`.
-- If `/api/spotify_dj/voice` returns `No Home Assistant STT provider configured`, configure an Assist pipeline with a speech-to-text provider and select that pipeline in SpotifyDJ options.
+- If `/api/spotify_dj/voice` returns `No Home Assistant STT provider configured`, configure an Assist pipeline with a speech-to-text provider such as Home Assistant Cloud STT, or clear the stale SpotifyDJ pipeline option so the integration can use Home Assistant's preferred/default Assist pipeline.
 - If WiFi/MQTT provisioning works but Spotify does not, pair again after OAuth or run `spotify_dj.provision_spotify_credentials`; pair/status payloads should include both top-level `spotify_refresh_token` and `spotify.refresh_token`.
 - If the ESP cannot find a private `SpotifyDJ Liked Proxy` playlist, reauthorize Spotify so the refresh token includes `playlist-read-private`, then run `spotify_dj.provision_spotify_credentials`.
 - If a PTT command cannot start Spotify playback, the ESP should receive a friendly DJ response; check that the configured Spotify media player is available and has an active Spotify Connect target.

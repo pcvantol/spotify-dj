@@ -16,7 +16,7 @@ Belangrijke repos:
 
 Architectuur beslissingen:
 - HA integration orchestreert pairing, OAuth, OTA, status, Assist/TTS en provisioning; ESP firmware blijft eigenaar van device runtime/audio/UI.
-- ESP uploadt raw WAV audio naar `POST /api/spotify_dj/voice`; de HA integration doet Assist/STT intern via HA `stt.async_process_audio_stream` met de geselecteerde Assist pipeline STT engine en geeft tekst plus optionele WAV/MP3 `audio_url` terug.
+- ESP uploadt raw WAV audio naar `POST /api/spotify_dj/voice`; de HA integration doet Assist/STT intern via HA `stt.async_process_audio_stream` met de opgeslagen Assist pipeline, HA preferred/default pipeline of eerste pipeline met STT, en geeft tekst plus optionele WAV/MP3 `audio_url` terug.
 - Actieve HA routes gebruiken geen directe externe AI/STT/TTS APIs; gebruik HA Assist en HA TTS.
 - DJ responses spelen op het SpotifyDJ device af, niet via Spotify Connect of HA media_player; HA post `text` plus optionele tijdelijke WAV/MP3 `audio_url` naar `/api/device/dj_response`.
 - Fallback DJ responses bij command/playback fouten moeten de gekozen `device_language` volgen (`en`/`nl`).
@@ -50,7 +50,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.9.1`.
+- Actuele integratieversie: `2.9.2`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -99,6 +99,7 @@ HA integration:
 - Bestaande modules niet verwijderen, zoals `wav_util.py`, `pipeline.py`.
 - Actieve routes gebruiken HA Assist/TTS en geen directe externe AI/STT/TTS API.
 - Voice STT mag niet afhankelijk zijn van niet-beschikbare/private Assist audio pipeline helpers; gebruik HA's ondersteunde STT helper en geef `No Home Assistant STT provider configured` terug als er geen STT provider is.
+- Als `assist_pipeline_id` leeg is, gebruik HA preferred/default Assist pipeline; als opgeslagen pipeline ontbreekt, fallback naar preferred/default of eerste pipeline met STT. Geef alleen no-provider terug als de geselecteerde pipeline echt geen STT engine/provider heeft.
 - DJ responses worden niet via Spotify Connect of HA media_player afgespeeld; HA genereert waar mogelijk een tijdelijke WAV/MP3 `audio_url` en POST `text` + optionele `audio_url` naar ESP endpoint `/api/device/dj_response`.
 - Als HA TTS WAV of MP3 audio teruggeeft, mag HA een tijdelijke `audio_url` meesturen; ESP bepaalt wav/mp3/unknown. Alleen onbekende audio wordt text-only zonder warning.
 - ESP firmware stuurt microfoon-WAV naar `POST /api/spotify_dj/voice` met `Authorization: Bearer <device_token>` en `X-SpotifyDJ-Device-ID`.

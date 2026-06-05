@@ -721,11 +721,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     runtime = _restore_runtime(hass, entry)
     stt_info = detect_stt_support(hass, runtime.config)
     _LOGGER.info(
-        "SpotifyDJ STT route: ha_version=%s pipeline_id=%s stt_engine=%s "
-        "audio_format=%s configured=%s",
+        "SpotifyDJ STT route: ha_version=%s pipeline_id=%s pipeline_name=%s "
+        "language=%s stt_engine=%s stt_available=%s audio_format=%s configured=%s",
         stt_info.get("ha_version"),
         stt_info.get("pipeline_id"),
+        stt_info.get("pipeline_name"),
+        stt_info.get("language"),
         stt_info.get("stt_engine"),
+        bool(stt_info.get("stt_engine")),
         stt_info.get("audio_format"),
         stt_info.get("configured"),
     )
