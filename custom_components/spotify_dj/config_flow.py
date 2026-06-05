@@ -88,6 +88,7 @@ _LOGGER = logging.getLogger(__name__)
 FIRMWARE_CHANNEL_NAMES = {"stable": "Stable", "beta": "Beta"}
 DEVICE_LANGUAGE_NAMES = {"en": "English", "nl": "Nederlands"}
 PAIR_CODE_PATTERN = re.compile(r"^(?:\d{6}|[0-9A-Fa-f]{12})$")
+ADVANCED_OPTIONS_FIELD = "show_advanced_options"
 SPOTIFY_MARKET_NAMES = {
     "NL": "Netherlands",
     "BE": "Belgium",
@@ -141,6 +142,19 @@ def _ha_device_language(hass: Any) -> str:
     """Return supported device UI language from the current HA language."""
     language = str(getattr(getattr(hass, "config", None), "language", "") or "").lower()
     return "nl" if language.startswith("nl") else DEFAULT_DEVICE_LANGUAGE
+
+
+def _advanced_enabled(flow: Any) -> bool:
+    """Return the flow-local advanced toggle without HA deprecated properties."""
+    return bool(getattr(flow, "_show_advanced_options", False))
+
+
+def _request_advanced(flow: Any, user_input: dict[str, Any]) -> bool:
+    """Enable flow-local advanced fields when the user checks the inline toggle."""
+    if user_input.get(ADVANCED_OPTIONS_FIELD) and not _advanced_enabled(flow):
+        setattr(flow, "_show_advanced_options", True)
+        return True
+    return False
 
 
 def _default_local_url(pair_code: str | None) -> str:
@@ -239,6 +253,8 @@ def _spotify_schema(include_advanced: bool = False) -> dict[Any, Any]:
                 default=DEFAULT_SPOTIFY_CLIENT_ID,
             )
         ] = str
+    else:
+        schema[vol.Optional(ADVANCED_OPTIONS_FIELD, default=False)] = bool
     return schema
 
 
@@ -449,6 +465,8 @@ async def _voice_schema(
     )
     if include_advanced:
         schema.update(_advanced_voice_schema(defaults))
+    else:
+        schema[vol.Optional(ADVANCED_OPTIONS_FIELD, default=False)] = bool
     return vol.Schema(schema)
 
 
@@ -530,6 +548,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._pairing: dict[str, Any] = {}
         self._spotify: dict[str, Any] = {}
         self._oauth: dict[str, str] = {}
+        self._show_advanced_options = False
 
     async def async_step_user(
         self,
@@ -601,6 +620,8 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            if _request_advanced(self, user_input):
+                return await self.async_step_pair()
             pair_code = str(user_input.get(CONF_PAIR_CODE, "")).strip()
             self._last_pair_code = pair_code
             if not pair_code:
@@ -650,7 +671,9 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 default=_ha_device_language(getattr(self, "hass", None)),
             ): vol.In(DEVICE_LANGUAGE_NAMES),
         }
-        if getattr(self, "show_advanced_options", False):
+        if not _advanced_enabled(self):
+            schema[vol.Optional(ADVANCED_OPTIONS_FIELD, default=False)] = bool
+        else:
             schema[vol.Optional(CONF_LOCAL_URL, default=_default_local_url(pair_code))] = str
         return schema
 
@@ -662,6 +685,8 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            if _request_advanced(self, user_input):
+                return await self.async_step_spotify()
             client_id = str(
                 user_input.get(CONF_SPOTIFY_CLIENT_ID)
                 or DEFAULT_SPOTIFY_CLIENT_ID
@@ -687,7 +712,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="spotify",
             data_schema=vol.Schema(
-                _spotify_schema(getattr(self, "show_advanced_options", False))
+                _spotify_schema(_advanced_enabled(self))
             ),
             errors=errors,
             description_placeholders={
@@ -806,6 +831,8 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Collect optional voice settings. Empty fields are allowed."""
         errors: dict[str, str] = {}
         if user_input is not None:
+            if _request_advanced(self, user_input):
+                return await self.async_step_voice()
             errors = _voice_errors(user_input)
             if not errors:
                 data: dict[str, Any] = {}
@@ -822,7 +849,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=await _voice_schema(
                 self.hass,
                 _voice_defaults(_merged_mqtt_defaults(self.hass, {})),
-                include_advanced=getattr(self, "show_advanced_options", False),
+                include_advanced=_advanced_enabled(self),
             ),
             errors=errors,
         )
@@ -841,6 +868,7 @@ class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self._config_entry = config_entry
+        self._show_advanced_options = False
 
     async def async_step_init(
         self,
@@ -851,6 +879,8 @@ class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
         defaults = _voice_defaults(_merged_mqtt_defaults(self.hass, current))
         errors: dict[str, str] = {}
         if user_input is not None:
+            if _request_advanced(self, user_input):
+                return await self.async_step_init()
             errors = _voice_errors(user_input)
             if not errors:
                 merged = dict(current)
@@ -862,7 +892,7 @@ class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
             data_schema=await _voice_schema(
                 self.hass,
                 defaults,
-                include_advanced=getattr(self, "show_advanced_options", False),
+                include_advanced=_advanced_enabled(self),
             ),
             errors=errors,
         )

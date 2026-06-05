@@ -18,13 +18,15 @@
           "pair_code": "Pairing code",
           "device_name": "Device name",
           "device_language": "Device language",
-          "local_url": "Manual device URL"
+          "local_url": "Manual device URL",
+          "show_advanced_options": "Show advanced options"
         },
         "data_description": {
           "pair_code": "The 6 digit code or 12 character device suffix shown on the device display.",
           "device_name": "Friendly name for this SpotifyDJ remote.",
           "device_language": "Language for the SpotifyDJ device UI. This is sent to the device during pairing.",
-          "local_url": "Advanced fallback. SpotifyDJ automatically uses http://spotifydj-[pair-code].local when this field is empty."
+          "local_url": "Advanced fallback. Use a real device hostname such as http://spotifydj-[device-suffix].local; 6 digit setup codes are not device hostnames.",
+          "show_advanced_options": "Show manual and firmware/OTA override fields."
         }
       },
       "ble_wifi": {
@@ -47,12 +49,14 @@
         "data": {
           "spotify_client_id": "Spotify Client ID",
           "ha_external_url": "Home Assistant external URL",
-          "spotify_market": "Spotify market"
+          "spotify_market": "Spotify market",
+          "show_advanced_options": "Show advanced options"
         },
         "data_description": {
           "spotify_client_id": "Advanced override for the bundled Spotify Client ID.",
           "ha_external_url": "Reachable HTTPS URL, preferably your Nabu Casa URL.",
-          "spotify_market": "Spotify market used for search and playback requests."
+          "spotify_market": "Spotify market used for search and playback requests.",
+          "show_advanced_options": "Show manual and firmware/OTA override fields."
         }
       },
       "spotify_oauth": {
@@ -83,7 +87,8 @@
           "max_audio_bytes": "Maximum audio bytes",
           "allow_ota_on_battery": "Allow OTA on battery",
           "min_battery_for_ota": "Minimum battery for OTA",
-          "dj_response_ttl_seconds": "DJ response audio TTL seconds"
+          "dj_response_ttl_seconds": "DJ response audio TTL seconds",
+          "show_advanced_options": "Show advanced options"
         },
         "data_description": {
           "assist_pipeline_id": "Assist pipeline used by SpotifyDJ devices for speech recognition.",
@@ -107,7 +112,8 @@
           "max_audio_bytes": "Compatibility limit for legacy audio uploads.",
           "allow_ota_on_battery": "Allow firmware updates while the device is not USB powered.",
           "min_battery_for_ota": "Minimum battery percentage before OTA is allowed.",
-          "dj_response_ttl_seconds": "Number of seconds the temporary WAV download URL remains valid."
+          "dj_response_ttl_seconds": "Number of seconds the temporary WAV download URL remains valid.",
+          "show_advanced_options": "Show manual and firmware/OTA override fields."
         }
       }
     },
@@ -157,14 +163,16 @@
           "max_audio_bytes": "Maximum audio bytes",
           "allow_ota_on_battery": "Allow OTA on battery",
           "min_battery_for_ota": "Minimum battery for OTA",
-          "dj_response_ttl_seconds": "DJ response audio TTL seconds"
+          "dj_response_ttl_seconds": "DJ response audio TTL seconds",
+          "show_advanced_options": "Show advanced options"
         },
         "data_description": {
           "assist_pipeline_id": "Assist pipeline used by SpotifyDJ devices for speech recognition.",
           "spotify_player": "Required media player used for Spotify playback.",
           "dj_response_enabled": "Create a temporary PCM WAV audio URL and send it with the DJ text to the SpotifyDJ device.",
           "dj_response_ttl_seconds": "Number of seconds the temporary WAV download URL remains valid.",
-          "allow_ota_on_battery": "Allow firmware updates while the device is not USB powered."
+          "allow_ota_on_battery": "Allow firmware updates while the device is not USB powered.",
+          "show_advanced_options": "Show manual and firmware/OTA override fields."
         }
       }
     }

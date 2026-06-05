@@ -381,6 +381,25 @@ class TtsHelperTest(unittest.TestCase):
 
         self.assertIsNone(url)
 
+    def test_device_local_url_uses_mdns_browse_for_pair_code_entry(self) -> None:
+        entry = types.SimpleNamespace(
+            data={self.const.CONF_DEVICE_ID: "spotifydj-981032"},
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+
+        async def discover(hass, runtime):
+            return "http://spotifydj-90B70990A994.local"
+
+        original_discover = self.integration.async_discover_device_url
+        self.integration.async_discover_device_url = discover
+        try:
+            url = asyncio.run(runtime.async_device_local_url(hass=object()))
+        finally:
+            self.integration.async_discover_device_url = original_discover
+
+        self.assertEqual(url, "http://spotifydj-90B70990A994.local")
+
     def test_tts_audio_store_returns_wav_and_unknown_404(self) -> None:
         hass = types.SimpleNamespace(data={})
 

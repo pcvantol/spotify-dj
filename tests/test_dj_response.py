@@ -149,6 +149,27 @@ class DjResponseTest(unittest.TestCase):
 
         self.assertEqual(session.calls[0]["json"], {"text": "Tekst"})
 
+    def test_unsupported_tts_audio_type_is_text_only_without_warning(self) -> None:
+        hass = types.SimpleNamespace(data={})
+        runtime = Runtime({self.const.CONF_HA_EXTERNAL_URL: "http://ha.local:8123"})
+        session = FakeSession(FakeResponse(200, {"success": True, "spoken": False}))
+
+        async def create_mp3(hass, text, conf):
+            raise self.dj_response.UnsupportedTtsAudioError(
+                "Home Assistant TTS returned unsupported audio type mp3"
+            )
+
+        self.dj_response.create_tts_wav = create_mp3
+        self.dj_response.async_get_clientsession = lambda hass: session
+
+        with self.assertNoLogs(self.dj_response._LOGGER, level="WARNING"):
+            result = asyncio.run(
+                self.dj_response.async_send_dj_response(hass, runtime, "Tekst")
+            )
+
+        self.assertEqual(session.calls[0]["json"], {"text": "Tekst"})
+        self.assertFalse(result["spoken"])
+
     def test_http_failure_raises_and_best_effort_reports_error(self) -> None:
         hass = types.SimpleNamespace(data={})
         runtime = Runtime({self.const.CONF_HA_EXTERNAL_URL: "http://ha.local:8123"})

@@ -22,7 +22,7 @@ Architectuur beslissingen:
 - Fallback DJ responses bij command/playback fouten moeten de gekozen `device_language` volgen (`en`/`nl`).
 - Spotify OAuth loopt via HA external step met PKCE; geen handmatig `oauth_result` veld.
 - BLE provisioning doet alleen WiFi SSID/password; geen Spotify credentials, MQTT credentials of device tokens via BLE.
-- Runtime discovery prefereert device-reported `local_url` en `_spotifydj._tcp` mDNS; setup mag `http://spotifydj-[device-suffix].local` als fallback opslaan.
+- Runtime discovery prefereert device-reported `local_url`, exacte `_spotifydj._tcp` mDNS matches en daarna alleen een enkele zichtbare SpotifyDJ mDNS service; genereer alleen `http://spotifydj-[device-suffix].local` voor echte 12-hex device suffixes, nooit voor 6-cijferige setupcodes.
 - Normale config-flow blijft klein; operationele overrides zoals MQTT, firmware repo/channel, Spotify source, max audio bytes en OTA battery settings blijven advanced.
 - Alle entities horen onder één HA device met één stabiele device identifier.
 - Firmware source blijft proprietary; HA integration blijft gratis MIT-licensed.
@@ -48,7 +48,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.7.2`.
+- Actuele integratieversie: `2.7.3`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -74,7 +74,7 @@ HA integration:
   - Spotify market vaste keuzes.
   - DJ style vaste keuzes.
   - Firmware channel vaste keuzes.
-- Verberg firmware repo settings, firmware channel, max audio bytes, min battery for OTA en allow OTA on battery onder HA advanced options.
+- Verberg firmware repo settings, firmware channel, max audio bytes, min battery for OTA en allow OTA on battery achter een integration-local advanced checkbox; gebruik niet HA's deprecated `show_advanced_options` property.
 - Laat velden vrije tekst waar HA geen betrouwbare bron heeft, zoals TTS language/voice, playlist URI en firmware repo/asset/device strings.
 - Spotify source/device naam is dynamisch; toon dit niet in de normale flow, alleen advanced als optionele override.
 - MQTT broker settings (`mqtt_host`, `mqtt_port`, `mqtt_username`, `mqtt_password`) staan alleen advanced en worden mee geprovisioned naar ESP pair/provision/status payloads indien host is ingevuld.
@@ -88,12 +88,13 @@ HA integration:
   - `affiliation`: `SpotifyDJ is not affiliated with, endorsed by, or sponsored by Spotify AB.`
 - Config-flow/options-flow UI moet subtiel en kort de Spotify trademark/non-affiliation notice tonen zonder UX te vervuilen.
 - Verberg lokale/manual device URL in de normale flow; toon die alleen onder HA advanced options als mDNS/manual override nodig is.
-- Als manual device URL leeg is tijdens setup, sla automatisch `http://spotifydj-[device-suffix].local` op als fallback; runtime blijft device-reported `local_url` en `_spotifydj._tcp` mDNS prefereren.
+- Als manual device URL leeg is tijdens setup, sla alleen automatisch `http://spotifydj-[device-suffix].local` op als de pairingwaarde een echte 12-hex device suffix is; runtime blijft device-reported `local_url` en `_spotifydj._tcp` mDNS prefereren en negeert oude `spotifydj-[6-digit-code].local` fallbacks.
 - Alle SpotifyDJ entities moeten onder één HA device vallen met hetzelfde device identifier.
 - Config-flow foutpaden moeten heldere NL/EN gebruikersmeldingen hebben, bijvoorbeeld bij lege of foutieve koppelcode/device-suffix, ontbrekende Spotify Client ID, foutieve external URL en OAuth fouten.
 - Bestaande modules niet verwijderen, zoals `wav_util.py`, `pipeline.py`.
 - Actieve routes gebruiken HA Assist/TTS en geen directe externe AI/STT/TTS API.
 - DJ responses worden niet via Spotify Connect of HA media_player afgespeeld; HA genereert waar mogelijk een tijdelijke PCM WAV `audio_url` en POST `text` + optionele `audio_url` naar ESP endpoint `/api/device/dj_response`.
+- Als HA TTS MP3/non-WAV audio teruggeeft, stuur text-only DJ response zonder warning; echte TTS/device errors mogen wel warning blijven.
 - ESP firmware doet microfoon-STT via de officiële HA Assist websocket API en stuurt herkende tekst naar `POST /api/spotify_dj/voice` met `X-SpotifyDJ-Text`.
 - `POST /api/spotify_dj/voice` accepteert tekstcommands, geen WAV-transcriptie; legacy `audio/wav` uploads krijgen een gecontroleerde JSON foutmelding.
 

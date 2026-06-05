@@ -18,6 +18,10 @@ from .wav_util import simple_tone_wav
 _LOGGER = logging.getLogger(__name__)
 
 
+class UnsupportedTtsAudioError(RuntimeError):
+    """Raised when HA TTS works but returns audio the ESP cannot play."""
+
+
 async def create_tts_wav(hass: HomeAssistant, text: str, conf: dict) -> bytes:
     """Generate backend TTS audio and return it only when HA provides WAV bytes."""
     try:
@@ -35,9 +39,11 @@ async def create_tts_wav(hass: HomeAssistant, text: str, conf: dict) -> bytes:
 
     mime_type, audio = await media_source_audio(hass, media_source_id)
     if "wav" not in str(mime_type).lower():
-        raise RuntimeError(f"Home Assistant TTS returned unsupported audio type {mime_type}")
+        raise UnsupportedTtsAudioError(
+            f"Home Assistant TTS returned unsupported audio type {mime_type}"
+        )
     if not audio.startswith(b"RIFF") or audio[8:12] != b"WAVE":
-        raise RuntimeError("Home Assistant TTS returned non-WAV audio")
+        raise UnsupportedTtsAudioError("Home Assistant TTS returned non-WAV audio")
     return audio
 
 

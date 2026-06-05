@@ -21,7 +21,7 @@ from .const import (
     DEFAULT_DJ_RESPONSE_TTL_SECONDS,
     DOMAIN,
 )
-from .tts import create_tts_wav
+from .tts import UnsupportedTtsAudioError, create_tts_wav
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -85,6 +85,12 @@ async def async_create_dj_audio_url(
         return None
     try:
         wav = await create_tts_wav(hass, text, conf)
+    except UnsupportedTtsAudioError as exc:
+        _LOGGER.debug(
+            "SpotifyDJ DJ response audio skipped; HA TTS returned unsupported ESP audio: %s",
+            exc,
+        )
+        return None
     except Exception as exc:  # noqa: BLE001
         _LOGGER.warning("SpotifyDJ could not generate DJ response TTS: %s", exc)
         return None

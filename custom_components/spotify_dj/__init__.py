@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -323,6 +324,10 @@ async def async_discover_device_url(
         if url:
             _LOGGER.debug("SpotifyDJ discovered device URL via mDNS: %s", url)
             return url
+    url = await _async_discover_single_mdns_service_url(zc)
+    if url:
+        _LOGGER.debug("SpotifyDJ discovered single visible device URL via mDNS: %s", url)
+        return url
     return None
 
 
@@ -331,6 +336,61 @@ async def _async_get_mdns_service_info(async_zc: Any, service_name: str) -> Any:
     getter = getattr(async_zc, "async_get_service_info", None)
     if getter is None:
         return None
+
+
+async def _async_discover_single_mdns_service_url(async_zc: Any) -> str | None:
+    """Browse `_spotifydj._tcp` and return the only visible SpotifyDJ device URL."""
+    try:
+        from zeroconf import ServiceStateChange
+        from zeroconf.asyncio import AsyncServiceBrowser
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("SpotifyDJ mDNS browse fallback unavailable", exc_info=True)
+        return None
+
+    service_names: set[str] = set()
+
+    def _on_service_state_change(
+        zeroconf: Any,
+        service_type: str,
+        name: str,
+        state_change: Any,
+    ) -> None:
+        if state_change == ServiceStateChange.Added:
+            service_names.add(name)
+
+    browser = None
+    try:
+        zc = getattr(async_zc, "zeroconf", async_zc)
+        browser = AsyncServiceBrowser(
+            zc,
+            MDNS_SERVICE_TYPE,
+            handlers=[_on_service_state_change],
+        )
+        await asyncio.sleep(2)
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("SpotifyDJ mDNS browse fallback failed", exc_info=True)
+        return None
+    finally:
+        if browser is not None:
+            cancel = getattr(browser, "async_cancel", None)
+            if cancel is not None:
+                result = cancel()
+                if hasattr(result, "__await__"):
+                    await result
+
+    infos = [
+        await _async_get_mdns_service_info(async_zc, service_name)
+        for service_name in sorted(service_names)
+    ]
+    urls = [url for info in infos if (url := _url_from_service_info_unmatched(info))]
+    unique_urls = list(dict.fromkeys(urls))
+    if len(unique_urls) == 1:
+        return unique_urls[0]
+    if len(unique_urls) > 1:
+        _LOGGER.warning(
+            "SpotifyDJ found multiple mDNS devices; set the manual device URL in options"
+        )
+    return None
     try:
         return await getter(MDNS_SERVICE_TYPE, service_name)
     except Exception:  # noqa: BLE001
@@ -391,6 +451,22 @@ def _url_from_service_info(info: Any, runtime: SpotifyDJRuntime) -> str | None:
     name = str(getattr(info, "name", "") or "").lower()
     device_id = _runtime_device_id(runtime)
     if device_id and not _mdns_name_matches_device(name, device_id):
+        return None
+    host = (
+        getattr(info, "server", None)
+        or getattr(info, "host", None)
+        or getattr(info, "hostname", None)
+    )
+    port = int(getattr(info, "port", 80) or 80)
+    if not host:
+        return None
+    host = str(host).rstrip(".")
+    return f"http://{host}:{port}" if port != 80 else f"http://{host}"
+
+
+def _url_from_service_info_unmatched(info: Any) -> str | None:
+    """Build a URL from an mDNS service record without device-id filtering."""
+    if info is None:
         return None
     host = (
         getattr(info, "server", None)

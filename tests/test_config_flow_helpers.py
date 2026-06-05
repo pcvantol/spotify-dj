@@ -238,7 +238,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
         flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="nl-NL"))
 
         basic_keys = {marker.key for marker in flow._user_schema()}
-        flow.show_advanced_options = True
+        flow._show_advanced_options = True
         advanced_keys = {marker.key for marker in flow._user_schema()}
 
         self.assertNotIn(self.const.CONF_LOCAL_URL, basic_keys)
@@ -248,7 +248,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
     def test_user_schema_prefills_manual_device_url_from_pair_code(self) -> None:
         flow = self.config_flow.SpotifyDJConfigFlow()
         flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
-        flow.show_advanced_options = True
+        flow._show_advanced_options = True
         flow._last_pair_code = "90B70990A994"
 
         schema = flow._user_schema()

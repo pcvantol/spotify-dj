@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.7.2
+## 2.7.3
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -39,3 +39,6 @@
 - Use the firmware manifest `device` value, such as `lilygo-t-embed-s3`, as the ESP OTA target instead of the generic asset prefix.
 - Parse GitHub firmware manifests even when release assets are served as `application/octet-stream`.
 - Ignore obsolete `spotifydj-[6-digit-code].local` fallbacks so provisioning can use the real device-reported `spotifydj-[device-suffix].local` URL.
+- Discover a single visible `_spotifydj._tcp` mDNS device when setup only has a short 6-digit pairing code.
+- Replace HA's deprecated `show_advanced_options` property with an integration-local advanced-options checkbox.
+- Treat HA TTS MP3/non-WAV output as a quiet text-only DJ-response fallback instead of a warning.

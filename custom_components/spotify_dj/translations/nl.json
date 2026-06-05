@@ -18,13 +18,15 @@
           "pair_code": "Koppelcode",
           "device_name": "Apparaatnaam",
           "device_language": "Apparaattaal",
-          "local_url": "Handmatige apparaat-URL"
+          "local_url": "Handmatige apparaat-URL",
+          "show_advanced_options": "Toon geavanceerde opties"
         },
         "data_description": {
           "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het apparaatdisplay.",
           "device_name": "Leesbare naam voor deze SpotifyDJ remote.",
           "device_language": "Taal voor de UI op het SpotifyDJ device. Deze wordt tijdens pairing naar het device gestuurd.",
-          "local_url": "Geavanceerde fallback. SpotifyDJ gebruikt automatisch http://spotifydj-[koppelcode].local als dit veld leeg is."
+          "local_url": "Geavanceerde fallback. Gebruik een echte device-hostnaam zoals http://spotifydj-[device-suffix].local; 6-cijferige setupcodes zijn geen device-hostnamen.",
+          "show_advanced_options": "Toon handmatige en firmware/OTA overridevelden."
         }
       },
       "ble_wifi": {
@@ -47,12 +49,14 @@
         "data": {
           "spotify_client_id": "Spotify Client ID",
           "ha_external_url": "Home Assistant externe URL",
-          "spotify_market": "Spotify regio"
+          "spotify_market": "Spotify regio",
+          "show_advanced_options": "Toon geavanceerde opties"
         },
         "data_description": {
           "spotify_client_id": "Geavanceerde override voor de meegeleverde Spotify Client ID.",
           "ha_external_url": "Bereikbare HTTPS URL, bij voorkeur je Nabu Casa URL.",
-          "spotify_market": "Spotify regio voor zoeken en afspelen."
+          "spotify_market": "Spotify regio voor zoeken en afspelen.",
+          "show_advanced_options": "Toon handmatige en firmware/OTA overridevelden."
         }
       },
       "spotify_oauth": {
@@ -83,7 +87,8 @@
           "max_audio_bytes": "Maximale audio bytes",
           "allow_ota_on_battery": "OTA op batterij toestaan",
           "min_battery_for_ota": "Minimale batterij voor OTA",
-          "dj_response_ttl_seconds": "DJ response audio TTL seconden"
+          "dj_response_ttl_seconds": "DJ response audio TTL seconden",
+          "show_advanced_options": "Toon geavanceerde opties"
         },
         "data_description": {
           "assist_pipeline_id": "Assist pipeline die SpotifyDJ apparaten gebruiken voor spraakherkenning.",
@@ -107,7 +112,8 @@
           "max_audio_bytes": "Compatibiliteitslimiet voor legacy audio uploads.",
           "allow_ota_on_battery": "Sta firmware updates toe als het apparaat niet via USB gevoed wordt.",
           "min_battery_for_ota": "Minimaal batterijpercentage voordat OTA is toegestaan.",
-          "dj_response_ttl_seconds": "Aantal seconden dat de tijdelijke WAV download URL geldig blijft."
+          "dj_response_ttl_seconds": "Aantal seconden dat de tijdelijke WAV download URL geldig blijft.",
+          "show_advanced_options": "Toon handmatige en firmware/OTA overridevelden."
         }
       }
     },
@@ -157,14 +163,16 @@
           "max_audio_bytes": "Maximale audio bytes",
           "allow_ota_on_battery": "OTA op batterij toestaan",
           "min_battery_for_ota": "Minimale batterij voor OTA",
-          "dj_response_ttl_seconds": "DJ response audio TTL seconden"
+          "dj_response_ttl_seconds": "DJ response audio TTL seconden",
+          "show_advanced_options": "Toon geavanceerde opties"
         },
         "data_description": {
           "assist_pipeline_id": "Assist pipeline die SpotifyDJ apparaten gebruiken voor spraakherkenning.",
           "spotify_player": "Verplichte media player voor Spotify playback.",
           "dj_response_enabled": "Maak een tijdelijke PCM WAV audio URL en stuur die met de DJ tekst naar het SpotifyDJ device.",
           "dj_response_ttl_seconds": "Aantal seconden dat de tijdelijke WAV download URL geldig blijft.",
-          "allow_ota_on_battery": "Sta firmware updates toe als het apparaat niet via USB gevoed wordt."
+          "allow_ota_on_battery": "Sta firmware updates toe als het apparaat niet via USB gevoed wordt.",
+          "show_advanced_options": "Toon handmatige en firmware/OTA overridevelden."
         }
       }
     }
