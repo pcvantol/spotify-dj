@@ -336,6 +336,15 @@ async def _async_get_mdns_service_info(async_zc: Any, service_name: str) -> Any:
     getter = getattr(async_zc, "async_get_service_info", None)
     if getter is None:
         return None
+    try:
+        return await getter(MDNS_SERVICE_TYPE, service_name)
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug(
+            "SpotifyDJ mDNS lookup failed for %s",
+            service_name,
+            exc_info=True,
+        )
+        return None
 
 
 async def _async_discover_single_mdns_service_url(async_zc: Any) -> str | None:
@@ -391,15 +400,6 @@ async def _async_discover_single_mdns_service_url(async_zc: Any) -> str | None:
             "SpotifyDJ found multiple mDNS devices; set the manual device URL in options"
         )
     return None
-    try:
-        return await getter(MDNS_SERVICE_TYPE, service_name)
-    except Exception:  # noqa: BLE001
-        _LOGGER.debug(
-            "SpotifyDJ mDNS lookup failed for %s",
-            service_name,
-            exc_info=True,
-        )
-        return None
 
 
 def _mdns_service_name_candidates(runtime: SpotifyDJRuntime) -> list[str]:

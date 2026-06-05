@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 
 ## Current Version
 
-- Home Assistant integration: `2.7.3`
+- Home Assistant integration: `2.7.4`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: SpotifyDJ device
@@ -420,12 +420,12 @@ Example manifest:
 
 ```json
 {
-  "version": "2.7.3",
+  "version": "2.7.4",
   "device": "lilygo-t-embed-s3",
-  "asset": "spotifydj-device-v2.7.3.bin",
+  "asset": "spotifydj-device-v2.7.4.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "2.7.3"
+  "min_ha_integration": "2.7.4"
 }
 ```
 
@@ -440,7 +440,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 2.7.3
+./release.sh 2.7.4
 ```
 
 In the private `spotify-dj-app` repository, the firmware release script should
@@ -451,7 +451,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 2.7.3 --dry-run
+./release.sh 2.7.4 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -507,11 +507,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v2.7.3"
-git tag v2.7.3
+git commit -m "Release SpotifyDJ v2.7.4"
+git tag v2.7.4
 git push origin main
-git push origin v2.7.3
-gh release create v2.7.3 --title "SpotifyDJ v2.7.3" --notes-file CHANGELOG.md
+git push origin v2.7.4
+gh release create v2.7.4 --title "SpotifyDJ v2.7.4" --notes-file CHANGELOG.md
 ```
 
 Home Assistant / HACS verification:
@@ -566,7 +566,7 @@ These tests use local stubs for Home Assistant imports and focus on pure Spotify
 - If `/api/spotify_dj/voice` returns `missing_text`, update the ESP firmware to run HA Assist websocket STT and send `X-SpotifyDJ-Text`.
 - If `spoken=false`, HA did not provide a compatible WAV URL or the ESP could not play it; the text response should still be displayed.
 - If HA TTS returns MP3, SpotifyDJ intentionally sends text-only DJ responses because the ESP speaker endpoint currently expects PCM WAV.
-- If Home Assistant still reports `number.spotifydj_volume`, remove the stale entity/file from an older installation and redownload/restart the current HACS release; current SpotifyDJ releases do not expose a volume number platform.
+- If Home Assistant reports `Invalid value for number.spotifydj_volume: -1.0`, update to this release or newer; SpotifyDJ treats unknown device volume as unavailable instead of publishing an out-of-range value.
 - If the ESP reports `401` for `/api/device/dj_response`, pair the device again so the device token is refreshed.
 - If `/api/spotify_dj/tts/{token}.wav` returns `404` or `410`, the token is unknown or expired; trigger the DJ response again.
 - If the ESP cannot download the WAV URL, make sure the Home Assistant internal URL is reachable from the SpotifyDJ device network.

@@ -33,6 +33,7 @@ ENTITY_TRANSLATION_KEYS = {
     ("sensor", "firmware_version"),
     ("sensor", "last_track"),
     ("button", "test_dj_response"),
+    ("number", "volume"),
     ("update", "firmware"),
 }
 
@@ -59,7 +60,7 @@ class TranslationTest(unittest.TestCase):
                 self.assertFalse(missing, f"Missing {language} entity translations: {missing}")
 
     def test_entities_use_translation_keys(self) -> None:
-        for filename in ("sensor.py", "button.py", "update.py"):
+        for filename in ("sensor.py", "button.py", "number.py", "update.py"):
             with self.subTest(filename=filename):
                 text = (INTEGRATION / filename).read_text()
                 self.assertIn("_attr_translation_key", text)

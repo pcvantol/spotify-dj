@@ -207,6 +207,11 @@
       "firmware": {
         "name": "Firmware"
       }
+    },
+    "number": {
+      "volume": {
+        "name": "Volume"
+      }
     }
   },
   "issues": {

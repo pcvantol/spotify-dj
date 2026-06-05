@@ -303,6 +303,24 @@ class TtsHelperTest(unittest.TestCase):
 
         self.assertEqual(url, "http://spotifydj-123456.local:8080")
 
+    def test_async_get_mdns_service_info_uses_ha_zeroconf_getter(self) -> None:
+        class AsyncZeroconf:
+            async def async_get_service_info(self, service_type, service_name):
+                return types.SimpleNamespace(
+                    name=service_name,
+                    server="spotifydj-90B70990A994.local.",
+                    port=80,
+                )
+
+        info = asyncio.run(
+            self.integration._async_get_mdns_service_info(
+                AsyncZeroconf(),
+                "SpotifyDJ 90B70990A994._spotifydj._tcp.local.",
+            )
+        )
+
+        self.assertEqual(info.server, "spotifydj-90B70990A994.local.")
+
     def test_url_from_service_info_matches_friendly_mdns_name(self) -> None:
         entry = types.SimpleNamespace(
             data={self.const.CONF_DEVICE_ID: "spotifydj-123456"},
