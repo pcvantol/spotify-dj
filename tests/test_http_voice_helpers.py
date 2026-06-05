@@ -318,6 +318,153 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["payload"]["error"], "stt_failed")
         self.assertIn("STT unavailable", response["payload"]["message"])
 
+    def test_voice_view_reports_no_stt_provider_as_503(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+
+        class Runtime:
+            config = {const.CONF_MAX_AUDIO_BYTES: 100}
+            device_status = {"device_id": "spotifydj-90B70990A994"}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+        hass = types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})
+
+        async def no_provider(hass, wav, conf):
+            raise assist_stt.SpotifyDJNoSttProviderError(assist_stt.NO_STT_PROVIDER)
+
+        original_transcribe = self.http.transcribe_wav_with_assist
+        self.http.transcribe_wav_with_assist = no_provider
+
+        class Request:
+            headers = {
+                "Authorization": "Bearer device-token",
+                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+                "Content-Type": "audio/wav",
+            }
+            app = {"hass": hass}
+
+            async def read(self):
+                return b"RIFFxxxxWAVEdata"
+
+        try:
+            response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+        finally:
+            self.http.transcribe_wav_with_assist = original_transcribe
+
+        self.assertEqual(response["status_code"], 503)
+        self.assertEqual(response["payload"]["error"], "stt_failed")
+        self.assertEqual(response["payload"]["message"], assist_stt.NO_STT_PROVIDER)
+
+    def test_transcribe_wav_uses_home_assistant_stt_helper(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        stt_module = types.ModuleType("homeassistant.components.stt")
+        assist_pkg = types.ModuleType("homeassistant.components.assist_pipeline")
+        pipeline_module = types.ModuleType(
+            "homeassistant.components.assist_pipeline.pipeline"
+        )
+
+        class SpeechMetadata:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        class AudioFormats:
+            WAV = "wav"
+
+        class AudioCodecs:
+            PCM = "pcm"
+
+        async def async_process_audio_stream(hass, metadata, stream, engine=None):
+            chunks = []
+            async for chunk in stream:
+                chunks.append(chunk)
+            self.assertEqual(engine, "mock_stt")
+            self.assertEqual(b"".join(chunks), b"RIFFxxxxWAVEdata")
+            self.assertEqual(metadata.kwargs["format"], "wav")
+            return types.SimpleNamespace(text="Speel Pearl Jam")
+
+        class Pipelines:
+            def async_get_pipeline(self, pipeline_id):
+                self.pipeline_id = pipeline_id
+                return types.SimpleNamespace(
+                    id=pipeline_id,
+                    stt_engine="mock_stt",
+                    stt_language="nl-NL",
+                )
+
+        stt_module.SpeechMetadata = SpeechMetadata
+        stt_module.AudioFormats = AudioFormats
+        stt_module.AudioCodecs = AudioCodecs
+        stt_module.async_process_audio_stream = async_process_audio_stream
+        pipeline_module.async_get_pipelines = lambda hass: Pipelines()
+
+        originals = {
+            name: sys.modules.get(name)
+            for name in (
+                "homeassistant.components.stt",
+                "homeassistant.components.assist_pipeline",
+                "homeassistant.components.assist_pipeline.pipeline",
+            )
+        }
+        sys.modules["homeassistant.components.stt"] = stt_module
+        sys.modules["homeassistant.components.assist_pipeline"] = assist_pkg
+        sys.modules[
+            "homeassistant.components.assist_pipeline.pipeline"
+        ] = pipeline_module
+
+        try:
+            text = asyncio.run(
+                assist_stt.transcribe_wav_with_assist(
+                    types.SimpleNamespace(data={}),
+                    b"RIFFxxxxWAVEdata",
+                    {const.CONF_ASSIST_PIPELINE_ID: "preferred"},
+                )
+            )
+        finally:
+            for name, original in originals.items():
+                if original is None:
+                    sys.modules.pop(name, None)
+                else:
+                    sys.modules[name] = original
+
+        self.assertEqual(text, "Speel Pearl Jam")
+
+    def test_transcribe_wav_no_stt_provider_error(self) -> None:
+        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        originals = {
+            name: sys.modules.get(name)
+            for name in (
+                "homeassistant.components.stt",
+                "homeassistant.components.assist_pipeline.pipeline",
+            )
+        }
+        sys.modules.pop("homeassistant.components.stt", None)
+        sys.modules.pop("homeassistant.components.assist_pipeline.pipeline", None)
+
+        try:
+            with self.assertRaises(assist_stt.SpotifyDJNoSttProviderError) as raised:
+                asyncio.run(
+                    assist_stt.transcribe_wav_with_assist(
+                        types.SimpleNamespace(data={}),
+                        b"RIFFxxxxWAVEdata",
+                        {},
+                    )
+                )
+        finally:
+            for name, original in originals.items():
+                if original is None:
+                    sys.modules.pop(name, None)
+                else:
+                    sys.modules[name] = original
+
+        self.assertEqual(str(raised.exception), assist_stt.NO_STT_PROVIDER)
+
     def test_pair_view_rejects_wrong_pair_code(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
 

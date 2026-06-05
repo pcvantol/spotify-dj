@@ -52,6 +52,7 @@ from .http import (
     SpotifyDJTtsView,
     SpotifyDJVoiceView,
 )
+from .assist_stt import detect_stt_support
 from .dj_response import async_send_dj_response, async_send_dj_response_best_effort
 from .processor import process_text_command
 from .repairs import async_create_fixable_issues
@@ -718,6 +719,16 @@ def _register_developer_services(
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     runtime = _restore_runtime(hass, entry)
+    stt_info = detect_stt_support(hass, runtime.config)
+    _LOGGER.info(
+        "SpotifyDJ STT route: ha_version=%s pipeline_id=%s stt_engine=%s "
+        "audio_format=%s configured=%s",
+        stt_info.get("ha_version"),
+        stt_info.get("pipeline_id"),
+        stt_info.get("stt_engine"),
+        stt_info.get("audio_format"),
+        stt_info.get("configured"),
+    )
     await async_create_fixable_issues(hass, entry)
     await _try_initial_device_provisioning(hass, runtime)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))

@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.0
+## 2.9.1
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -49,3 +49,4 @@
 - Add a dry-run-first cleanup helper for old semantic-version GitHub releases and tags.
 - Move voice STT back into the Home Assistant integration backend so ESP devices can upload raw WAV audio without Home Assistant websocket auth.
 - Reprovision the latest Spotify OAuth credentials when ESP status reports `spotify_configured=false`, including refresh-token rotation recovery.
+- Replace the unavailable Assist audio pipeline helper with Home Assistant's supported STT stream helper and return a clear no-provider error.

@@ -26,7 +26,10 @@ from .const import (
     DEFAULT_SPOTIFY_MARKET,
     DEFAULT_SPOTIFY_SCOPES,
 )
-from .assist_stt import transcribe_wav_with_assist
+from .assist_stt import (
+    SpotifyDJNoSttProviderError,
+    transcribe_wav_with_assist,
+)
 from .dj_response import async_send_dj_response_best_effort, get_tts_audio
 from .processor import process_text_command
 from .spotify_oauth import exchange_code_for_refresh_token
@@ -112,14 +115,18 @@ def _missing_text_response(view: HomeAssistantView):
     )
 
 
-def _stt_error_response(view: HomeAssistantView, message: str):
+def _stt_error_response(
+    view: HomeAssistantView,
+    message: str,
+    status_code: int = 500,
+):
     return view.json(
         {
             "success": False,
             "error": "stt_failed",
             "message": message,
         },
-        status_code=500,
+        status_code=status_code,
     )
 
 
@@ -400,6 +407,10 @@ class SpotifyDJVoiceView(HomeAssistantView):
                 runtime.update(last_error=None)
                 try:
                     user_text = await transcribe_wav_with_assist(hass, wav, runtime.config)
+                except SpotifyDJNoSttProviderError as exc:
+                    _set_device_state(runtime, "error")
+                    runtime.update(last_error=str(exc))
+                    return _stt_error_response(self, str(exc), 503)
                 except Exception as exc:  # noqa: BLE001
                     _set_device_state(runtime, "error")
                     runtime.update(last_error=str(exc))
