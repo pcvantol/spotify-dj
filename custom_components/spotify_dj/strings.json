@@ -21,7 +21,7 @@
           "local_url": "Handmatige apparaat-URL"
         },
         "data_description": {
-          "pair_code": "De 6-cijferige code op het SpotifyDJ device.",
+          "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het SpotifyDJ device.",
           "device_name": "Leesbare naam voor deze SpotifyDJ remote.",
           "device_language": "Taal voor de UI op het SpotifyDJ device. Deze wordt tijdens pairing naar het device gestuurd.",
           "local_url": "Geavanceerde fallback. SpotifyDJ gebruikt automatisch http://spotifydj-[koppelcode].local als dit veld leeg is."
@@ -111,8 +111,8 @@
       }
     },
     "error": {
-      "missing_pair_code": "Voer de 6-cijferige koppelcode in die op het SpotifyDJ device-scherm staat.",
-      "invalid_pair_code": "De koppelcode moet precies 6 cijfers bevatten.",
+      "missing_pair_code": "Voer de koppelcode in die op het SpotifyDJ device-scherm staat.",
+      "invalid_pair_code": "Voer een 6-cijferige koppelcode of 12 tekens lange hexadecimale device-suffix in.",
       "spotify_client_id_required": "Vul de Client ID van je Spotify Developer App in.",
       "external_url_required": "Vul je externe Home Assistant URL in, bijvoorbeeld je Nabu Casa URL.",
       "external_url_https_required": "Gebruik een HTTPS externe URL. De aanbevolen URL is je Nabu Casa URL.",

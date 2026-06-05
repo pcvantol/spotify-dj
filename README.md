@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 
 ## Current Version
 
-- Home Assistant integration: `2.6.3`
+- Home Assistant integration: `2.7.1`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: SpotifyDJ device
@@ -15,7 +15,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 
 ## Features
 
-- Pair a SpotifyDJ device with a 6 digit code.
+- Pair a SpotifyDJ device with the displayed pairing code or 12-character device suffix.
 - Optionally provision WiFi credentials over BLE before normal pairing.
 - Provision a per-device bearer token.
 - Run Spotify OAuth with PKCE from the Home Assistant config flow.
@@ -42,7 +42,7 @@ runtime behavior. These decisions are part of the integration contract:
 - **ESP owns Spotify runtime playback**: Home Assistant provisions Spotify OAuth metadata, pairing data and optional MQTT settings. The SpotifyDJ device can continue using Spotify APIs independently after provisioning.
 - **OAuth through Home Assistant external step**: Spotify OAuth uses PKCE and the Home Assistant external step flow. The callback remains `/api/spotify_dj/spotify/callback`, with Nabu Casa HTTPS URLs preferred.
 - **Pairing over WiFi, BLE only for WiFi credentials**: BLE provisioning writes only WiFi SSID/password to setup-mode devices. Spotify credentials, MQTT credentials and device tokens are never sent over BLE.
-- **mDNS first, manual URL as fallback**: the manual device URL is hidden from normal users. Setup stores `http://spotifydj-<pair-code>.local` as a fallback, while runtime prefers device-reported `local_url` and `_spotifydj._tcp` mDNS discovery.
+- **mDNS first, manual URL as fallback**: the manual device URL is hidden from normal users. Setup stores an automatic `http://spotifydj-[device-suffix].local` fallback, while runtime prefers device-reported `local_url` and `_spotifydj._tcp` mDNS discovery.
 - **Advanced-only operational overrides**: firmware repository settings, firmware channel, MQTT settings, Spotify source override, max audio bytes and OTA battery settings are advanced options to keep normal setup small.
 - **Single Home Assistant device**: sensors, button and update entities share one stable device identifier so Home Assistant shows one SpotifyDJ device instead of duplicate device entries.
 - **Closed firmware, free integration**: firmware source remains proprietary. The Home Assistant integration is distributed separately under MIT for use with SpotifyDJ devices.
@@ -120,7 +120,7 @@ The redirect URI in Spotify must exactly match the Home Assistant external URL p
 1. Choose whether the SpotifyDJ device is already on WiFi or needs BLE WiFi provisioning.
 2. If needed, select the `SpotifyDJ xxxx` BLE device and enter WiFi SSID/password.
 3. After BLE success, wait for the device to restart and come online over WiFi.
-4. Enter the 6 digit pair code shown on the SpotifyDJ device display.
+4. Enter the pairing code shown on the SpotifyDJ device display. This can be the short 6 digit setup code or the 12-character device suffix, for example `90B70990A994`.
 5. Choose the SpotifyDJ device UI language (`en` or `nl`); Home Assistant preselects this from the HA language setting when possible.
 6. Enter the HTTPS Home Assistant external URL, preferably the Nabu Casa URL.
 7. Optionally override the bundled Spotify Client ID under advanced options.
@@ -153,7 +153,7 @@ been reauthorized with `playlist-read-private`; diagnostics and Home Assistant
 repairs show a warning when the stored OAuth scope list is missing required
 SpotifyDJ scopes.
 
-Where Home Assistant exposes choices, SpotifyDJ shows populated dropdowns for Assist pipeline, TTS entity, known TTS voices, Spotify media player, Spotify market, DJ style, and firmware channel. Stored custom values remain selectable so existing setups keep working. The Spotify media player is required. Spotify source override, MQTT broker settings, firmware repository settings, firmware channel, manual device URL, max audio bytes, and OTA battery settings are shown only when advanced options are enabled. The manual device URL is normally not needed: SpotifyDJ stores an automatic `http://spotifydj-<pair-code>.local` fallback during setup, resolves the device through `_spotifydj._tcp` mDNS, and then uses the device-reported `local_url` when available.
+Where Home Assistant exposes choices, SpotifyDJ shows populated dropdowns for Assist pipeline, TTS entity, known TTS voices, Spotify media player, Spotify market, DJ style, and firmware channel. Stored custom values remain selectable so existing setups keep working. The Spotify media player is required. Spotify source override, MQTT broker settings, firmware repository settings, firmware channel, manual device URL, max audio bytes, and OTA battery settings are shown only when advanced options are enabled. The manual device URL is normally not needed: SpotifyDJ stores an automatic `http://spotifydj-[device-suffix].local` fallback during setup, resolves the device through `_spotifydj._tcp` mDNS, and then uses the device-reported `local_url` when available.
 
 Advanced MQTT settings can provision these fields to the SpotifyDJ device when `mqtt_host` is set. The MQTT host field defaults to `homeassistant.local`; override it in advanced options if your broker uses a different host name or IP address.
 
@@ -170,7 +170,7 @@ Home Assistant versions.
 
 ## Security And Diagnostics
 
-- Pairing is unauthenticated by design, but requires the 6 digit pairing code shown on the SpotifyDJ device.
+- Pairing is unauthenticated by design, but requires the pairing code or 12-character device suffix shown on the SpotifyDJ device.
 - After pairing, device endpoints use the per-device bearer token.
 - BLE WiFi provisioning sends only SSID/password to the BLE WiFi characteristic; it does not send Spotify credentials, MQTT credentials or device tokens.
 - Diagnostics redact keys containing `token`, `password` or `secret`.
@@ -395,7 +395,7 @@ POST /api/device/dj_response
 GET  /api/device/info
 ```
 
-The integration uses the device `local_url` from pairing/status when provided. If the field is empty, it automatically resolves the `_spotifydj._tcp` mDNS service for the paired device and then falls back to `http://<device_id>.local`. During setup, an empty advanced manual URL is stored as `http://spotifydj-<pair-code>.local`.
+The integration uses the device `local_url` from pairing/status when provided. If the field is empty, it automatically resolves the `_spotifydj._tcp` mDNS service for the paired device and then falls back to `http://[device_id].local`. During setup, an empty advanced manual URL is stored as `http://spotifydj-[device-suffix].local`, for example `http://spotifydj-90B70990A994.local`.
 
 ## Firmware OTA Releases
 
@@ -419,20 +419,27 @@ Example manifest:
 
 ```json
 {
-  "version": "2.6.3",
-  "device": "spotifydj-device",
-  "asset": "spotifydj-device-v2.6.3.bin",
+  "version": "2.7.1",
+  "device": "lilygo-t-embed-s3",
+  "asset": "spotifydj-device-v2.7.1.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-  "min_ha_integration": "2.6.3"
+  "size": 2113136,
+  "min_ha_integration": "2.7.1"
 }
 ```
+
+The binary asset name is the public distribution name. The manifest `device`
+field is the ESP OTA target and is sent unchanged to `POST /api/device/ota`.
+For the current SpotifyDJ firmware this target is `lilygo-t-embed-s3`; sending
+the generic asset prefix as the OTA device target will be rejected by the ESP as
+`Wrong device target`.
 
 The firmware version is injected through PlatformIO build flags from the Git tag.
 
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 2.6.3
+./release.sh 2.7.1
 ```
 
 In the private `spotify-dj-app` repository, the firmware release script should
@@ -443,7 +450,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 2.6.3 --dry-run
+./release.sh 2.7.1 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -499,11 +506,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v2.6.3"
-git tag v2.6.3
+git commit -m "Release SpotifyDJ v2.7.1"
+git tag v2.7.1
 git push origin main
-git push origin v2.6.3
-gh release create v2.6.3 --title "SpotifyDJ v2.6.3" --notes-file CHANGELOG.md
+git push origin v2.7.1
+gh release create v2.7.1 --title "SpotifyDJ v2.7.1" --notes-file CHANGELOG.md
 ```
 
 Home Assistant / HACS verification:
@@ -528,7 +535,8 @@ Firmware release cross-check, when publishing firmware as well:
 - Use `./release.sh X.Y.Z --dry-run` before publishing when in doubt.
 - Publish binaries to the public `spotify-dj-firmware` repository.
 - Name the release asset `spotifydj-device-vX.Y.Z.bin`.
-- Update `firmware_manifest.json` with `version`, `asset`, `sha256` and `min_ha_integration`.
+- Update `firmware_manifest.json` with `version`, `device`, `asset`, `sha256`, `size` and `min_ha_integration`.
+- Keep the asset prefix `spotifydj-device`; use manifest `device` such as `lilygo-t-embed-s3` as the OTA target.
 - Confirm OTA discovers the new firmware through the Home Assistant update entity.
 
 ## Tests
@@ -547,7 +555,7 @@ These tests use local stubs for Home Assistant imports and focus on pure Spotify
 - If the config flow does not load, restart Home Assistant and check that HACS installed `custom_components/spotify_dj`.
 - If the integration icon stays white or generic, update/re-download the HACS integration, restart Home Assistant, and refresh the browser/app cache. Home Assistant 2026.3+ reads custom integration brand images from `custom_components/spotify_dj/brand/`.
 - If opening SpotifyDJ options returns an internal server error, update to this release or newer; older builds assigned HA's read-only `config_entry` property.
-- If OTA cannot start, make sure the device has reported `local_url` or can be reached as `http://<device_id>.local`.
+- If OTA cannot start, make sure the device has reported `local_url` or can be reached as `http://[device_id].local`.
 - If OTA is blocked, check battery level, USB power, and the OTA battery options.
 - If provisioning fails, pair the SpotifyDJ device first and run `spotify_dj.provision_spotify_credentials` again.
 - If WiFi/MQTT provisioning works but Spotify does not, pair again after OAuth or run `spotify_dj.provision_spotify_credentials`; pair/status payloads should include both top-level `spotify_refresh_token` and `spotify.refresh_token`.

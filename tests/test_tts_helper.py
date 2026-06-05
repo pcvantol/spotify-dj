@@ -156,6 +156,106 @@ class TtsHelperTest(unittest.TestCase):
         self.assertEqual(payload["refresh_token"], "refresh-token")
         self.assertEqual(payload["spotify_refresh_token"], "refresh-token")
 
+    def test_start_ota_payload_uses_manifest_device_target(self) -> None:
+        class Response:
+            status = 200
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def text(self):
+                return '{"success": true}'
+
+        class Session:
+            def __init__(self):
+                self.calls = []
+
+            def post(self, url, **kwargs):
+                self.calls.append({"url": url, **kwargs})
+                return Response()
+
+        entry = types.SimpleNamespace(
+            data={
+                self.const.CONF_DEVICE_ID: "spotifydj-90B70990A994",
+                self.const.CONF_DEVICE_TOKEN: "device-token",
+            },
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime.device_token = "device-token"
+        runtime.device_status["local_url"] = "http://spotifydj-90B70990A994.local"
+        release = types.SimpleNamespace(
+            version="2.7.0",
+            firmware_url="https://example/spotifydj-device-v2.7.0.bin",
+            sha256="a" * 64,
+            device="lilygo-t-embed-s3",
+            firmware_asset="spotifydj-device-v2.7.0.bin",
+        )
+        session = Session()
+        original_session = self.integration.async_get_clientsession
+        self.integration.async_get_clientsession = lambda hass: session
+        try:
+            asyncio.run(runtime.start_ota(object(), release))
+        finally:
+            self.integration.async_get_clientsession = original_session
+
+        call = session.calls[0]
+        self.assertEqual(call["url"], "http://spotifydj-90B70990A994.local/api/device/ota")
+        self.assertEqual(call["headers"]["Authorization"], "Bearer device-token")
+        self.assertEqual(
+            call["json"],
+            {
+                "version": "2.7.0",
+                "url": "https://example/spotifydj-device-v2.7.0.bin",
+                "sha256": "a" * 64,
+                "device": "lilygo-t-embed-s3",
+                "asset": "spotifydj-device-v2.7.0.bin",
+            },
+        )
+
+    def test_start_ota_preserves_wrong_device_target_error(self) -> None:
+        class Response:
+            status = 400
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def text(self):
+                return "Wrong device target"
+
+        class Session:
+            def post(self, url, **kwargs):
+                return Response()
+
+        entry = types.SimpleNamespace(
+            data={self.const.CONF_DEVICE_ID: "spotifydj-90B70990A994"},
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime.device_status["local_url"] = "http://spotifydj-90B70990A994.local"
+        release = types.SimpleNamespace(
+            version="2.7.0",
+            firmware_url="https://example/spotifydj-device-v2.7.0.bin",
+            sha256="a" * 64,
+            device="spotifydj-device",
+            firmware_asset="spotifydj-device-v2.7.0.bin",
+        )
+        original_session = self.integration.async_get_clientsession
+        self.integration.async_get_clientsession = lambda hass: Session()
+        try:
+            with self.assertRaisesRegex(RuntimeError, "Wrong device target"):
+                asyncio.run(runtime.start_ota(object(), release))
+        finally:
+            self.integration.async_get_clientsession = original_session
+
+        self.assertIn("Wrong device target", runtime.ota_last_error)
+
     def test_url_from_service_info_matches_device_id(self) -> None:
         entry = types.SimpleNamespace(
             data={self.const.CONF_DEVICE_ID: "spotifydj-123456"},

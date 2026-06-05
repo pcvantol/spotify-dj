@@ -22,7 +22,7 @@ Architectuur beslissingen:
 - Fallback DJ responses bij command/playback fouten moeten de gekozen `device_language` volgen (`en`/`nl`).
 - Spotify OAuth loopt via HA external step met PKCE; geen handmatig `oauth_result` veld.
 - BLE provisioning doet alleen WiFi SSID/password; geen Spotify credentials, MQTT credentials of device tokens via BLE.
-- Runtime discovery prefereert device-reported `local_url` en `_spotifydj._tcp` mDNS; setup mag `http://spotifydj-<koppelcode>.local` als fallback opslaan.
+- Runtime discovery prefereert device-reported `local_url` en `_spotifydj._tcp` mDNS; setup mag `http://spotifydj-[device-suffix].local` als fallback opslaan.
 - Normale config-flow blijft klein; operationele overrides zoals MQTT, firmware repo/channel, Spotify source, max audio bytes en OTA battery settings blijven advanced.
 - Alle entities horen onder één HA device met één stabiele device identifier.
 - Firmware source blijft proprietary; HA integration blijft gratis MIT-licensed.
@@ -48,7 +48,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.6.3`.
+- Actuele integratieversie: `2.7.1`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -65,7 +65,7 @@ HA integration:
 - Voice velden moeten defaults hebben.
 - Options-flow mag `config_entry` niet assignen; gebruik een eigen attribuut omdat recente Home Assistant versies `config_entry` read-only maken.
 - Device UI language wordt tijdens pairing gekozen als `en`/`nl`, default op HA taal indien ondersteund, en meegestuurd als `device_language` en `language`; ESP slaat dit op als `provision.language`.
-- Koppelcode uit de HA config-flow moet worden opgeslagen en ESP pairing moet een afwijkende koppelcode weigeren.
+- Koppelcode/device-suffix uit de HA config-flow moet worden opgeslagen en ESP pairing moet een afwijkende code weigeren.
 - `spotify_player` is verplicht in config-flow/options-flow.
 - Gebruik waar veilig HA-populated combo boxes/dropdowns i.p.v. vrije tekst:
   - Assist pipeline uit HA Assist pipelines.
@@ -88,9 +88,9 @@ HA integration:
   - `affiliation`: `SpotifyDJ is not affiliated with, endorsed by, or sponsored by Spotify AB.`
 - Config-flow/options-flow UI moet subtiel en kort de Spotify trademark/non-affiliation notice tonen zonder UX te vervuilen.
 - Verberg lokale/manual device URL in de normale flow; toon die alleen onder HA advanced options als mDNS/manual override nodig is.
-- Als manual device URL leeg is tijdens setup, sla automatisch `http://spotifydj-<koppelcode>.local` op als fallback; runtime blijft device-reported `local_url` en `_spotifydj._tcp` mDNS prefereren.
+- Als manual device URL leeg is tijdens setup, sla automatisch `http://spotifydj-[device-suffix].local` op als fallback; runtime blijft device-reported `local_url` en `_spotifydj._tcp` mDNS prefereren.
 - Alle SpotifyDJ entities moeten onder één HA device vallen met hetzelfde device identifier.
-- Config-flow foutpaden moeten heldere NL/EN gebruikersmeldingen hebben, bijvoorbeeld bij lege of foutieve koppelcode, ontbrekende Spotify Client ID, foutieve external URL en OAuth fouten.
+- Config-flow foutpaden moeten heldere NL/EN gebruikersmeldingen hebben, bijvoorbeeld bij lege of foutieve koppelcode/device-suffix, ontbrekende Spotify Client ID, foutieve external URL en OAuth fouten.
 - Bestaande modules niet verwijderen, zoals `wav_util.py`, `pipeline.py`.
 - Actieve routes gebruiken HA Assist/TTS en geen directe externe AI/STT/TTS API.
 - DJ responses worden niet via Spotify Connect of HA media_player afgespeeld; HA genereert waar mogelijk een tijdelijke PCM WAV `audio_url` en POST `text` + optionele `audio_url` naar ESP endpoint `/api/device/dj_response`.
@@ -119,6 +119,8 @@ Firmware releases:
   `spotifydj-device-vX.Y.Z.bin`
 - Manifest:
   `firmware_manifest.json`
+- Firmware assetnaam is de publieke distributienaam; manifest `device` is het OTA target-device dat HA ongewijzigd naar `POST /api/device/ota` stuurt.
+- Voor de huidige firmware is manifest `device` `lilygo-t-embed-s3`; stuur niet de generieke assetprefix `spotifydj-device` als OTA target.
 - Firmwareversie wordt via PlatformIO build flags uit Git tag geïnjecteerd.
 - Public firmware repo mag alleen release binary, `firmware_manifest.json`, release metadata en niet-geheime documentatie bevatten.
 - Public firmware repo mag geen firmware source, NVS secrets, device tokens, Spotify refresh tokens of Home Assistant tokens bevatten.
@@ -162,7 +164,7 @@ README/release:
   - Gebruik `./release.sh X.Y.Z --dry-run` bij twijfel voordat gepubliceerd wordt.
   - Publish binaries naar public repo `spotify-dj-firmware`.
   - Release asset naam is `spotifydj-device-vX.Y.Z.bin`.
-  - Update `firmware_manifest.json` met `version`, `asset`, `sha256` en `min_ha_integration`.
+  - Update `firmware_manifest.json` met `version`, `device`, `asset`, `sha256`, `size` en `min_ha_integration`.
   - Controleer dat OTA de nieuwe firmware via de HA update entity ontdekt.
 
 Tests:

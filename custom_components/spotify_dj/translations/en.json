@@ -13,7 +13,7 @@
       },
       "pair": {
         "title": "Pair SpotifyDJ device",
-        "description": "Enter the 6 digit pairing code shown on the SpotifyDJ device display. The manual device URL is only needed when mDNS discovery is unavailable. Spotify is a trademark of Spotify AB. SpotifyDJ is not affiliated with, endorsed by, or sponsored by Spotify AB.",
+        "description": "Enter the pairing code shown on the SpotifyDJ device display. The manual device URL is only needed when mDNS discovery is unavailable. Spotify is a trademark of Spotify AB. SpotifyDJ is not affiliated with, endorsed by, or sponsored by Spotify AB.",
         "data": {
           "pair_code": "Pairing code",
           "device_name": "Device name",
@@ -21,7 +21,7 @@
           "local_url": "Manual device URL"
         },
         "data_description": {
-          "pair_code": "The 6 digit code shown on the device display.",
+          "pair_code": "The 6 digit code or 12 character device suffix shown on the device display.",
           "device_name": "Friendly name for this SpotifyDJ remote.",
           "device_language": "Language for the SpotifyDJ device UI. This is sent to the device during pairing.",
           "local_url": "Advanced fallback. SpotifyDJ automatically uses http://spotifydj-[pair-code].local when this field is empty."
@@ -112,8 +112,8 @@
       }
     },
     "error": {
-      "missing_pair_code": "Enter the 6 digit pairing code shown on the SpotifyDJ device display.",
-      "invalid_pair_code": "The pairing code must contain exactly 6 digits.",
+      "missing_pair_code": "Enter the pairing code shown on the SpotifyDJ device display.",
+      "invalid_pair_code": "Enter either a 6 digit pairing code or a 12 character hexadecimal device suffix.",
       "spotify_client_id_required": "Enter the Client ID from your Spotify Developer App.",
       "external_url_required": "Enter your Home Assistant external URL, for example your Nabu Casa URL.",
       "external_url_https_required": "Use an HTTPS external URL. The recommended URL is your Nabu Casa URL.",

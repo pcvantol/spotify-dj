@@ -75,8 +75,12 @@ class SpotifyDJFirmwareUpdate(UpdateEntity):
         return {
             "repo": self.runtime.config.get("firmware_repo"),
             "firmware_asset": self._latest.firmware_asset,
+            "manifest_url": self._latest.manifest_url,
             "sha256": self._latest.sha256,
+            "target_device": self._latest.device,
             "device": self._latest.device,
+            "size": self._latest.size,
+            "min_ha_integration": self._latest.min_ha_integration,
             "device_status": self.runtime.device_status,
             "ota_in_progress": self.runtime.ota_in_progress,
             "ota_last_error": self.runtime.ota_last_error,

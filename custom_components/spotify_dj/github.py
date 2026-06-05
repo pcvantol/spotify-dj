@@ -21,6 +21,7 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+SUPPORTED_FIRMWARE_DEVICES = {"lilygo-t-embed-s3"}
 
 
 @dataclass(slots=True)
@@ -33,6 +34,7 @@ class FirmwareRelease:
     manifest_url: str | None = None
     sha256: str | None = None
     device: str | None = None
+    size: int | None = None
     min_ha_integration: str | None = None
 
     @property
@@ -89,8 +91,26 @@ async def fetch_latest_firmware_release(
         _LOGGER.warning("SpotifyDJ latest release %s has no matching .bin asset with prefix %s", version, prefix)
         return None
 
+    if assets.manifest is None:
+        _LOGGER.warning(
+            "SpotifyDJ latest release %s has no firmware_manifest.json; using safe fallback metadata",
+            version,
+        )
     manifest = await _fetch_manifest(session, assets.manifest)
     sha256 = manifest.get("sha256") or await _fetch_sha256(session, assets.sha256)
+    target_device = manifest.get("device") or device
+    if not manifest.get("device"):
+        _LOGGER.warning(
+            "SpotifyDJ firmware manifest for %s has no device target; using fallback %s",
+            version,
+            target_device,
+        )
+    elif target_device not in SUPPORTED_FIRMWARE_DEVICES:
+        _LOGGER.warning(
+            "SpotifyDJ firmware manifest for %s targets unsupported device %s",
+            version,
+            target_device,
+        )
 
     return FirmwareRelease(
         version=normalize_version(manifest.get("version")) or version,
@@ -100,7 +120,8 @@ async def fetch_latest_firmware_release(
         firmware_asset=assets.firmware["name"],
         manifest_url=_asset_download_url(assets.manifest),
         sha256=sha256,
-        device=manifest.get("device") or device,
+        device=target_device,
+        size=_manifest_size(manifest.get("size")),
         min_ha_integration=manifest.get("min_ha_integration"),
     )
 
@@ -125,7 +146,11 @@ def _select_release_assets(assets: list[dict[str, Any]], prefix: str) -> Firmwar
         name = asset.get("name", "")
         if name.endswith(".bin") and prefix in name:
             selected.firmware = asset
-        elif name in {"spotifydj-firmware-manifest.json", "manifest.json"}:
+        elif name in {
+            "spotifydj-firmware-manifest.json",
+            "firmware_manifest.json",
+            "manifest.json",
+        }:
             selected.manifest = asset
         elif name.endswith(".sha256") or name == "sha256.txt":
             selected.sha256 = asset
@@ -165,6 +190,13 @@ async def _fetch_sha256(session: Any, asset: dict[str, Any] | None) -> str | Non
 
 def _asset_download_url(asset: dict[str, Any] | None) -> str | None:
     return asset["browser_download_url"] if asset else None
+
+
+def _manifest_size(value: Any) -> int | None:
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
 
 
 def sha256_hex(data: bytes) -> str:

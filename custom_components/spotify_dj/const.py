@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "spotify_dj"
 NAME = "SpotifyDJ"
-VERSION = "2.6.3"
+VERSION = "2.7.1"
 
 API_BASE = "/api/spotify_dj"
 API_PAIR = f"{API_BASE}/pair"
@@ -69,7 +69,7 @@ DEFAULT_SPOTIFY_MARKET = "NL"
 DEFAULT_MAX_AUDIO_BYTES = 2_000_000
 DEFAULT_FIRMWARE_REPO = "pcvantol/spotify-dj-firmware"
 DEFAULT_FIRMWARE_ASSET_PREFIX = "spotifydj-device"
-DEFAULT_FIRMWARE_DEVICE = "spotifydj-device"
+DEFAULT_FIRMWARE_DEVICE = "lilygo-t-embed-s3"
 DEFAULT_FIRMWARE_CHANNEL = "stable"
 DEFAULT_MIN_BATTERY_FOR_OTA = 40
 

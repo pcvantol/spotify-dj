@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import secrets
 from typing import Any
 from urllib.parse import urlparse
@@ -86,6 +87,7 @@ _LOGGER = logging.getLogger(__name__)
 
 FIRMWARE_CHANNEL_NAMES = {"stable": "Stable", "beta": "Beta"}
 DEVICE_LANGUAGE_NAMES = {"en": "English", "nl": "Nederlands"}
+PAIR_CODE_PATTERN = re.compile(r"^(?:\d{6}|[0-9A-Fa-f]{12})$")
 SPOTIFY_MARKET_NAMES = {
     "NL": "Netherlands",
     "BE": "Belgium",
@@ -144,9 +146,14 @@ def _ha_device_language(hass: Any) -> str:
 def _default_local_url(pair_code: str | None) -> str:
     """Return the expected mDNS URL derived from the device pairing code."""
     normalized = str(pair_code or "").strip()
-    if len(normalized) != 6 or not normalized.isdigit():
+    if not PAIR_CODE_PATTERN.fullmatch(normalized):
         return ""
     return f"http://spotifydj-{normalized}.local"
+
+
+def _valid_pair_code(pair_code: str) -> bool:
+    """Accept the displayed 6-digit code or 12-character device suffix."""
+    return bool(PAIR_CODE_PATTERN.fullmatch(str(pair_code or "").strip()))
 
 
 def _merged_mqtt_defaults(hass: Any, source: dict[str, Any]) -> dict[str, Any]:
@@ -598,7 +605,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._last_pair_code = pair_code
             if not pair_code:
                 errors[CONF_PAIR_CODE] = "missing_pair_code"
-            elif len(pair_code) != 6 or not pair_code.isdigit():
+            elif not _valid_pair_code(pair_code):
                 errors[CONF_PAIR_CODE] = "invalid_pair_code"
             else:
                 device_id = f"spotifydj-{pair_code}"

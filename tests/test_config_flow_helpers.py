@@ -249,21 +249,30 @@ class ConfigFlowHelperTest(unittest.TestCase):
         flow = self.config_flow.SpotifyDJConfigFlow()
         flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
         flow.show_advanced_options = True
-        flow._last_pair_code = "123456"
+        flow._last_pair_code = "90B70990A994"
 
         schema = flow._user_schema()
         local_url_marker = next(
             marker for marker in schema if marker.key == self.const.CONF_LOCAL_URL
         )
 
-        self.assertEqual(local_url_marker.default, "http://spotifydj-123456.local")
+        self.assertEqual(
+            local_url_marker.default,
+            "http://spotifydj-90B70990A994.local",
+        )
 
-    def test_default_local_url_requires_six_digit_pair_code(self) -> None:
+    def test_default_local_url_accepts_pair_code_or_device_suffix(self) -> None:
         self.assertEqual(
             self.config_flow._default_local_url("123456"),
             "http://spotifydj-123456.local",
         )
-        self.assertEqual(self.config_flow._default_local_url("abc123"), "")
+        self.assertEqual(
+            self.config_flow._default_local_url("90B70990A994"),
+            "http://spotifydj-90B70990A994.local",
+        )
+        self.assertTrue(self.config_flow._valid_pair_code("123456"))
+        self.assertTrue(self.config_flow._valid_pair_code("90B70990A994"))
+        self.assertFalse(self.config_flow._valid_pair_code("abc123"))
         self.assertEqual(self.config_flow._default_local_url("12345"), "")
 
     def test_device_language_default_uses_ha_language_when_supported(self) -> None:
