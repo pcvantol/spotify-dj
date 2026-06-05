@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.2
+## 2.9.3
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -51,3 +51,5 @@
 - Reprovision the latest Spotify OAuth credentials when ESP status reports `spotify_configured=false`, including refresh-token rotation recovery.
 - Replace the unavailable Assist audio pipeline helper with Home Assistant's supported STT stream helper and return a clear no-provider error.
 - Fix Assist pipeline detection so Home Assistant Cloud/default STT pipelines are selected instead of falsely reporting no STT provider.
+- Treat text-only `/api/spotify_dj/voice` requests as direct DJ-response tests instead of Spotify playback commands.
+- Add `stt_engine` voice option and prefer it for raw WAV PTT STT before Assist pipeline fallback.

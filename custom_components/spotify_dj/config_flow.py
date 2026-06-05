@@ -47,6 +47,7 @@ from .const import (
     CONF_SPOTIFY_REFRESH_TOKEN,
     CONF_SPOTIFY_SCOPES,
     CONF_SPOTIFY_SOURCE,
+    CONF_STT_ENGINE,
     CONF_TTS_ENGINE,
     CONF_TTS_LANGUAGE,
     CONF_TTS_VOICE,
@@ -71,6 +72,7 @@ from .const import (
     DEFAULT_SPOTIFY_CLIENT_ID,
     DEFAULT_SPOTIFY_MARKET,
     DEFAULT_SPOTIFY_SCOPES,
+    DEFAULT_STT_ENGINE,
     DEFAULT_TTS_ENGINE,
     DEFAULT_TTS_LANGUAGE,
     DEFAULT_TTS_VOICE,
@@ -326,8 +328,10 @@ def _base_voice_schema(
     defaults: dict[str, Any],
     *,
     assist_options: dict[str, str],
+    stt_options: dict[str, str],
     tts_options: dict[str, str],
     tts_voice_options: dict[str, str],
+    stt_engine: str,
     tts_engine: str,
     tts_voice: str,
     player_options: dict[str, str],
@@ -340,6 +344,7 @@ def _base_voice_schema(
             CONF_ASSIST_PIPELINE_ID,
             default=defaults.get(CONF_ASSIST_PIPELINE_ID, ""),
         ): vol.In(assist_options),
+        vol.Optional(CONF_STT_ENGINE, default=stt_engine): vol.In(stt_options),
         vol.Optional(CONF_TTS_ENGINE, default=tts_engine): vol.In(tts_options),
         vol.Optional(
             CONF_TTS_LANGUAGE,
@@ -441,8 +446,10 @@ async def _voice_schema(
 ) -> vol.Schema:
     """Build a voice/options schema with dropdowns where HA can provide choices."""
     pipeline = _get_assist_pipeline(hass, defaults.get(CONF_ASSIST_PIPELINE_ID, ""))
+    pipeline_stt_engine = getattr(pipeline, "stt_engine", None) if pipeline else None
     pipeline_tts_engine = getattr(pipeline, "tts_engine", None) if pipeline else None
     pipeline_tts_voice = getattr(pipeline, "tts_voice", None) if pipeline else None
+    stt_engine = defaults.get(CONF_STT_ENGINE) or pipeline_stt_engine or DEFAULT_STT_ENGINE
     tts_engine = defaults.get(CONF_TTS_ENGINE) or pipeline_tts_engine or DEFAULT_TTS_ENGINE
     tts_voice = defaults.get(CONF_TTS_VOICE) or pipeline_tts_voice or ""
 
@@ -452,8 +459,10 @@ async def _voice_schema(
             hass,
             defaults.get(CONF_ASSIST_PIPELINE_ID, ""),
         ),
+        stt_options=_entity_options(hass, "stt", stt_engine),
         tts_options=_entity_options(hass, "tts", tts_engine),
         tts_voice_options=_tts_voice_options(hass, tts_engine, tts_voice),
+        stt_engine=stt_engine,
         tts_engine=tts_engine,
         tts_voice=tts_voice,
         player_options=_entity_options(
@@ -484,6 +493,7 @@ def _voice_defaults(data: dict[str, Any] | None = None) -> dict[str, Any]:
             source.get(CONF_ASSIST_PIPELINE_ID),
             DEFAULT_ASSIST_PIPELINE_ID,
         ),
+        CONF_STT_ENGINE: _clean(source.get(CONF_STT_ENGINE), DEFAULT_STT_ENGINE),
         CONF_TTS_ENGINE: _clean(source.get(CONF_TTS_ENGINE), DEFAULT_TTS_ENGINE),
         CONF_TTS_LANGUAGE: _clean(source.get(CONF_TTS_LANGUAGE), DEFAULT_TTS_LANGUAGE),
         CONF_TTS_VOICE: _clean(source.get(CONF_TTS_VOICE), DEFAULT_TTS_VOICE),

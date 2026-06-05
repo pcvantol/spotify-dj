@@ -11,11 +11,29 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_ASSIST_PIPELINE_ID, CONF_TTS_LANGUAGE, DEFAULT_TTS_LANGUAGE, DOMAIN
+from .const import (
+    CONF_ASSIST_PIPELINE_ID,
+    CONF_STT_ENGINE,
+    CONF_TTS_LANGUAGE,
+    DEFAULT_TTS_LANGUAGE,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-NO_STT_PROVIDER = "No Home Assistant STT provider configured"
+STT_OPTION_KEYS = (
+    CONF_STT_ENGINE,
+    "stt_provider",
+    "stt_provider_id",
+    "stt_engine_id",
+    "stt_entity",
+    "stt_entity_id",
+    "openai_stt_engine",
+    "openai_stt_provider",
+    "openai_stt_model",
+)
+ASSIST_STT_VALUES = {"", "assist", "ha_assist", "home_assistant_assist", "pipeline"}
+NO_STT_PROVIDER = "No STT provider configured. Checked options keys: "
 
 
 class SpotifyDJSttError(RuntimeError):
@@ -69,16 +87,16 @@ async def transcribe_wav_with_assist(
         info.channels,
     )
     if not info.engine:
-        raise SpotifyDJNoSttProviderError(NO_STT_PROVIDER)
+        raise SpotifyDJNoSttProviderError(_no_stt_provider_message())
 
     try:
         from homeassistant.components import stt
     except Exception as exc:  # noqa: BLE001
-        raise SpotifyDJNoSttProviderError(NO_STT_PROVIDER) from exc
+        raise SpotifyDJNoSttProviderError(_no_stt_provider_message()) from exc
 
     processor = getattr(stt, "async_process_audio_stream", None)
     if processor is None:
-        raise SpotifyDJNoSttProviderError(NO_STT_PROVIDER)
+        raise SpotifyDJNoSttProviderError(_no_stt_provider_message())
 
     metadata = _speech_metadata(stt, info)
     result = await _call_stt_processor(
@@ -120,10 +138,15 @@ def _resolve_stt_info(
     sample_rate, channels, _sample_width = _wav_parameters(wav)
     pipeline_id = str(conf.get(CONF_ASSIST_PIPELINE_ID) or "").strip() or None
     language = str(conf.get(CONF_TTS_LANGUAGE) or DEFAULT_TTS_LANGUAGE)
-    engine = None
+    engine = _selected_stt_engine(conf)
     pipeline_name = None
-    pipeline = _get_assist_pipeline(hass, pipeline_id)
-    if pipeline is not None:
+    pipeline = None if engine else _get_assist_pipeline(hass, pipeline_id)
+    if engine:
+        _LOGGER.debug(
+            "SpotifyDJ STT provider selected from integration options: %s",
+            engine,
+        )
+    elif pipeline is not None:
         pipeline_id = str(
             _pipeline_attr(pipeline, "id")
             or _pipeline_attr(pipeline, "conversation_id")
@@ -152,6 +175,21 @@ def _resolve_stt_info(
         sample_rate=sample_rate,
         channels=channels,
     )
+
+
+def _selected_stt_engine(conf: dict[str, Any]) -> str | None:
+    for key in STT_OPTION_KEYS:
+        value = str(conf.get(key) or "").strip()
+        if not value:
+            continue
+        if value.lower() in ASSIST_STT_VALUES:
+            return None
+        return value
+    return None
+
+
+def _no_stt_provider_message() -> str:
+    return NO_STT_PROVIDER + ", ".join(STT_OPTION_KEYS)
 
 
 def _get_assist_pipeline(hass: HomeAssistant, pipeline_id: str | None) -> Any | None:

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "spotify_dj"
 NAME = "SpotifyDJ"
-VERSION = "2.9.2"
+VERSION = "2.9.3"
 
 API_BASE = "/api/spotify_dj"
 API_PAIR = f"{API_BASE}/pair"
@@ -35,6 +35,7 @@ CONF_SPOTIFY_SOURCE = "spotify_source"
 CONF_LIKED_PROXY = "liked_proxy_playlist_uri"
 
 CONF_ASSIST_PIPELINE_ID = "assist_pipeline_id"
+CONF_STT_ENGINE = "stt_engine"
 CONF_TTS_ENGINE = "tts_engine"
 CONF_TTS_LANGUAGE = "tts_language"
 CONF_TTS_VOICE = "tts_voice"
@@ -74,6 +75,7 @@ DEFAULT_FIRMWARE_CHANNEL = "stable"
 DEFAULT_MIN_BATTERY_FOR_OTA = 40
 
 DEFAULT_ASSIST_PIPELINE_ID = ""
+DEFAULT_STT_ENGINE = ""
 DEFAULT_TTS_ENGINE = "tts"
 DEFAULT_TTS_LANGUAGE = "nl-NL"
 DEFAULT_TTS_VOICE = ""

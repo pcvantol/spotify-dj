@@ -119,7 +119,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             self.http._command_failed_text(unknown_runtime),
         )
 
-    def test_voice_view_sends_friendly_dj_response_on_command_failure(self) -> None:
+    def test_voice_view_text_request_runs_direct_dj_response_test(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
 
         class Runtime:
@@ -136,24 +136,21 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         runtime = Runtime()
         hass = types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})
-        sent_responses = []
 
         async def fail_command(hass, runtime, user_text, play=True):
-            raise RuntimeError("Spotify playback device unavailable")
+            raise AssertionError("text-only voice test must not run command parser")
 
-        async def send_failure(hass, runtime, exc=None):
-            runtime.update(last_error="ESP DJ response failed")
-            sent_responses.append(self.http._command_failed_text(runtime, exc))
+        async def dj_response(hass, runtime, text):
             return {"success": True, "spoken": False}
 
         original_command = self.http.process_text_command
-        original_failure = self.http._send_failure_dj_response
+        original_dj_response = self.http.async_send_dj_response_best_effort
         self.http.process_text_command = fail_command
-        self.http._send_failure_dj_response = send_failure
+        self.http.async_send_dj_response_best_effort = dj_response
 
         class Request:
             headers = {
-                "X-SpotifyDJ-Text": "Play Pearl Jam",
+                "X-SpotifyDJ-Text": "Test",
                 "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
             }
             app = {"hass": hass}
@@ -165,14 +162,79 @@ class VoiceHttpHelperTest(unittest.TestCase):
             response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
         finally:
             self.http.process_text_command = original_command
-            self.http._send_failure_dj_response = original_failure
+            self.http.async_send_dj_response_best_effort = original_dj_response
 
-        self.assertEqual(response["status_code"], 500)
-        self.assertEqual(response["payload"]["error"], "command_failed")
-        self.assertIn("Spotify niet starten", response["payload"]["dj_text"])
+        self.assertEqual(response["status_code"], 200)
+        self.assertTrue(response["payload"]["success"])
+        self.assertEqual(
+            response["payload"]["dj_text"],
+            "SpotifyDJ is klaar voor je volgende verzoek.",
+        )
+        self.assertEqual(response["payload"]["recognized_text"], "Test")
         self.assertEqual(response["payload"]["dj_response"], {"success": True, "spoken": False})
-        self.assertEqual(sent_responses, [response["payload"]["dj_text"]])
-        self.assertEqual(runtime.last_update["last_error"], "Spotify playback device unavailable")
+        self.assertIsNone(runtime.last_update["last_error"])
+
+    def test_voice_view_json_text_request_runs_direct_dj_response_test(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def device_language(self):
+                return "en"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+        hass = types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})
+
+        async def fail_command(hass, runtime, user_text, play=True):
+            raise AssertionError("JSON text test must not run command parser")
+
+        async def dj_response(hass, runtime, text):
+            return {
+                "success": True,
+                "spoken": True,
+                "audio_url_value": "http://ha/api/spotify_dj/tts/test.mp3",
+            }
+
+        original_command = self.http.process_text_command
+        original_dj_response = self.http.async_send_dj_response_best_effort
+        self.http.process_text_command = fail_command
+        self.http.async_send_dj_response_best_effort = dj_response
+
+        class Request:
+            headers = {
+                "Authorization": "Bearer device-token",
+                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+                "Content-Type": "application/json",
+            }
+            app = {"hass": hass}
+
+            async def json(self):
+                return {"text": "Test"}
+
+        try:
+            response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+        finally:
+            self.http.process_text_command = original_command
+            self.http.async_send_dj_response_best_effort = original_dj_response
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertTrue(response["payload"]["success"])
+        self.assertEqual(
+            response["payload"]["dj_text"],
+            "SpotifyDJ is ready for your next request.",
+        )
+        self.assertEqual(
+            response["payload"]["audio_url"],
+            "http://ha/api/spotify_dj/tts/test.mp3",
+        )
+        self.assertEqual(response["payload"]["audio_type"], "mp3")
 
     def test_voice_view_accepts_wav_upload_and_returns_audio_url(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
@@ -247,6 +309,66 @@ class VoiceHttpHelperTest(unittest.TestCase):
             "http://ha/api/spotify_dj/tts/token.mp3",
         )
         self.assertEqual(response["payload"]["audio_type"], "mp3")
+
+    def test_voice_view_wav_command_failure_returns_friendly_200(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            config = {const.CONF_MAX_AUDIO_BYTES: 100}
+            device_status = {"device_id": "spotifydj-90B70990A994"}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def device_language(self):
+                return "nl"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+        hass = types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})
+
+        async def transcribe(hass, wav, conf):
+            return "Test"
+
+        async def fail_command(hass, runtime, user_text, play=True):
+            raise RuntimeError("Sorry, ik kan geen apparaat vinden met de naam Test")
+
+        async def dj_response(hass, runtime, text):
+            return {"success": True, "spoken": False}
+
+        original_transcribe = self.http.transcribe_wav_with_assist
+        original_command = self.http.process_text_command
+        original_dj_response = self.http.async_send_dj_response_best_effort
+        self.http.transcribe_wav_with_assist = transcribe
+        self.http.process_text_command = fail_command
+        self.http.async_send_dj_response_best_effort = dj_response
+
+        class Request:
+            headers = {
+                "Authorization": "Bearer device-token",
+                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+                "Content-Type": "audio/wav",
+            }
+            app = {"hass": hass}
+
+            async def read(self):
+                return b"RIFFxxxxWAVEdata"
+
+        try:
+            response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+        finally:
+            self.http.transcribe_wav_with_assist = original_transcribe
+            self.http.process_text_command = original_command
+            self.http.async_send_dj_response_best_effort = original_dj_response
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertTrue(response["payload"]["success"])
+        self.assertEqual(response["payload"]["error"], "command_failed")
+        self.assertIn("Spotify niet starten", response["payload"]["dj_text"])
+        self.assertEqual(response["payload"]["recognized_text"], "Test")
+        self.assertEqual(response["payload"]["dj_response"], {"success": True, "spoken": False})
 
     def test_voice_view_rejects_oversized_wav_upload(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
@@ -336,7 +458,9 @@ class VoiceHttpHelperTest(unittest.TestCase):
         hass = types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})
 
         async def no_provider(hass, wav, conf):
-            raise assist_stt.SpotifyDJNoSttProviderError(assist_stt.NO_STT_PROVIDER)
+            raise assist_stt.SpotifyDJNoSttProviderError(
+                assist_stt.NO_STT_PROVIDER + "stt_engine"
+            )
 
         original_transcribe = self.http.transcribe_wav_with_assist
         self.http.transcribe_wav_with_assist = no_provider
@@ -359,7 +483,8 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         self.assertEqual(response["status_code"], 503)
         self.assertEqual(response["payload"]["error"], "stt_failed")
-        self.assertEqual(response["payload"]["message"], assist_stt.NO_STT_PROVIDER)
+        self.assertIn(assist_stt.NO_STT_PROVIDER, response["payload"]["message"])
+        self.assertIn("stt_engine", response["payload"]["message"])
 
     def test_transcribe_wav_uses_home_assistant_stt_helper(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
@@ -434,6 +559,54 @@ class VoiceHttpHelperTest(unittest.TestCase):
                     sys.modules[name] = original
 
         self.assertEqual(text, "Speel Pearl Jam")
+
+    def test_transcribe_wav_uses_configured_openai_stt_option(self) -> None:
+        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        stt_module = types.ModuleType("homeassistant.components.stt")
+        pipeline_module = types.ModuleType(
+            "homeassistant.components.assist_pipeline.pipeline"
+        )
+        calls = []
+
+        class SpeechMetadata:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        class AudioFormats:
+            WAV = "wav"
+
+        class AudioCodecs:
+            PCM = "pcm"
+
+        async def async_process_audio_stream(hass, metadata, stream, engine=None):
+            calls.append(engine)
+            async for _chunk in stream:
+                pass
+            return {"text": "Speel via OpenAI"}
+
+        stt_module.SpeechMetadata = SpeechMetadata
+        stt_module.AudioFormats = AudioFormats
+        stt_module.AudioCodecs = AudioCodecs
+        stt_module.async_process_audio_stream = async_process_audio_stream
+
+        def fail_pipeline_lookup(hass):
+            raise AssertionError("explicit STT option must not check Assist pipeline first")
+
+        pipeline_module.async_get_pipelines = fail_pipeline_lookup
+        originals = self._install_stt_modules(stt_module, pipeline_module)
+        try:
+            text = asyncio.run(
+                assist_stt.transcribe_wav_with_assist(
+                    types.SimpleNamespace(data={}),
+                    b"RIFFxxxxWAVEdata",
+                    {"stt_engine": "openai"},
+                )
+            )
+        finally:
+            self._restore_modules(originals)
+
+        self.assertEqual(text, "Speel via OpenAI")
+        self.assertEqual(calls, ["openai"])
 
     def test_transcribe_wav_finds_default_cloud_stt_pipeline(self) -> None:
         assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
@@ -576,7 +749,8 @@ class VoiceHttpHelperTest(unittest.TestCase):
         finally:
             self._restore_modules(originals)
 
-        self.assertEqual(str(raised.exception), assist_stt.NO_STT_PROVIDER)
+        self.assertIn(assist_stt.NO_STT_PROVIDER, str(raised.exception))
+        self.assertIn("stt_engine", str(raised.exception))
 
     def test_transcribe_wav_no_stt_provider_error(self) -> None:
         assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
@@ -606,7 +780,8 @@ class VoiceHttpHelperTest(unittest.TestCase):
                 else:
                     sys.modules[name] = original
 
-        self.assertEqual(str(raised.exception), assist_stt.NO_STT_PROVIDER)
+        self.assertIn(assist_stt.NO_STT_PROVIDER, str(raised.exception))
+        self.assertIn("stt_engine", str(raised.exception))
 
     def _install_stt_modules(self, stt_module, pipeline_module):
         assist_pkg = types.ModuleType("homeassistant.components.assist_pipeline")

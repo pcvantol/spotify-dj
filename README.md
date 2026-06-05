@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 
 ## Current Version
 
-- Home Assistant integration: `2.9.2`
+- Home Assistant integration: `2.9.3`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: SpotifyDJ device
@@ -398,19 +398,22 @@ optional temporary WAV/MP3 `audio_url`:
 }
 ```
 
-JSON/text commands remain supported for developer tests and diagnostics through
-`X-SpotifyDJ-Text` or `{ "text": "Play Pearl Jam" }`.
+JSON/text-only requests remain supported for ESP web tests and diagnostics
+through `X-SpotifyDJ-Text` or `{ "text": "Test" }`. They simulate the DJ
+response path directly and do not parse a Spotify playback command. Raw WAV PTT
+uploads continue through STT, command parsing, Spotify playback and DJ response.
 
-Home Assistant must have an Assist pipeline with an STT provider configured.
-SpotifyDJ resolves the selected pipeline's STT engine, or if no pipeline is
-stored, Home Assistant's preferred/default Assist pipeline such as Home
-Assistant Cloud STT. If a stored pipeline was removed, SpotifyDJ falls back to
-the preferred/default pipeline. It then sends WAV audio to Home Assistant's
-supported `stt.async_process_audio_stream` API. At startup the integration logs
-the Home Assistant version, selected pipeline id/name, language, STT engine,
-availability and audio format. If the selected pipeline truly has no STT
-provider, `/api/spotify_dj/voice` returns `503` with
-`No Home Assistant STT provider configured`.
+Home Assistant must have an STT provider configured. SpotifyDJ first checks its
+own `stt_engine` option, for example an OpenAI STT entity selected in the
+integration options. If `stt_engine` is empty, SpotifyDJ resolves the selected
+Assist pipeline's STT engine, or if no pipeline is stored, Home Assistant's
+preferred/default Assist pipeline such as Home Assistant Cloud STT. If a stored
+pipeline was removed, SpotifyDJ falls back to the preferred/default pipeline. It
+then sends WAV audio to Home Assistant's supported
+`stt.async_process_audio_stream` API. At startup and for WAV uploads the
+integration logs the selected STT/TTS provider metadata without tokens or API
+keys. If no STT provider is found, `/api/spotify_dj/voice` returns `503` with
+the checked option keys.
 
 ## ESP Device Endpoints
 
@@ -449,12 +452,12 @@ Example manifest:
 
 ```json
 {
-  "version": "2.9.2",
+  "version": "2.9.3",
   "device": "lilygo-t-embed-s3",
-  "asset": "spotifydj-device-v2.9.2.bin",
+  "asset": "spotifydj-device-v2.9.3.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "2.9.2"
+  "min_ha_integration": "2.9.3"
 }
 ```
 
@@ -469,7 +472,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 2.9.2
+./release.sh 2.9.3
 ```
 
 In the private `spotify-dj-app` repository, the firmware release script should
@@ -480,7 +483,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 2.9.2 --dry-run
+./release.sh 2.9.3 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -536,11 +539,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v2.9.2"
-git tag v2.9.2
+git commit -m "Release SpotifyDJ v2.9.3"
+git tag v2.9.3
 git push origin main
-git push origin v2.9.2
-gh release create v2.9.2 --title "SpotifyDJ v2.9.2" --notes-file CHANGELOG.md
+git push origin v2.9.3
+gh release create v2.9.3 --title "SpotifyDJ v2.9.3" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:
@@ -599,11 +602,11 @@ These tests use local stubs for Home Assistant imports and focus on pure Spotify
 - If OTA is blocked, check battery level, USB power, and the OTA battery options.
 - If provisioning fails, pair the SpotifyDJ device first and run `spotify_dj.provision_spotify_credentials` again.
 - If provisioning says `local_url is unknown`, make sure the device advertises `_spotifydj._tcp` mDNS or temporarily enable advanced options and enter the manual device URL, for example `http://spotifydj-90B70990A994.local`.
-- If `/api/spotify_dj/voice` returns `No Home Assistant STT provider configured`, configure an Assist pipeline with a speech-to-text provider such as Home Assistant Cloud STT, or clear the stale SpotifyDJ pipeline option so the integration can use Home Assistant's preferred/default Assist pipeline.
+- If `/api/spotify_dj/voice` returns `No STT provider configured`, select an STT engine in SpotifyDJ options, configure an Assist pipeline with STT such as Home Assistant Cloud STT, or clear the stale SpotifyDJ pipeline option so the integration can use Home Assistant's preferred/default Assist pipeline.
 - If WiFi/MQTT provisioning works but Spotify does not, pair again after OAuth or run `spotify_dj.provision_spotify_credentials`; pair/status payloads should include both top-level `spotify_refresh_token` and `spotify.refresh_token`.
 - If the ESP cannot find a private `SpotifyDJ Liked Proxy` playlist, reauthorize Spotify so the refresh token includes `playlist-read-private`, then run `spotify_dj.provision_spotify_credentials`.
 - If a PTT command cannot start Spotify playback, the ESP should receive a friendly DJ response; check that the configured Spotify media player is available and has an active Spotify Connect target.
-- If `/api/spotify_dj/voice` returns `missing_text`, send raw WAV audio or a developer text command through `X-SpotifyDJ-Text`.
+- If `/api/spotify_dj/voice` returns `missing_text`, send raw WAV audio for PTT or a developer test text through `X-SpotifyDJ-Text`.
 - If `spoken=false`, HA did not provide a compatible WAV/MP3 URL or the ESP could not play it; the text response should still be displayed.
 - If HA TTS returns MP3, SpotifyDJ can send the MP3 `audio_url` to ESP firmware that supports MP3 DJ response playback.
 - If Home Assistant reports `Invalid value for number.spotifydj_volume: -1.0`, update to this release or newer; SpotifyDJ treats unknown device volume as unavailable instead of publishing an out-of-range value.

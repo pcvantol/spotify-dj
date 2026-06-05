@@ -28,6 +28,7 @@ from .const import (
 )
 from .assist_stt import (
     SpotifyDJNoSttProviderError,
+    STT_OPTION_KEYS,
     transcribe_wav_with_assist,
 )
 from .dj_response import async_send_dj_response_best_effort, get_tts_audio
@@ -82,6 +83,10 @@ DJ_FAILURE_TEXTS = {
             "Probeer het opnieuw."
         ),
     },
+}
+DJ_TEST_TEXTS = {
+    "en": "SpotifyDJ is ready for your next request.",
+    "nl": "SpotifyDJ is klaar voor je volgende verzoek.",
 }
 
 
@@ -168,6 +173,18 @@ def _current_spotify_credentials(runtime: Any) -> dict[str, Any]:
     return payload() if callable(payload) else {}
 
 
+def _safe_config_keys(values: dict[str, Any] | None) -> list[str]:
+    return sorted(str(key) for key in (values or {}).keys())
+
+
+def _first_config_value(conf: dict[str, Any], keys: tuple[str, ...]) -> tuple[str | None, str | None]:
+    for key in keys:
+        value = str(conf.get(key) or "").strip()
+        if value:
+            return key, value
+    return None, None
+
+
 def _store_rotated_spotify_refresh_token(
     hass: Any,
     entry: Any,
@@ -210,12 +227,18 @@ def _failure_kind(exc: Exception) -> str:
         for word in ("spotify", "playback", "media_player", "play_media", "player")
     ):
         return "spotify"
+    if "apparaat" in text:
+        return "spotify"
     return "generic"
 
 
 def _command_failed_text(runtime: Any, exc: Exception | None = None) -> str:
     kind = _failure_kind(exc) if exc else "generic"
     return DJ_FAILURE_TEXTS[kind][_device_language(runtime)]
+
+
+def _test_dj_text(runtime: Any) -> str:
+    return DJ_TEST_TEXTS[_device_language(runtime)]
 
 
 async def _send_failure_dj_response(
@@ -395,14 +418,32 @@ class SpotifyDJVoiceView(HomeAssistantView):
             content_type = content_type.split(";", 1)[0].strip().lower()
             data = None
             user_text = ""
+            is_audio_request = _is_audio_upload(content_type)
 
-            if _is_audio_upload(content_type):
+            if is_audio_request:
                 limit = int(runtime.config.get(CONF_MAX_AUDIO_BYTES, DEFAULT_MAX_AUDIO_BYTES))
                 wav = await request.read()
                 if not wav:
                     return _json_error(self, "missing_audio", 400)
                 if len(wav) > limit:
                     return _json_error(self, "audio_too_large", 413)
+                entry = getattr(runtime, "entry", None)
+                stt_key, stt_value = _first_config_value(runtime.config, STT_OPTION_KEYS)
+                tts_key, tts_value = _first_config_value(runtime.config, ("tts_engine",))
+                _LOGGER.debug(
+                    "SpotifyDJ WAV voice request: entry_id=%s options_keys=%s "
+                    "data_keys=%s stt_provider=%s:%s tts_provider=%s:%s "
+                    "content_type=%s body_bytes=%s",
+                    getattr(entry, "entry_id", None),
+                    _safe_config_keys(getattr(entry, "options", None)),
+                    _safe_config_keys(getattr(entry, "data", None)),
+                    stt_key,
+                    stt_value,
+                    tts_key,
+                    tts_value,
+                    content_type,
+                    len(wav),
+                )
                 _set_device_state(runtime, "processing")
                 runtime.update(last_error=None)
                 try:
@@ -432,10 +473,60 @@ class SpotifyDJVoiceView(HomeAssistantView):
             if not user_text:
                 return _missing_text_response(self)
 
+            if not is_audio_request:
+                dj_text = _test_dj_text(runtime)
+                _LOGGER.debug("SpotifyDJ DJ response text test: %s", user_text)
+                _set_device_state(runtime, "responding")
+                runtime.update(last_text=user_text, last_dj_text=dj_text, last_error=None)
+                dj_response = await async_send_dj_response_best_effort(
+                    hass,
+                    runtime,
+                    dj_text,
+                )
+                audio_url = dj_response.get("audio_url_value")
+                _set_device_state(runtime, "idle")
+                return self.json(
+                    {
+                        "success": True,
+                        "text": dj_text,
+                        "dj_text": dj_text,
+                        "recognized_text": user_text,
+                        "dj_response": dj_response,
+                        "audio_url": audio_url,
+                        "audio_type": _audio_type_from_url(audio_url),
+                    }
+                )
+
             _LOGGER.debug("SpotifyDJ command: %s", user_text)
             _set_device_state(runtime, "processing")
             runtime.update(last_text=user_text, last_error=None)
-            result = await process_text_command(hass, runtime, user_text, play=True)
+            try:
+                result = await process_text_command(hass, runtime, user_text, play=True)
+            except Exception as exc:  # noqa: BLE001
+                _LOGGER.warning("SpotifyDJ command parser/playback failed: %s", exc)
+                _set_device_state(runtime, "responding")
+                dj_text = _command_failed_text(runtime, exc)
+                runtime.update(last_error=str(exc), last_dj_text=dj_text)
+                dj_response = await async_send_dj_response_best_effort(
+                    hass,
+                    runtime,
+                    dj_text,
+                )
+                audio_url = dj_response.get("audio_url_value")
+                _set_device_state(runtime, "idle")
+                return self.json(
+                    {
+                        "success": True,
+                        "error": "command_failed",
+                        "message": str(exc),
+                        "text": dj_text,
+                        "dj_text": dj_text,
+                        "recognized_text": user_text,
+                        "dj_response": dj_response,
+                        "audio_url": audio_url,
+                        "audio_type": _audio_type_from_url(audio_url),
+                    }
+                )
             _set_device_state(runtime, "responding")
             result["dj_response"] = await async_send_dj_response_best_effort(
                 hass,
