@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.7.5
+## 2.9.0
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -9,8 +9,8 @@
 - Route test parse/command services through HA Assist instead of the legacy direct AI parser.
 - Ignore generic HA Assist smart-home refusal text as `dj_announcement` when no explicit SpotifyDJ intent data is returned.
 - Route DJ responses to the SpotifyDJ device through HA-generated temporary WAV/MP3 URLs and `/api/device/dj_response`.
-- Refactor the voice HTTP endpoint to accept text commands only after ESP-side HA Assist websocket STT.
-- Return controlled JSON errors for legacy WAV uploads and missing text instead of running STT inside the integration.
+- Refactor the voice HTTP endpoint to accept authenticated raw WAV uploads and developer text commands.
+- Return controlled JSON errors for missing/oversized/unsupported audio uploads.
 - Include `assist_pipeline_id`, `ha_url`, and `device_token` in ESP provisioning/status payloads where applicable.
 - Include Spotify OAuth credentials during pair/status responses with both nested and top-level `refresh_token`/`spotify_refresh_token` keys for firmware compatibility.
 - Add SpotifyDJ device UI language selection during pairing and provision `device_language`/`language` to the ESP.
@@ -47,3 +47,5 @@
 - Send MP3 DJ response audio URLs to ESP firmware that supports MP3 playback instead of falling back to text-only.
 - Refresh `info.md` and examples to remove old branding/AI/WAV-only references and document current SpotifyDJ endpoints.
 - Add a dry-run-first cleanup helper for old semantic-version GitHub releases and tags.
+- Move voice STT back into the Home Assistant integration backend so ESP devices can upload raw WAV audio without Home Assistant websocket auth.
+- Reprovision the latest Spotify OAuth credentials when ESP status reports `spotify_configured=false`, including refresh-token rotation recovery.

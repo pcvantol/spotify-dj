@@ -154,6 +154,8 @@ async def async_send_dj_response(
         "displayed": bool(data.get("displayed", False)),
         "message": data.get("message"),
         "audio_url": bool(audio_url),
+        "audio_url_value": audio_url,
+        "audio_type": audio_url.rsplit(".", 1)[-1].lower() if audio_url else None,
     }
     runtime.update(
         last_dj_text=text,

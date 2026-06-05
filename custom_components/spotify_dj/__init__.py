@@ -89,6 +89,7 @@ class SpotifyDJRuntime:
     pairing_device_id: str | None = None
     ota_in_progress: bool = False
     ota_last_error: str | None = None
+    latest_spotify_refresh_token: str | None = None
     listeners: list = field(default_factory=list)
 
     @property
@@ -167,11 +168,15 @@ class SpotifyDJRuntime:
             "password": str(conf.get(CONF_MQTT_PASSWORD) or ""),
         }
 
-    def spotify_payload(self) -> dict[str, Any]:
-        """Return Spotify credentials for ESP provisioning when OAuth is complete."""
+    def get_current_spotify_credentials(self) -> dict[str, Any]:
+        """Return canonical latest Spotify credentials for ESP provisioning."""
         conf = self.config
         client_id = str(conf.get(CONF_SPOTIFY_CLIENT_ID) or "").strip()
-        refresh_token = str(conf.get(CONF_SPOTIFY_REFRESH_TOKEN) or "").strip()
+        refresh_token = str(
+            self.latest_spotify_refresh_token
+            or conf.get(CONF_SPOTIFY_REFRESH_TOKEN)
+            or ""
+        ).strip()
         if not client_id or not refresh_token:
             return {}
         scopes = str(conf.get(CONF_SPOTIFY_SCOPES, DEFAULT_SPOTIFY_SCOPES)).split()
@@ -186,6 +191,25 @@ class SpotifyDJRuntime:
             "market": market,
             "scopes": scopes,
         }
+
+    def spotify_payload(self) -> dict[str, Any]:
+        """Return Spotify credentials for ESP provisioning when OAuth is complete."""
+        return self.get_current_spotify_credentials()
+
+    def update_spotify_refresh_token(self, refresh_token: str | None) -> bool:
+        """Update the in-memory latest Spotify refresh token if Spotify rotated it."""
+        token = str(refresh_token or "").strip()
+        if not token:
+            return False
+        current = str(
+            self.latest_spotify_refresh_token
+            or self.config.get(CONF_SPOTIFY_REFRESH_TOKEN)
+            or ""
+        )
+        if token == current:
+            return False
+        self.latest_spotify_refresh_token = token
+        return True
 
     def device_language(self) -> str:
         """Return the ESP UI language provisioned during pairing."""
@@ -236,7 +260,7 @@ class SpotifyDJRuntime:
             raise RuntimeError("SpotifyDJ device local_url is unknown")
         token = self.ensure_device_token()
         url = local_url.rstrip("/") + "/api/device/pair"
-        spotify = self.spotify_payload()
+        spotify = self.get_current_spotify_credentials()
         payload = {
             "pair_code": conf.get(CONF_PAIR_CODE),
             "device_id": conf.get(CONF_DEVICE_ID),
@@ -264,9 +288,8 @@ class SpotifyDJRuntime:
 
     async def provision_spotify_credentials(self, hass: HomeAssistant) -> dict[str, Any]:
         conf = self.config
-        if not conf.get(CONF_SPOTIFY_CLIENT_ID) or not conf.get(
-            CONF_SPOTIFY_REFRESH_TOKEN
-        ):
+        spotify = self.get_current_spotify_credentials()
+        if not spotify:
             raise RuntimeError("Spotify OAuth is not configured in SpotifyDJ yet")
         local_url = await self.async_device_local_url(hass)
         if not local_url:
@@ -275,13 +298,14 @@ class SpotifyDJRuntime:
             )
         url = local_url.rstrip("/") + "/api/device/provision_spotify"
         payload = {
-            "spotify_client_id": conf.get(CONF_SPOTIFY_CLIENT_ID),
-            "spotify_refresh_token": conf.get(CONF_SPOTIFY_REFRESH_TOKEN),
-            "spotify": self.spotify_payload(),
-            "spotify_market": conf.get(CONF_SPOTIFY_MARKET, DEFAULT_SPOTIFY_MARKET),
-            "spotify_scopes": str(
-                conf.get(CONF_SPOTIFY_SCOPES, DEFAULT_SPOTIFY_SCOPES)
-            ).split(),
+            "spotify_client_id": spotify["spotify_client_id"],
+            "spotify_refresh_token": spotify["spotify_refresh_token"],
+            "client_id": spotify["client_id"],
+            "refresh_token": spotify["refresh_token"],
+            "spotify": spotify,
+            "spotify_market": spotify["spotify_market"],
+            "market": spotify["market"],
+            "spotify_scopes": spotify["spotify_scopes"],
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
             "ha_url": conf.get(CONF_HA_EXTERNAL_URL),
             "device_token": self.device_token,
@@ -540,6 +564,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 def _restore_runtime(hass: HomeAssistant, entry: ConfigEntry) -> SpotifyDJRuntime:
     runtime = SpotifyDJRuntime(entry=entry)
+    if entry.data.get(CONF_SPOTIFY_REFRESH_TOKEN):
+        runtime.latest_spotify_refresh_token = entry.data[CONF_SPOTIFY_REFRESH_TOKEN]
     if entry.data.get("device_token"):
         runtime.device_token = entry.data["device_token"]
         _LOGGER.debug(

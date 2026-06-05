@@ -86,7 +86,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["status_code"], 400)
         self.assertEqual(response["payload"]["error"], "missing_text")
         self.assertIn("X-SpotifyDJ-Text", response["payload"]["message"])
-        self.assertIn("HA Assist pipeline", response["payload"]["message"])
+        self.assertIn("WAV audio", response["payload"]["message"])
 
     def test_command_failed_text_uses_device_language(self) -> None:
         nl_runtime = types.SimpleNamespace(device_language=lambda: "nl")
@@ -152,7 +152,10 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.http._send_failure_dj_response = send_failure
 
         class Request:
-            headers = {"X-SpotifyDJ-Text": "Play Pearl Jam"}
+            headers = {
+                "X-SpotifyDJ-Text": "Play Pearl Jam",
+                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+            }
             app = {"hass": hass}
 
             async def read(self):
@@ -170,6 +173,150 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["payload"]["dj_response"], {"success": True, "spoken": False})
         self.assertEqual(sent_responses, [response["payload"]["dj_text"]])
         self.assertEqual(runtime.last_update["last_error"], "Spotify playback device unavailable")
+
+    def test_voice_view_accepts_wav_upload_and_returns_audio_url(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            config = {const.CONF_MAX_AUDIO_BYTES: 100}
+            device_status = {"device_id": "spotifydj-90B70990A994"}
+            device_token = "device-token"
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return (
+                    headers.get("Authorization") == "Bearer device-token"
+                    and body_device_id == "spotifydj-90B70990A994"
+                )
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+        hass = types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})
+
+        async def transcribe(hass, wav, conf):
+            self.assertEqual(wav, b"RIFFxxxxWAVEdata")
+            return "Speel Pearl Jam"
+
+        async def command(hass, runtime, user_text, play=True):
+            return {
+                "text": user_text,
+                "dj_text": "Daar gaan we",
+                "intent": {},
+                "playback": None,
+            }
+
+        async def dj_response(hass, runtime, text):
+            return {
+                "success": True,
+                "spoken": True,
+                "audio_url_value": "http://ha/api/spotify_dj/tts/token.mp3",
+            }
+
+        original_transcribe = self.http.transcribe_wav_with_assist
+        original_command = self.http.process_text_command
+        original_dj_response = self.http.async_send_dj_response_best_effort
+        self.http.transcribe_wav_with_assist = transcribe
+        self.http.process_text_command = command
+        self.http.async_send_dj_response_best_effort = dj_response
+
+        class Request:
+            headers = {
+                "Authorization": "Bearer device-token",
+                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+                "Content-Type": "audio/wav",
+            }
+            app = {"hass": hass}
+
+            async def read(self):
+                return b"RIFFxxxxWAVEdata"
+
+        try:
+            response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+        finally:
+            self.http.transcribe_wav_with_assist = original_transcribe
+            self.http.process_text_command = original_command
+            self.http.async_send_dj_response_best_effort = original_dj_response
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertTrue(response["payload"]["success"])
+        self.assertEqual(response["payload"]["recognized_text"], "Speel Pearl Jam")
+        self.assertEqual(response["payload"]["text"], "Daar gaan we")
+        self.assertEqual(
+            response["payload"]["audio_url"],
+            "http://ha/api/spotify_dj/tts/token.mp3",
+        )
+        self.assertEqual(response["payload"]["audio_type"], "mp3")
+
+    def test_voice_view_rejects_oversized_wav_upload(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            config = {const.CONF_MAX_AUDIO_BYTES: 4}
+            device_status = {"device_id": "spotifydj-90B70990A994"}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+        hass = types.SimpleNamespace(data={const.DOMAIN: {"runtime": Runtime()}})
+
+        class Request:
+            headers = {
+                "Authorization": "Bearer device-token",
+                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+                "Content-Type": "audio/x-wav",
+            }
+            app = {"hass": hass}
+
+            async def read(self):
+                return b"RIFFxxxxWAVEdata"
+
+        response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 413)
+        self.assertEqual(response["payload"]["error"], "audio_too_large")
+
+    def test_voice_view_reports_stt_failure(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            config = {const.CONF_MAX_AUDIO_BYTES: 100}
+            device_status = {"device_id": "spotifydj-90B70990A994"}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+        hass = types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})
+
+        async def fail_stt(hass, wav, conf):
+            raise RuntimeError("STT unavailable")
+
+        original_transcribe = self.http.transcribe_wav_with_assist
+        self.http.transcribe_wav_with_assist = fail_stt
+
+        class Request:
+            headers = {
+                "Authorization": "Bearer device-token",
+                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+                "Content-Type": "application/octet-stream",
+            }
+            app = {"hass": hass}
+
+            async def read(self):
+                return b"RIFFxxxxWAVEdata"
+
+        try:
+            response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+        finally:
+            self.http.transcribe_wav_with_assist = original_transcribe
+
+        self.assertEqual(response["status_code"], 500)
+        self.assertEqual(response["payload"]["error"], "stt_failed")
+        self.assertIn("STT unavailable", response["payload"]["message"])
 
     def test_pair_view_rejects_wrong_pair_code(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
@@ -246,7 +393,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["payload"]["device_language"], "nl")
         self.assertEqual(response["payload"]["language"], "nl")
 
-    def test_status_view_includes_spotify_refresh_token_aliases(self) -> None:
+    def test_status_view_reprovisions_when_spotify_configured_false(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
 
         class Runtime:
@@ -286,7 +433,10 @@ class VoiceHttpHelperTest(unittest.TestCase):
             app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
 
             async def json(self):
-                return {"device_id": "spotifydj-device"}
+                return {
+                    "device_id": "spotifydj-device",
+                    "spotify_configured": False,
+                }
 
         response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
 
@@ -294,6 +444,231 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["payload"]["refresh_token"], "refresh-token")
         self.assertEqual(response["payload"]["spotify_refresh_token"], "refresh-token")
         self.assertEqual(response["payload"]["spotify"]["refresh_token"], "refresh-token")
+
+    def test_status_view_prefers_current_spotify_credentials(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            ota_in_progress = False
+            ota_last_error = None
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def mqtt_payload(self):
+                return {}
+
+            def spotify_payload(self):
+                return {
+                    "client_id": "client-id",
+                    "refresh_token": "stale-token",
+                    "spotify_refresh_token": "stale-token",
+                }
+
+            def get_current_spotify_credentials(self):
+                return {
+                    "client_id": "client-id",
+                    "refresh_token": "rotated-token",
+                    "spotify_client_id": "client-id",
+                    "spotify_refresh_token": "rotated-token",
+                }
+
+            def device_language(self):
+                return "en"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": Runtime()}})}
+
+            async def json(self):
+                return {
+                    "device_id": "spotifydj-device",
+                    "spotify_configured": False,
+                }
+
+        response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertEqual(response["payload"]["refresh_token"], "rotated-token")
+        self.assertEqual(response["payload"]["spotify_refresh_token"], "rotated-token")
+
+    def test_status_view_reprovision_log_does_not_include_token(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            ota_in_progress = False
+            ota_last_error = None
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def mqtt_payload(self):
+                return {}
+
+            def get_current_spotify_credentials(self):
+                return {
+                    "client_id": "client-id",
+                    "refresh_token": "secret-refresh-token",
+                    "spotify_client_id": "client-id",
+                    "spotify_refresh_token": "secret-refresh-token",
+                }
+
+            def device_language(self):
+                return "en"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": Runtime()}})}
+
+            async def json(self):
+                return {
+                    "device_id": "spotifydj-device",
+                    "spotify_configured": False,
+                }
+
+        with self.assertLogs(self.http._LOGGER, level="DEBUG") as captured:
+            response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
+
+        log_output = "\n".join(captured.output)
+        self.assertEqual(response["status_code"], 200)
+        self.assertIn("spotify_configured=False", log_output)
+        self.assertIn("reprovision=True", log_output)
+        self.assertNotIn("secret-refresh-token", log_output)
+
+    def test_status_view_omits_spotify_when_configured_true(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            ota_in_progress = False
+            ota_last_error = None
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def mqtt_payload(self):
+                return {}
+
+            def spotify_payload(self):
+                return {
+                    "client_id": "client-id",
+                    "refresh_token": "refresh-token",
+                    "spotify_client_id": "client-id",
+                    "spotify_refresh_token": "refresh-token",
+                }
+
+            def device_language(self):
+                return "en"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
+
+            async def json(self):
+                return {
+                    "device_id": "spotifydj-device",
+                    "spotify_configured": True,
+                }
+
+        response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertNotIn("spotify", response["payload"])
+        self.assertNotIn("spotify_refresh_token", response["payload"])
+
+    def test_status_view_handles_missing_spotify_config_without_empty_tokens(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            ota_in_progress = False
+            ota_last_error = None
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def mqtt_payload(self):
+                return {}
+
+            def spotify_payload(self):
+                return {}
+
+            def device_language(self):
+                return "en"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": Runtime()}})}
+
+            async def json(self):
+                return {
+                    "device_id": "spotifydj-device",
+                    "spotify_configured": False,
+                }
+
+        response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertNotIn("spotify", response["payload"])
+        self.assertNotIn("spotify_refresh_token", response["payload"])
+
+    def test_store_rotated_spotify_refresh_token_persists_without_logging_secret(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+        updates = []
+
+        class ConfigEntries:
+            def async_update_entry(self, entry, *, data):
+                updates.append(data)
+                entry.data = data
+
+        class Runtime:
+            latest_spotify_refresh_token = "old-token"
+
+            def update_spotify_refresh_token(self, token):
+                self.latest_spotify_refresh_token = token
+                return True
+
+        entry = types.SimpleNamespace(
+            data={const.CONF_SPOTIFY_REFRESH_TOKEN: "old-token"}
+        )
+        hass = types.SimpleNamespace(config_entries=ConfigEntries())
+
+        with self.assertLogs(self.http._LOGGER, level="DEBUG") as captured:
+            changed = self.http._store_rotated_spotify_refresh_token(
+                hass,
+                entry,
+                Runtime(),
+                "new-secret-token",
+            )
+
+        self.assertTrue(changed)
+        self.assertEqual(updates[0][const.CONF_SPOTIFY_REFRESH_TOKEN], "new-secret-token")
+        self.assertIn("refresh_token=rotated", "\n".join(captured.output))
+        self.assertNotIn("new-secret-token", "\n".join(captured.output))
 
     def test_tts_view_returns_audio_for_valid_token(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")

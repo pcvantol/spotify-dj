@@ -137,6 +137,23 @@ class TtsHelperTest(unittest.TestCase):
         self.assertEqual(payload["market"], "NL")
         self.assertEqual(payload["scopes"], ["scope-a", "scope-b"])
 
+    def test_spotify_payload_uses_latest_rotated_refresh_token(self) -> None:
+        entry = types.SimpleNamespace(
+            data={
+                self.const.CONF_SPOTIFY_CLIENT_ID: "client-id",
+                self.const.CONF_SPOTIFY_REFRESH_TOKEN: "old-token",
+                self.const.CONF_SPOTIFY_MARKET: "NL",
+            },
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime.latest_spotify_refresh_token = "new-token"
+
+        payload = runtime.get_current_spotify_credentials()
+
+        self.assertEqual(payload["refresh_token"], "new-token")
+        self.assertEqual(payload["spotify_refresh_token"], "new-token")
+
     def test_pair_device_payload_includes_spotify_credentials_when_available(self) -> None:
         class Response:
             status = 200
@@ -169,6 +186,7 @@ class TtsHelperTest(unittest.TestCase):
             options={},
         )
         runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime.latest_spotify_refresh_token = "rotated-token"
         runtime.device_status["local_url"] = "http://spotifydj.local"
         session = Session()
         original_session = self.integration.async_get_clientsession
@@ -182,10 +200,10 @@ class TtsHelperTest(unittest.TestCase):
         payload = session.calls[0]["json"]
         self.assertEqual(payload["device_language"], "nl")
         self.assertEqual(payload["language"], "nl")
-        self.assertEqual(payload["spotify"]["refresh_token"], "refresh-token")
-        self.assertEqual(payload["spotify"]["spotify_refresh_token"], "refresh-token")
-        self.assertEqual(payload["refresh_token"], "refresh-token")
-        self.assertEqual(payload["spotify_refresh_token"], "refresh-token")
+        self.assertEqual(payload["spotify"]["refresh_token"], "rotated-token")
+        self.assertEqual(payload["spotify"]["spotify_refresh_token"], "rotated-token")
+        self.assertEqual(payload["refresh_token"], "rotated-token")
+        self.assertEqual(payload["spotify_refresh_token"], "rotated-token")
 
     def test_start_ota_payload_uses_manifest_device_target(self) -> None:
         class Response:
