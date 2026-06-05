@@ -261,11 +261,8 @@ class ConfigFlowHelperTest(unittest.TestCase):
             "http://spotifydj-90B70990A994.local",
         )
 
-    def test_default_local_url_accepts_pair_code_or_device_suffix(self) -> None:
-        self.assertEqual(
-            self.config_flow._default_local_url("123456"),
-            "http://spotifydj-123456.local",
-        )
+    def test_default_local_url_accepts_only_device_suffix(self) -> None:
+        self.assertEqual(self.config_flow._default_local_url("123456"), "")
         self.assertEqual(
             self.config_flow._default_local_url("90B70990A994"),
             "http://spotifydj-90B70990A994.local",

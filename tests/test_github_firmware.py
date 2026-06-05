@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import asyncio
+import json
 from pathlib import Path
 import sys
 import types
@@ -96,6 +97,9 @@ class GithubFirmwareTest(unittest.TestCase):
             async def json(self):
                 return self.payload
 
+            async def text(self):
+                return json.dumps(self.payload)
+
             def raise_for_status(self):
                 return None
 
@@ -150,6 +154,32 @@ class GithubFirmwareTest(unittest.TestCase):
     def test_manifest_size_normalization(self) -> None:
         self.assertEqual(self.github._manifest_size("2113136"), 2113136)
         self.assertIsNone(self.github._manifest_size("not-a-number"))
+
+    def test_fetch_manifest_parses_json_from_octet_stream_text(self) -> None:
+        class Response:
+            ok = True
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def text(self):
+                return '{"device": "lilygo-t-embed-s3"}'
+
+        class Session:
+            def get(self, url, **kwargs):
+                return Response()
+
+        manifest = asyncio.run(
+            self.github._fetch_manifest(
+                Session(),
+                {"browser_download_url": "https://example/firmware_manifest.json"},
+            )
+        )
+
+        self.assertEqual(manifest["device"], "lilygo-t-embed-s3")
 
     def test_missing_manifest_device_falls_back_to_default_target(self) -> None:
         release = self.github.FirmwareRelease(

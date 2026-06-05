@@ -144,9 +144,9 @@ def _ha_device_language(hass: Any) -> str:
 
 
 def _default_local_url(pair_code: str | None) -> str:
-    """Return the expected mDNS URL derived from the device pairing code."""
+    """Return an mDNS URL only when the input is the device ID suffix."""
     normalized = str(pair_code or "").strip()
-    if not PAIR_CODE_PATTERN.fullmatch(normalized):
+    if not re.fullmatch(r"[0-9A-Fa-f]{12}", normalized):
         return ""
     return f"http://spotifydj-{normalized}.local"
 

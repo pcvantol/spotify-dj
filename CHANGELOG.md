@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.7.1
+## 2.7.2
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -37,3 +37,5 @@
 - Accept 12-character device suffixes in the config flow and use the resulting `spotifydj-[device-suffix].local` mDNS fallback.
 - Align OTA discovery with firmware assets named `spotifydj-device-vX.Y.Z.bin` and manifests named `firmware_manifest.json`.
 - Use the firmware manifest `device` value, such as `lilygo-t-embed-s3`, as the ESP OTA target instead of the generic asset prefix.
+- Parse GitHub firmware manifests even when release assets are served as `application/octet-stream`.
+- Ignore obsolete `spotifydj-[6-digit-code].local` fallbacks so provisioning can use the real device-reported `spotifydj-[device-suffix].local` URL.

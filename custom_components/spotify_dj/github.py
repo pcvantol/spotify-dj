@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import re
 from dataclasses import dataclass
@@ -100,7 +101,7 @@ async def fetch_latest_firmware_release(
     sha256 = manifest.get("sha256") or await _fetch_sha256(session, assets.sha256)
     target_device = manifest.get("device") or device
     if not manifest.get("device"):
-        _LOGGER.warning(
+        _LOGGER.debug(
             "SpotifyDJ firmware manifest for %s has no device target; using fallback %s",
             version,
             target_device,
@@ -165,7 +166,12 @@ async def _fetch_manifest(session: Any, asset: dict[str, Any] | None) -> dict[st
             asset["browser_download_url"],
             timeout=ClientTimeout(total=15),
         ) as resp:
-            return await resp.json() if resp.ok else {}
+            if not resp.ok:
+                return {}
+            return json.loads(await resp.text())
+    except json.JSONDecodeError as exc:
+        _LOGGER.warning("SpotifyDJ firmware manifest is not valid JSON: %s", exc)
+        return {}
     except Exception as exc:  # noqa: BLE001
         _LOGGER.warning("SpotifyDJ could not read firmware manifest: %s", exc)
         return {}

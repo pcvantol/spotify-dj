@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import secrets
 from dataclasses import dataclass, field
 from typing import Any
@@ -114,14 +115,17 @@ class SpotifyDJRuntime:
             or self.config.get(CONF_LOCAL_URL)
         )
         if local_url:
-            return str(local_url)
+            local_url = str(local_url)
+            if not _is_pair_code_mdns_url(local_url):
+                return local_url
+            _LOGGER.debug("SpotifyDJ ignoring pair-code based mDNS URL: %s", local_url)
         discovered_url = await async_discover_device_url(hass, self)
         if discovered_url:
             self.device_status["local_url"] = discovered_url
             return discovered_url
         device_id = self.device_status.get("device_id") or self.pairing_device_id
         device_id = device_id or self.config.get(CONF_DEVICE_ID)
-        return f"http://{device_id}.local" if device_id else None
+        return _device_id_mdns_fallback_url(device_id)
 
     def device_headers(self, *, include_device_id: bool = True) -> dict[str, str]:
         """Build headers for authenticated ESP requests."""
@@ -366,6 +370,19 @@ def _runtime_device_id(runtime: SpotifyDJRuntime) -> str:
         or runtime.config.get(CONF_DEVICE_ID)
         or ""
     ).strip()
+
+
+def _device_id_mdns_fallback_url(device_id: Any) -> str | None:
+    """Return a fallback URL only for real SpotifyDJ device IDs."""
+    normalized = str(device_id or "").strip()
+    if re.fullmatch(r"spotifydj-[0-9A-Fa-f]{12}", normalized):
+        return f"http://{normalized}.local"
+    return None
+
+
+def _is_pair_code_mdns_url(value: str) -> bool:
+    """Detect obsolete fallback URLs created from short setup pair codes."""
+    return bool(re.fullmatch(r"https?://spotifydj-\d{6}\.local/?", value.strip()))
 
 
 def _url_from_service_info(info: Any, runtime: SpotifyDJRuntime) -> str | None:

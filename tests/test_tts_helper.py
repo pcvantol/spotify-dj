@@ -25,9 +25,21 @@ def install_integration_stubs() -> None:
         "homeassistant.helpers",
         types.ModuleType("homeassistant.helpers"),
     )
+    components = sys.modules.setdefault(
+        "homeassistant.components",
+        types.ModuleType("homeassistant.components"),
+    )
+    http = sys.modules.setdefault(
+        "homeassistant.components.http",
+        types.ModuleType("homeassistant.components.http"),
+    )
     aiohttp_client = sys.modules.setdefault(
         "homeassistant.helpers.aiohttp_client",
         types.ModuleType("homeassistant.helpers.aiohttp_client"),
+    )
+    issue_registry = sys.modules.setdefault(
+        "homeassistant.helpers.issue_registry",
+        types.ModuleType("homeassistant.helpers.issue_registry"),
     )
     typing = sys.modules.setdefault(
         "homeassistant.helpers.typing",
@@ -39,13 +51,32 @@ def install_integration_stubs() -> None:
             self.args = args
             self.kwargs = kwargs
 
+    class HomeAssistantView:
+        def json(self, payload, status_code=200):
+            return {"payload": payload, "status_code": status_code}
+
+    class Response:
+        def __init__(self, *, status=200, text=None, body=None, content_type=None, headers=None):
+            self.status = status
+            self.text = text
+            self.body = body
+            self.content_type = content_type
+            self.headers = headers or {}
+
     sys.modules.setdefault("homeassistant", types.ModuleType("homeassistant"))
     aiohttp.ClientTimeout = ClientTimeout
+    aiohttp.web = getattr(aiohttp, "web", types.SimpleNamespace())
     config_entries.ConfigEntry = object
     core.HomeAssistant = object
     core.ServiceCall = object
+    http.HomeAssistantView = HomeAssistantView
     aiohttp_client.async_get_clientsession = lambda hass: None
+    issue_registry.IssueSeverity = types.SimpleNamespace(WARNING="warning")
+    issue_registry.async_create_issue = lambda *args, **kwargs: None
+    helpers.issue_registry = issue_registry
     typing.ConfigType = dict
+    aiohttp.web = types.SimpleNamespace(Response=Response)
+    sys.modules["homeassistant"].components = components
 
 
 class TtsHelperTest(unittest.TestCase):
@@ -316,14 +347,39 @@ class TtsHelperTest(unittest.TestCase):
 
     def test_device_local_url_falls_back_to_mdns_hostname(self) -> None:
         entry = types.SimpleNamespace(
-            data={self.const.CONF_DEVICE_ID: "spotifydj-123456"},
+            data={self.const.CONF_DEVICE_ID: "spotifydj-90B70990A994"},
             options={},
         )
         runtime = self.integration.SpotifyDJRuntime(entry=entry)
 
         url = asyncio.run(runtime.async_device_local_url(hass=object()))
 
-        self.assertEqual(url, "http://spotifydj-123456.local")
+        self.assertEqual(url, "http://spotifydj-90B70990A994.local")
+
+    def test_device_local_url_does_not_fallback_to_pair_code_hostname(self) -> None:
+        entry = types.SimpleNamespace(
+            data={self.const.CONF_DEVICE_ID: "spotifydj-981032"},
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+
+        url = asyncio.run(runtime.async_device_local_url(hass=object()))
+
+        self.assertIsNone(url)
+
+    def test_device_local_url_ignores_stored_pair_code_hostname(self) -> None:
+        entry = types.SimpleNamespace(
+            data={
+                self.const.CONF_DEVICE_ID: "spotifydj-981032",
+                self.const.CONF_LOCAL_URL: "http://spotifydj-981032.local",
+            },
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+
+        url = asyncio.run(runtime.async_device_local_url(hass=object()))
+
+        self.assertIsNone(url)
 
     def test_tts_audio_store_returns_wav_and_unknown_404(self) -> None:
         hass = types.SimpleNamespace(data={})
