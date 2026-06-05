@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 
 ## Current Version
 
-- Home Assistant integration: `2.5.0`
+- Home Assistant integration: `2.5.1`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: SpotifyDJ device
@@ -30,6 +30,24 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 - Track device status, battery, Wi-Fi RSSI, firmware version, and last track.
 - Manage firmware updates through a Home Assistant update entity.
 - Provide diagnostics with sensitive values redacted.
+
+## Architecture Decisions
+
+SpotifyDJ intentionally separates Home Assistant orchestration from firmware
+runtime behavior. These decisions are part of the integration contract:
+
+- **HA-native Assist**: microphone audio is not transcribed by this integration. The ESP firmware uses Home Assistant's official Assist websocket API for STT and sends recognized text to `POST /api/spotify_dj/voice` with `X-SpotifyDJ-Text`.
+- **No direct external AI/STT/TTS APIs**: active Home Assistant routes use HA Assist and HA TTS only. OpenAI or other direct external AI/STT/TTS clients are not part of the active voice path.
+- **Device speaker for DJ responses**: DJ responses are not played through Spotify Connect or a Home Assistant media player. Home Assistant creates a temporary PCM WAV URL when possible and posts `text` plus optional `audio_url` to the ESP endpoint `/api/device/dj_response`.
+- **ESP owns Spotify runtime playback**: Home Assistant provisions Spotify OAuth metadata, pairing data and optional MQTT settings. The SpotifyDJ device can continue using Spotify APIs independently after provisioning.
+- **OAuth through Home Assistant external step**: Spotify OAuth uses PKCE and the Home Assistant external step flow. The callback remains `/api/spotify_dj/spotify/callback`, with Nabu Casa HTTPS URLs preferred.
+- **Pairing over WiFi, BLE only for WiFi credentials**: BLE provisioning writes only WiFi SSID/password to setup-mode devices. Spotify credentials, MQTT credentials and device tokens are never sent over BLE.
+- **mDNS first, manual URL as fallback**: the manual device URL is hidden from normal users. Setup stores `http://spotifydj-<pair-code>.local` as a fallback, while runtime prefers device-reported `local_url` and `_spotifydj._tcp` mDNS discovery.
+- **Advanced-only operational overrides**: firmware repository settings, firmware channel, MQTT settings, Spotify source override, max audio bytes and OTA battery settings are advanced options to keep normal setup small.
+- **Single Home Assistant device**: sensors, button and update entities share one stable device identifier so Home Assistant shows one SpotifyDJ device instead of duplicate device entries.
+- **Closed firmware, free integration**: firmware source remains proprietary. The Home Assistant integration is distributed separately under MIT for use with SpotifyDJ devices.
+- **No secrets in diagnostics/logs**: diagnostics redact keys containing `token`, `password` or `secret`; logs avoid full ESP payloads and do not intentionally log Spotify refresh tokens, MQTT passwords or device tokens.
+- **Trademark clarity**: Spotify is a trademark of Spotify AB. SpotifyDJ does not claim affiliation, endorsement or sponsorship by Spotify AB.
 
 ## Repository Layout
 
@@ -363,11 +381,11 @@ Example manifest:
 
 ```json
 {
-  "version": "2.5.0",
+  "version": "2.5.1",
   "device": "spotifydj-device",
-  "asset": "spotifydj-device-v2.5.0.bin",
+  "asset": "spotifydj-device-v2.5.1.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-  "min_ha_integration": "2.5.0"
+  "min_ha_integration": "2.5.1"
 }
 ```
 
@@ -376,7 +394,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 2.5.0
+./release.sh 2.5.1
 ```
 
 In the private `spotify-dj-app` repository, the firmware release script should
@@ -387,7 +405,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 2.5.0 --dry-run
+./release.sh 2.5.1 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -443,11 +461,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v2.5.0"
-git tag v2.5.0
+git commit -m "Release SpotifyDJ v2.5.1"
+git tag v2.5.1
 git push origin main
-git push origin v2.5.0
-gh release create v2.5.0 --title "SpotifyDJ v2.5.0" --notes-file CHANGELOG.md
+git push origin v2.5.1
+gh release create v2.5.1 --title "SpotifyDJ v2.5.1" --notes-file CHANGELOG.md
 ```
 
 Home Assistant / HACS verification:

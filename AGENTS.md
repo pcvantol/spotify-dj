@@ -14,6 +14,20 @@ Belangrijke repos:
 - ESP firmware source: github.com/pcvantol/spotify-dj-app
 - Public firmware releases: github.com/pcvantol/spotify-dj-firmware
 
+Architectuur beslissingen:
+- HA integration orchestreert pairing, OAuth, OTA, status, Assist/TTS en provisioning; ESP firmware blijft eigenaar van device runtime/audio/UI.
+- ESP gebruikt officiële HA Assist websocket API voor STT en stuurt alleen herkende tekst naar `POST /api/spotify_dj/voice` met `X-SpotifyDJ-Text`.
+- Actieve HA routes gebruiken geen directe externe AI/STT/TTS APIs; gebruik HA Assist en HA TTS.
+- DJ responses spelen op het SpotifyDJ device af, niet via Spotify Connect of HA media_player; HA post `text` plus optionele tijdelijke PCM WAV `audio_url` naar `/api/device/dj_response`.
+- Spotify OAuth loopt via HA external step met PKCE; geen handmatig `oauth_result` veld.
+- BLE provisioning doet alleen WiFi SSID/password; geen Spotify credentials, MQTT credentials of device tokens via BLE.
+- Runtime discovery prefereert device-reported `local_url` en `_spotifydj._tcp` mDNS; setup mag `http://spotifydj-<koppelcode>.local` als fallback opslaan.
+- Normale config-flow blijft klein; operationele overrides zoals MQTT, firmware repo/channel, Spotify source, max audio bytes en OTA battery settings blijven advanced.
+- Alle entities horen onder één HA device met één stabiele device identifier.
+- Firmware source blijft proprietary; HA integration blijft gratis MIT-licensed.
+- Geen secrets in diagnostics/logs; redactie voor keys met `token`, `password` of `secret`.
+- Spotify trademark/non-affiliation notice blijft zichtbaar in docs/UI/diagnostics.
+
 Licentie/commercieel:
 - HA integration blijft gratis en MIT-licensed via `LICENSE`.
 - ESP firmware source blijft closed source tenzij expliciet anders afgesproken.
@@ -33,7 +47,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.5.0`.
+- Actuele integratieversie: `2.5.1`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
