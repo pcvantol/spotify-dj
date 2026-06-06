@@ -168,6 +168,8 @@ class ConfigFlowHelperTest(unittest.TestCase):
         }
 
         self.assertTrue(advanced_only.isdisjoint(basic_keys))
+        self.assertIn(self.const.CONF_STT_ENGINE, basic_keys)
+        self.assertIn(self.const.CONF_TTS_ENGINE, basic_keys)
         self.assertTrue(advanced_only.issubset(advanced_keys))
         self.assertIn(self.const.CONF_DJ_RESPONSE_ENABLED, basic_keys)
 

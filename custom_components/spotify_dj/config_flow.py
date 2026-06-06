@@ -337,6 +337,7 @@ def _base_voice_schema(
     player_options: dict[str, str],
 ) -> dict[Any, Any]:
     """Build the non-advanced voice settings schema."""
+    stt_validator = vol.In(stt_options) if len(stt_options) > 1 else str
     voice_validator = vol.In(tts_voice_options) if len(tts_voice_options) > 1 else str
     player_default = defaults.get(CONF_SPOTIFY_PLAYER, "")
     return {
@@ -344,7 +345,7 @@ def _base_voice_schema(
             CONF_ASSIST_PIPELINE_ID,
             default=defaults.get(CONF_ASSIST_PIPELINE_ID, ""),
         ): vol.In(assist_options),
-        vol.Optional(CONF_STT_ENGINE, default=stt_engine): vol.In(stt_options),
+        vol.Optional(CONF_STT_ENGINE, default=stt_engine): stt_validator,
         vol.Optional(CONF_TTS_ENGINE, default=tts_engine): vol.In(tts_options),
         vol.Optional(
             CONF_TTS_LANGUAGE,
