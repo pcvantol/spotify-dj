@@ -56,6 +56,8 @@ class SttInfo:
     audio_format: str
     sample_rate: int
     channels: int
+    sample_width: int
+    byte_length: int
 
 
 async def transcribe_wav_with_assist(
@@ -72,10 +74,10 @@ async def transcribe_wav_with_assist(
         return _require_text(result)
 
     info = _resolve_stt_info(hass, wav, conf)
-    _LOGGER.debug(
+    _LOGGER.info(
         "SpotifyDJ STT request: ha_version=%s pipeline_id=%s pipeline_name=%s "
         "language=%s stt_engine=%s stt_available=%s audio_format=%s "
-        "sample_rate=%s channels=%s",
+        "sample_rate=%s channels=%s sample_width=%s bytes=%s",
         info.ha_version,
         info.pipeline_id,
         info.pipeline_name,
@@ -85,6 +87,8 @@ async def transcribe_wav_with_assist(
         info.audio_format,
         info.sample_rate,
         info.channels,
+        info.sample_width,
+        info.byte_length,
     )
     if not info.engine:
         return await _transcribe_with_assist_pipeline(hass, wav, info)
@@ -102,7 +106,14 @@ async def transcribe_wav_with_assist(
         _audio_chunks(wav),
         info.engine,
     )
-    return _require_text(_text_from_stt_result(result))
+    text = _text_from_stt_result(result)
+    _LOGGER.info(
+        "SpotifyDJ STT provider result: type=%s state=%s has_text=%s",
+        type(result).__name__,
+        _result_state(result),
+        bool(text),
+    )
+    return _require_text(text)
 
 
 async def _transcribe_with_assist_pipeline(
@@ -124,7 +135,7 @@ async def _transcribe_with_assist_pipeline(
     async def event_callback(event: Any) -> None:
         events.append(event)
 
-    _LOGGER.debug(
+    _LOGGER.info(
         "SpotifyDJ STT fallback: using HA Assist audio pipeline helper "
         "pipeline_id=%s language=%s audio_format=%s",
         info.pipeline_id,
@@ -143,12 +154,20 @@ async def _transcribe_with_assist_pipeline(
             end_stage=PipelineStage.STT,
         )
     except Exception as exc:  # noqa: BLE001
+        _LOGGER.warning("SpotifyDJ STT fallback pipeline run failed: %s", exc)
         message = str(exc)
         if "speech-to-text" in message or "does not support" in message:
             raise SpotifyDJNoSttProviderError(_no_stt_provider_message()) from exc
         raise SpotifyDJSttError(f"HA Assist STT failed: {message}") from exc
 
-    return _require_text(_text_from_pipeline_events(events))
+    text = _text_from_pipeline_events(events)
+    _LOGGER.info(
+        "SpotifyDJ Assist pipeline STT events: count=%s types=%s has_text=%s",
+        len(events),
+        _event_types(events),
+        bool(text),
+    )
+    return _require_text(text)
 
 
 def detect_stt_support(hass: HomeAssistant, conf: dict[str, Any]) -> dict[str, Any]:
@@ -177,14 +196,14 @@ def _resolve_stt_info(
     wav: bytes,
     conf: dict[str, Any],
 ) -> SttInfo:
-    sample_rate, channels, _sample_width = _wav_parameters(wav)
+    sample_rate, channels, sample_width = _wav_parameters(wav)
     pipeline_id = str(conf.get(CONF_ASSIST_PIPELINE_ID) or "").strip() or None
     language = str(conf.get(CONF_TTS_LANGUAGE) or DEFAULT_TTS_LANGUAGE)
     engine = _selected_stt_engine(conf)
     pipeline_name = None
     pipeline = None if engine else _get_assist_pipeline(hass, pipeline_id)
     if engine:
-        _LOGGER.debug(
+        _LOGGER.info(
             "SpotifyDJ STT provider selected from integration options: %s",
             engine,
         )
@@ -211,7 +230,7 @@ def _resolve_stt_info(
         engine = _first_stt_entity(hass)
         if engine:
             pipeline_name = pipeline_name or "Home Assistant STT entity fallback"
-            _LOGGER.debug(
+            _LOGGER.info(
                 "SpotifyDJ STT provider selected from HA stt entity fallback: %s",
                 engine,
             )
@@ -224,6 +243,8 @@ def _resolve_stt_info(
         audio_format="wav",
         sample_rate=sample_rate,
         channels=channels,
+        sample_width=sample_width,
+        byte_length=len(wav),
     )
 
 
@@ -248,7 +269,7 @@ def _get_assist_pipeline(hass: HomeAssistant, pipeline_id: str | None) -> Any | 
 
         pipelines = async_get_pipelines(hass)
     except Exception as exc:  # noqa: BLE001
-        _LOGGER.debug("SpotifyDJ Assist pipeline registry unavailable: %s", exc)
+        _LOGGER.warning("SpotifyDJ Assist pipeline registry unavailable: %s", exc)
         return None
 
     available = _pipeline_list(pipelines)
@@ -270,7 +291,7 @@ def _get_assist_pipeline(hass: HomeAssistant, pipeline_id: str | None) -> Any | 
             if preferred is not None and _pipeline_has_stt(preferred):
                 return preferred
         except Exception:  # noqa: BLE001
-            _LOGGER.debug("SpotifyDJ preferred Assist pipeline lookup failed")
+            _LOGGER.warning("SpotifyDJ preferred Assist pipeline lookup failed")
     current = getattr(pipelines, "preferred_pipeline", None) or getattr(
         pipelines,
         "current_pipeline",
@@ -467,6 +488,14 @@ def _text_from_stt_result(result: Any) -> str:
     return ""
 
 
+def _result_state(result: Any) -> str | None:
+    if isinstance(result, dict):
+        state = result.get("state")
+    else:
+        state = getattr(result, "state", None)
+    return str(state) if state is not None else None
+
+
 def _text_from_pipeline_events(events: list[Any]) -> str:
     for event in reversed(events):
         data = _event_data(event)
@@ -481,6 +510,17 @@ def _text_from_pipeline_events(events: list[Any]) -> str:
         if text:
             return str(text).strip()
     return ""
+
+
+def _event_types(events: list[Any]) -> list[str]:
+    values: list[str] = []
+    for event in events:
+        if isinstance(event, dict):
+            event_type = event.get("type")
+        else:
+            event_type = getattr(event, "type", None)
+        values.append(str(event_type) if event_type is not None else type(event).__name__)
+    return values
 
 
 def _event_data(event: Any) -> dict[str, Any]:

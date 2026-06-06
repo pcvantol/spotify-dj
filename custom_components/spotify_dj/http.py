@@ -430,7 +430,7 @@ class SpotifyDJVoiceView(HomeAssistantView):
                 entry = getattr(runtime, "entry", None)
                 stt_key, stt_value = _first_config_value(runtime.config, STT_OPTION_KEYS)
                 tts_key, tts_value = _first_config_value(runtime.config, ("tts_engine",))
-                _LOGGER.debug(
+                _LOGGER.info(
                     "SpotifyDJ WAV voice request: entry_id=%s options_keys=%s "
                     "data_keys=%s stt_provider=%s:%s tts_provider=%s:%s "
                     "content_type=%s body_bytes=%s",

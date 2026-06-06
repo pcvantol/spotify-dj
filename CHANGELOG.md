@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.8
+## 2.9.9
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -56,3 +56,5 @@
 - Fall back to the first Home Assistant `stt.*` entity, such as `stt.openai_stt`, when no explicit STT option or pipeline provider is resolved.
 - Use Home Assistant's official Assist audio pipeline helper as a final STT fallback before returning 503.
 - Call Home Assistant STT engines through `async_get_speech_to_text_engine` instead of a non-existent module-level stream helper.
+- Promote SpotifyDJ WAV/STT/Assist route diagnostics to normal logs while keeping secrets and audio bodies out of logs.
+- Add STT result diagnostics for provider result type/state, Assist event types and WAV metadata without logging transcripts or audio.

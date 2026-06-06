@@ -772,6 +772,20 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(calls[0]["start_stage"], "stt")
         self.assertEqual(calls[0]["end_stage"], "stt")
 
+    def test_stt_diagnostic_helpers_do_not_log_text(self) -> None:
+        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+
+        events = [
+            {"type": "stt-start", "data": {}},
+            {"type": "stt-end", "data": {"stt_output": {"text": "secret words"}}},
+        ]
+        result = types.SimpleNamespace(state="success", text="secret words")
+
+        self.assertEqual(assist_stt._event_types(events), ["stt-start", "stt-end"])
+        self.assertEqual(assist_stt._result_state(result), "success")
+        self.assertNotIn("secret words", repr(assist_stt._event_types(events)))
+        self.assertNotIn("secret words", str(assist_stt._result_state(result)))
+
     def test_transcribe_wav_finds_default_cloud_stt_pipeline(self) -> None:
         assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
         stt_module = types.ModuleType("homeassistant.components.stt")
