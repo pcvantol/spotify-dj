@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 
 ## Current Version
 
-- Home Assistant integration: `2.9.7`
+- Home Assistant integration: `2.9.8`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: SpotifyDJ device
@@ -413,7 +413,9 @@ preferred/default Assist pipeline such as Home Assistant Cloud STT. If a stored
 pipeline was removed, SpotifyDJ falls back to the preferred/default pipeline.
 If no pipeline STT provider can be resolved, it falls back to the first
 available Home Assistant `stt.*` entity, for example `stt.openai_stt`. As a
-final fallback it uses Home Assistant's official
+then resolves direct STT providers through Home Assistant's supported
+`stt.async_get_speech_to_text_engine` API and calls the provider audio stream
+processor. As a final fallback it uses Home Assistant's official
 `assist_pipeline.async_pipeline_from_audio_stream` helper from stage `stt` to
 `stt`, which lets Home Assistant resolve the default pipeline internally. At
 startup and for WAV uploads the integration logs the selected STT/TTS provider
@@ -457,12 +459,12 @@ Example manifest:
 
 ```json
 {
-  "version": "2.9.7",
+  "version": "2.9.8",
   "device": "lilygo-t-embed-s3",
-  "asset": "spotifydj-device-v2.9.7.bin",
+  "asset": "spotifydj-device-v2.9.8.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "2.9.7"
+  "min_ha_integration": "2.9.8"
 }
 ```
 
@@ -477,7 +479,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 2.9.7
+./release.sh 2.9.8
 ```
 
 In the private `spotify-dj-app` repository, the firmware release script should
@@ -488,7 +490,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 2.9.7 --dry-run
+./release.sh 2.9.8 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -544,11 +546,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v2.9.7"
-git tag v2.9.7
+git commit -m "Release SpotifyDJ v2.9.8"
+git tag v2.9.8
 git push origin main
-git push origin v2.9.7
-gh release create v2.9.7 --title "SpotifyDJ v2.9.7" --notes-file CHANGELOG.md
+git push origin v2.9.8
+gh release create v2.9.8 --title "SpotifyDJ v2.9.8" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

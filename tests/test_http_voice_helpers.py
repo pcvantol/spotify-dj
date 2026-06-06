@@ -612,6 +612,57 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(text, "Speel via OpenAI")
         self.assertEqual(calls, ["openai"])
 
+    def test_transcribe_wav_uses_real_ha_stt_engine_provider_pattern(self) -> None:
+        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        stt_module = types.ModuleType("homeassistant.components.stt")
+        pipeline_module = types.ModuleType(
+            "homeassistant.components.assist_pipeline.pipeline"
+        )
+        calls = []
+
+        class SpeechMetadata:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        class AudioFormats:
+            WAV = "wav"
+
+        class AudioCodecs:
+            PCM = "pcm"
+
+        class Provider:
+            def check_metadata(self, metadata):
+                return metadata.kwargs["format"] == "wav"
+
+            async def internal_async_process_audio_stream(self, metadata, stream):
+                chunks = []
+                async for chunk in stream:
+                    chunks.append(chunk)
+                calls.append((metadata.kwargs["language"], b"".join(chunks)))
+                return types.SimpleNamespace(text="Real HA provider text")
+
+        stt_module.SpeechMetadata = SpeechMetadata
+        stt_module.AudioFormats = AudioFormats
+        stt_module.AudioCodecs = AudioCodecs
+        stt_module.async_get_speech_to_text_engine = (
+            lambda hass, engine: Provider() if engine == "stt.openai_stt" else None
+        )
+        pipeline_module.async_get_pipelines = lambda hass: []
+        originals = self._install_stt_modules(stt_module, pipeline_module)
+        try:
+            text = asyncio.run(
+                assist_stt.transcribe_wav_with_assist(
+                    types.SimpleNamespace(data={}),
+                    b"RIFFxxxxWAVEdata",
+                    {"stt_engine": "stt.openai_stt"},
+                )
+            )
+        finally:
+            self._restore_modules(originals)
+
+        self.assertEqual(text, "Real HA provider text")
+        self.assertEqual(calls, [("nl-NL", b"RIFFxxxxWAVEdata")])
+
     def test_transcribe_wav_falls_back_to_first_stt_entity(self) -> None:
         assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
         stt_module = types.ModuleType("homeassistant.components.stt")

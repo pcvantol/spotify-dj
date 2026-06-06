@@ -94,13 +94,9 @@ async def transcribe_wav_with_assist(
     except Exception as exc:  # noqa: BLE001
         raise SpotifyDJNoSttProviderError(_no_stt_provider_message()) from exc
 
-    processor = getattr(stt, "async_process_audio_stream", None)
-    if processor is None:
-        raise SpotifyDJNoSttProviderError(_no_stt_provider_message())
-
     metadata = _speech_metadata(stt, info)
-    result = await _call_stt_processor(
-        processor,
+    result = await _process_with_stt_engine(
+        stt,
         hass,
         metadata,
         _audio_chunks(wav),
@@ -161,7 +157,7 @@ def detect_stt_support(hass: HomeAssistant, conf: dict[str, Any]) -> dict[str, A
     try:
         from homeassistant.components import stt
 
-        helper_available = callable(getattr(stt, "async_process_audio_stream", None))
+        helper_available = callable(getattr(stt, "async_get_speech_to_text_engine", None))
     except Exception:  # noqa: BLE001
         helper_available = False
     return {
@@ -367,7 +363,58 @@ def _speech_metadata(stt: Any, info: SttInfo) -> Any:
         }
 
 
+async def _process_with_stt_engine(
+    stt: Any,
+    hass: HomeAssistant,
+    metadata: Any,
+    stream: AsyncIterator[bytes],
+    engine: str,
+) -> Any:
+    getter = getattr(stt, "async_get_speech_to_text_engine", None)
+    if callable(getter):
+        provider = getter(hass, engine)
+        if provider is None:
+            raise SpotifyDJNoSttProviderError(f"STT provider not found: {engine}")
+        checker = getattr(provider, "check_metadata", None)
+        if callable(checker) and not checker(metadata):
+            _LOGGER.warning(
+                "SpotifyDJ STT provider %s does not support metadata %s",
+                engine,
+                metadata,
+            )
+        entity_processor = getattr(provider, "internal_async_process_audio_stream", None)
+        if callable(entity_processor):
+            return await entity_processor(metadata, stream)
+        provider_processor = getattr(provider, "async_process_audio_stream", None)
+        if callable(provider_processor):
+            return await _call_stt_processor(provider_processor, metadata, stream)
+        raise SpotifyDJNoSttProviderError(f"STT provider cannot process audio: {engine}")
+
+    legacy_processor = getattr(stt, "async_process_audio_stream", None)
+    if callable(legacy_processor):
+        return await _call_legacy_stt_processor(
+            legacy_processor,
+            hass,
+            metadata,
+            stream,
+            engine,
+        )
+
+    raise SpotifyDJNoSttProviderError(_no_stt_provider_message())
+
+
 async def _call_stt_processor(
+    processor: Any,
+    metadata: Any,
+    stream: AsyncIterator[bytes],
+) -> Any:
+    try:
+        return await processor(metadata=metadata, stream=stream)
+    except TypeError:
+        return await processor(metadata, stream)
+
+
+async def _call_legacy_stt_processor(
     processor: Any,
     hass: HomeAssistant,
     metadata: Any,
