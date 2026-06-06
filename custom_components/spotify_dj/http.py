@@ -14,7 +14,10 @@ from .const import (
     API_TTS,
     API_VOICE,
     CONF_ASSIST_PIPELINE_ID,
+    CONF_DEVICE_ID,
+    CONF_DEVICE_TOKEN,
     CONF_HA_EXTERNAL_URL,
+    CONF_LOCAL_URL,
     CONF_MAX_AUDIO_BYTES,
     CONF_PAIR_CODE,
     DOMAIN,
@@ -209,6 +212,28 @@ def _store_rotated_spotify_refresh_token(
     return changed
 
 
+def _persist_paired_device(
+    hass: Any,
+    runtime: Any,
+    device_id: str,
+    local_url: str | None,
+    device_token: str,
+) -> None:
+    """Persist ESP pairing details so HA restarts keep the real device identity."""
+    entry = getattr(runtime, "entry", None)
+    config_entries = getattr(hass, "config_entries", None)
+    updater = getattr(config_entries, "async_update_entry", None)
+    if entry is None or not callable(updater):
+        return
+    new_data = dict(getattr(entry, "data", {}) or {})
+    new_data[CONF_DEVICE_ID] = device_id
+    new_data[CONF_DEVICE_TOKEN] = device_token
+    cleaned_url = str(local_url or "").strip()
+    if cleaned_url:
+        new_data[CONF_LOCAL_URL] = cleaned_url
+    updater(entry, data=new_data)
+
+
 def _device_language(runtime: Any) -> str:
     language_getter = getattr(runtime, "device_language", None)
     if callable(language_getter):
@@ -295,6 +320,7 @@ class SpotifyDJPairView(HomeAssistantView):
             }
         )
         runtime.update(last_error=None)
+        _persist_paired_device(hass, runtime, device_id, data.get("local_url"), token)
         _LOGGER.info("SpotifyDJ paired device %s", device_id)
         response = {
             "success": True,
@@ -337,6 +363,14 @@ class SpotifyDJStatusView(HomeAssistantView):
         if not runtime.authorize_device_request(request.headers, data.get("device_id")):
             return _json_error(self, "unauthorized", 401)
         runtime.device_status.update(data)
+        if data.get("device_id") and runtime.device_token:
+            _persist_paired_device(
+                hass,
+                runtime,
+                data["device_id"],
+                data.get("local_url") or data.get("ota_url"),
+                runtime.device_token,
+            )
         spotify_configured = data.get("spotify_configured")
         # OTA lifecycle hints from ESP.
         if data.get("ota_state") in {"idle", "success", "failed"}:

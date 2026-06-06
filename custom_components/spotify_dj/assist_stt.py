@@ -365,12 +365,13 @@ def _pipeline_has_stt(pipeline: Any) -> bool:
 
 
 def _speech_metadata(stt: Any, info: SttInfo) -> Any:
+    bits_per_sample = info.sample_width * 8
     try:
         return stt.SpeechMetadata(
             language=info.language,
             format=stt.AudioFormats.WAV,
             codec=stt.AudioCodecs.PCM,
-            bit_rate=info.sample_rate * info.channels * 16,
+            bit_rate=bits_per_sample,
             sample_rate=info.sample_rate,
             channel=info.channels,
         )
@@ -379,6 +380,7 @@ def _speech_metadata(stt: Any, info: SttInfo) -> Any:
             "language": info.language,
             "format": "wav",
             "codec": "pcm",
+            "bit_rate": bits_per_sample,
             "sample_rate": info.sample_rate,
             "channel": info.channels,
         }

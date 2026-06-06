@@ -87,6 +87,7 @@ class TtsHelperTest(unittest.TestCase):
         cls.integration = importlib.import_module("custom_components.spotify_dj")
         cls.const = importlib.import_module("custom_components.spotify_dj.const")
         cls.dj_response = importlib.import_module("custom_components.spotify_dj.dj_response")
+        cls.http = importlib.import_module("custom_components.spotify_dj.http")
 
     def test_mqtt_payload_is_empty_without_host(self) -> None:
         entry = types.SimpleNamespace(data={}, options={})
@@ -153,6 +154,130 @@ class TtsHelperTest(unittest.TestCase):
 
         self.assertEqual(payload["refresh_token"], "new-token")
         self.assertEqual(payload["spotify_refresh_token"], "new-token")
+
+    def test_restore_runtime_restores_persisted_pairing_identity(self) -> None:
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={
+                self.const.CONF_DEVICE_ID: "spotifydj-90B70990A994",
+                self.const.CONF_PAIR_CODE: "981032",
+                self.const.CONF_DEVICE_TOKEN: "device-token",
+                self.const.CONF_LOCAL_URL: "http://spotifydj-90B70990A994.local",
+            },
+            options={},
+        )
+        hass = types.SimpleNamespace(data={self.const.DOMAIN: {}})
+
+        runtime = self.integration._restore_runtime(hass, entry)
+
+        self.assertEqual(runtime.device_token, "device-token")
+        self.assertEqual(runtime.pairing_device_id, "spotifydj-90B70990A994")
+        self.assertEqual(runtime.pairing_code, "981032")
+        self.assertEqual(runtime.device_status["device_id"], "spotifydj-90B70990A994")
+        self.assertEqual(
+            runtime.device_status["local_url"],
+            "http://spotifydj-90B70990A994.local",
+        )
+
+    def test_restore_runtime_ignores_obsolete_pair_code_local_url(self) -> None:
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={
+                self.const.CONF_DEVICE_ID: "spotifydj-981032",
+                self.const.CONF_DEVICE_TOKEN: "device-token",
+                self.const.CONF_LOCAL_URL: "http://spotifydj-981032.local",
+            },
+            options={},
+        )
+        hass = types.SimpleNamespace(data={self.const.DOMAIN: {}})
+
+        runtime = self.integration._restore_runtime(hass, entry)
+
+        self.assertNotIn("local_url", runtime.device_status)
+
+    def test_initial_provisioning_skips_pairing_when_device_token_exists(self) -> None:
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            pair_called = False
+            provision_called = False
+            last_error = "previous"
+
+            async def pair_device(self, hass):
+                self.pair_called = True
+
+            async def provision_spotify_credentials(self, hass):
+                self.provision_called = True
+                return {"success": True}
+
+            def update(self, **kwargs):
+                for key, value in kwargs.items():
+                    setattr(self, key, value)
+
+        runtime = Runtime()
+
+        asyncio.run(self.integration._try_initial_device_provisioning(object(), runtime))
+
+        self.assertFalse(runtime.pair_called)
+        self.assertTrue(runtime.provision_called)
+        self.assertTrue(runtime.device_status["spotify_configured"])
+        self.assertIsNone(runtime.last_error)
+
+    def test_initial_provisioning_defers_unknown_local_url_without_last_error(self) -> None:
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            last_error = None
+
+            async def pair_device(self, hass):
+                raise AssertionError("startup should not re-pair an existing device")
+
+            async def provision_spotify_credentials(self, hass):
+                raise RuntimeError("SpotifyDJ device local_url is unknown")
+
+            def update(self, **kwargs):
+                for key, value in kwargs.items():
+                    setattr(self, key, value)
+
+        runtime = Runtime()
+
+        asyncio.run(self.integration._try_initial_device_provisioning(object(), runtime))
+
+        self.assertEqual(runtime.device_status, {})
+        self.assertIsNone(runtime.last_error)
+
+    def test_persist_paired_device_updates_config_entry_data(self) -> None:
+        class ConfigEntries:
+            def __init__(self):
+                self.calls = []
+
+            def async_update_entry(self, entry, *, data):
+                self.calls.append((entry, data))
+                entry.data = data
+
+        entry = types.SimpleNamespace(data={self.const.CONF_PAIR_CODE: "981032"})
+        runtime = types.SimpleNamespace(entry=entry)
+        config_entries = ConfigEntries()
+        hass = types.SimpleNamespace(config_entries=config_entries)
+
+        self.http._persist_paired_device(
+            hass,
+            runtime,
+            "spotifydj-90B70990A994",
+            "http://spotifydj-90B70990A994.local",
+            "device-token",
+        )
+
+        self.assertEqual(config_entries.calls[0][1][self.const.CONF_PAIR_CODE], "981032")
+        self.assertEqual(
+            entry.data[self.const.CONF_DEVICE_ID],
+            "spotifydj-90B70990A994",
+        )
+        self.assertEqual(entry.data[self.const.CONF_DEVICE_TOKEN], "device-token")
+        self.assertEqual(
+            entry.data[self.const.CONF_LOCAL_URL],
+            "http://spotifydj-90B70990A994.local",
+        )
 
     def test_pair_device_payload_includes_spotify_credentials_when_available(self) -> None:
         class Response:

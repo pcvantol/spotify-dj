@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.9
+## 2.9.10
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -58,3 +58,6 @@
 - Call Home Assistant STT engines through `async_get_speech_to_text_engine` instead of a non-existent module-level stream helper.
 - Promote SpotifyDJ WAV/STT/Assist route diagnostics to normal logs while keeping secrets and audio bodies out of logs.
 - Add STT result diagnostics for provider result type/state, Assist event types and WAV metadata without logging transcripts or audio.
+- Restore persisted ESP pairing state at startup so HA keeps the real `spotifydj-XXXXXXXXXXXX` device identity and local URL after restart.
+- Skip automatic ESP re-pairing on HA startup when a device token already exists; Spotify credential provisioning now defers quietly until the paired device is reachable.
+- Persist the real device identity and reported local URL from `/api/spotify_dj/status`, allowing already-paired devices to repair old setup-code based entries automatically.

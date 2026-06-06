@@ -25,6 +25,7 @@ from .const import (
     CONF_DEVICE_ID,
     CONF_DEVICE_LANGUAGE,
     CONF_DEVICE_NAME,
+    CONF_DEVICE_TOKEN,
     CONF_HA_EXTERNAL_URL,
     CONF_LOCAL_URL,
     CONF_MQTT_HOST,
@@ -567,12 +568,20 @@ def _restore_runtime(hass: HomeAssistant, entry: ConfigEntry) -> SpotifyDJRuntim
     runtime = SpotifyDJRuntime(entry=entry)
     if entry.data.get(CONF_SPOTIFY_REFRESH_TOKEN):
         runtime.latest_spotify_refresh_token = entry.data[CONF_SPOTIFY_REFRESH_TOKEN]
-    if entry.data.get("device_token"):
-        runtime.device_token = entry.data["device_token"]
+    if entry.data.get(CONF_DEVICE_TOKEN):
+        runtime.device_token = entry.data[CONF_DEVICE_TOKEN]
         _LOGGER.debug(
             "SpotifyDJ restored existing device token for entry %s",
             entry.entry_id,
         )
+    if entry.data.get(CONF_DEVICE_ID):
+        runtime.pairing_device_id = str(entry.data[CONF_DEVICE_ID])
+        runtime.device_status["device_id"] = str(entry.data[CONF_DEVICE_ID])
+    if entry.data.get(CONF_PAIR_CODE):
+        runtime.pairing_code = str(entry.data[CONF_PAIR_CODE])
+    local_url = str(entry.data.get(CONF_LOCAL_URL) or "").strip()
+    if local_url and not _is_pair_code_mdns_url(local_url):
+        runtime.device_status["local_url"] = local_url
     hass.data[DOMAIN][entry.entry_id] = runtime
     hass.data[DOMAIN]["runtime"] = runtime
     _LOGGER.debug("SpotifyDJ runtime restored for entry %s", entry.entry_id)
@@ -585,14 +594,39 @@ async def _try_initial_device_provisioning(
 ) -> None:
     """Provision opportunistically without blocking HA startup when ESP is offline."""
     try:
-        await runtime.pair_device(hass)
+        if runtime.device_token:
+            _LOGGER.debug(
+                "SpotifyDJ startup provisioning skips pairing because device token exists"
+            )
+        else:
+            await runtime.pair_device(hass)
         await runtime.provision_spotify_credentials(hass)
         runtime.device_status["spotify_configured"] = True
         runtime.update(last_error=None)
         _LOGGER.info("SpotifyDJ Spotify credentials provisioned to device")
     except Exception as exc:  # noqa: BLE001
+        if _is_deferred_provisioning_error(exc):
+            _LOGGER.info(
+                "SpotifyDJ Spotify provisioning deferred until device is reachable: %s",
+                exc,
+            )
+            return
         runtime.update(last_error=f"Spotify provisioning failed: {exc}")
         _LOGGER.warning("SpotifyDJ Spotify provisioning deferred/failed: %s", exc)
+
+
+def _is_deferred_provisioning_error(exc: Exception) -> bool:
+    """Return true for expected startup-only ESP reachability failures."""
+    message = str(exc)
+    return any(
+        marker in message
+        for marker in (
+            "local_url is unknown",
+            "Cannot connect to host",
+            "MDNS lookup failed",
+            "Timeout while contacting DNS servers",
+        )
+    )
 
 
 def _register_developer_services(

@@ -786,6 +786,36 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertNotIn("secret words", repr(assist_stt._event_types(events)))
         self.assertNotIn("secret words", str(assist_stt._result_state(result)))
 
+    def test_stt_metadata_uses_bits_per_sample_not_stream_bitrate(self) -> None:
+        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+
+        class SpeechMetadata:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        stt_module = types.SimpleNamespace(
+            SpeechMetadata=SpeechMetadata,
+            AudioFormats=types.SimpleNamespace(WAV="wav"),
+            AudioCodecs=types.SimpleNamespace(PCM="pcm"),
+        )
+        info = assist_stt.SttInfo(
+            ha_version="test",
+            pipeline_id=None,
+            pipeline_name=None,
+            engine="stt.google_ai_stt",
+            language="nl-NL",
+            audio_format="wav",
+            sample_rate=16000,
+            channels=1,
+            sample_width=2,
+            byte_length=6700,
+        )
+
+        metadata = assist_stt._speech_metadata(stt_module, info)
+
+        self.assertEqual(metadata.kwargs["bit_rate"], 16)
+        self.assertNotEqual(metadata.kwargs["bit_rate"], 256000)
+
     def test_transcribe_wav_finds_default_cloud_stt_pipeline(self) -> None:
         assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
         stt_module = types.ModuleType("homeassistant.components.stt")
@@ -1111,6 +1141,74 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["payload"]["refresh_token"], "refresh-token")
         self.assertEqual(response["payload"]["spotify_refresh_token"], "refresh-token")
         self.assertEqual(response["payload"]["spotify"]["refresh_token"], "refresh-token")
+
+    def test_status_view_persists_reported_device_identity_and_local_url(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+        entry = types.SimpleNamespace(data={const.CONF_PAIR_CODE: "981032"})
+
+        class ConfigEntries:
+            def __init__(self):
+                self.updates = []
+
+            def async_update_entry(self, entry, *, data):
+                self.updates.append(data)
+                entry.data = data
+
+        config_entries = ConfigEntries()
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            ota_in_progress = False
+            ota_last_error = None
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def mqtt_payload(self):
+                return {}
+
+            def spotify_payload(self):
+                return {}
+
+            def device_language(self):
+                return "en"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+        runtime.entry = entry
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {
+                "hass": types.SimpleNamespace(
+                    data={const.DOMAIN: {"runtime": runtime}},
+                    config_entries=config_entries,
+                )
+            }
+
+            async def json(self):
+                return {
+                    "device_id": "spotifydj-90B70990A994",
+                    "local_url": "http://spotifydj-90B70990A994.local",
+                    "spotify_configured": True,
+                }
+
+        response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertEqual(
+            config_entries.updates[0][const.CONF_DEVICE_ID],
+            "spotifydj-90B70990A994",
+        )
+        self.assertEqual(config_entries.updates[0][const.CONF_DEVICE_TOKEN], "device-token")
+        self.assertEqual(
+            config_entries.updates[0][const.CONF_LOCAL_URL],
+            "http://spotifydj-90B70990A994.local",
+        )
 
     def test_status_view_prefers_current_spotify_credentials(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
