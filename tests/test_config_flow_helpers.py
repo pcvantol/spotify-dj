@@ -74,11 +74,27 @@ def install_homeassistant_stubs() -> None:
         "homeassistant.helpers",
         types.ModuleType("homeassistant.helpers"),
     )
+    network = sys.modules.setdefault(
+        "homeassistant.helpers.network",
+        types.ModuleType("homeassistant.helpers.network"),
+    )
     aiohttp_client = sys.modules.setdefault(
         "homeassistant.helpers.aiohttp_client",
         types.ModuleType("homeassistant.helpers.aiohttp_client"),
     )
+    components = sys.modules.setdefault(
+        "homeassistant.components",
+        types.ModuleType("homeassistant.components"),
+    )
+    cloud = sys.modules.setdefault(
+        "homeassistant.components.cloud",
+        types.ModuleType("homeassistant.components.cloud"),
+    )
     aiohttp_client.async_get_clientsession = lambda hass: None
+    network.async_get_url = lambda *args, **kwargs: ""
+    cloud.async_remote_ui_url = lambda hass: ""
+    helpers.network = network
+    components.cloud = cloud
 
     package = types.ModuleType("custom_components.spotify_dj")
     package.__path__ = [str(ROOT / "custom_components" / "spotify_dj")]
@@ -349,6 +365,55 @@ class ConfigFlowHelperTest(unittest.TestCase):
             asyncio.run(self.config_flow._async_default_external_url(hass)),
             "https://example.ui.nabu.casa",
         )
+
+    def test_default_external_url_prefers_network_helper(self) -> None:
+        from homeassistant.helpers import network
+
+        original = network.async_get_url
+
+        async def network_url(*args, **kwargs):
+            return "https://network.ui.nabu.casa/"
+
+        network.async_get_url = network_url
+        try:
+            self.assertEqual(
+                asyncio.run(
+                    self.config_flow._async_default_external_url(
+                        types.SimpleNamespace(config=types.SimpleNamespace())
+                    )
+                ),
+                "https://network.ui.nabu.casa",
+            )
+        finally:
+            network.async_get_url = original
+
+    def test_default_external_url_uses_cloud_remote_ui_fallback(self) -> None:
+        from homeassistant.components import cloud
+        from homeassistant.helpers import network
+
+        original_network = network.async_get_url
+        original_cloud = cloud.async_remote_ui_url
+
+        async def no_network_url(*args, **kwargs):
+            return ""
+
+        async def cloud_url(hass):
+            return "https://cloud.ui.nabu.casa/"
+
+        network.async_get_url = no_network_url
+        cloud.async_remote_ui_url = cloud_url
+        try:
+            self.assertEqual(
+                asyncio.run(
+                    self.config_flow._async_default_external_url(
+                        types.SimpleNamespace(config=types.SimpleNamespace())
+                    )
+                ),
+                "https://cloud.ui.nabu.casa",
+            )
+        finally:
+            network.async_get_url = original_network
+            cloud.async_remote_ui_url = original_cloud
 
     def test_options_flow_init_does_not_assign_read_only_config_entry(self) -> None:
         entry = types.SimpleNamespace(data={}, options={})

@@ -350,8 +350,33 @@ async def _async_default_external_url(hass: Any) -> str:
     except Exception:  # noqa: BLE001
         url = ""
     if not url:
+        url = await _async_cloud_external_url(hass)
+    if not url:
         url = str(getattr(getattr(hass, "config", None), "external_url", "") or "")
     return url.strip().rstrip("/")
+
+
+async def _async_cloud_external_url(hass: Any) -> str:
+    """Return the Home Assistant Cloud remote UI URL when exposed by HA."""
+    try:
+        from homeassistant.components import cloud
+
+        remote_url = getattr(cloud, "async_remote_ui_url", None)
+        if remote_url is not None:
+            return str(await remote_url(hass) or "")
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("SpotifyDJ could not read Home Assistant Cloud URL", exc_info=True)
+    cloud_data = getattr(hass, "data", {}).get("cloud") if hasattr(hass, "data") else None
+    for attr in ("remote_ui_url", "remote_url", "url"):
+        value = getattr(cloud_data, attr, "")
+        if callable(value):
+            try:
+                value = value()
+            except Exception:  # noqa: BLE001
+                value = ""
+        if value:
+            return str(value)
+    return ""
 
 
 def _voice_name(voice: Any) -> tuple[str, str] | None:
