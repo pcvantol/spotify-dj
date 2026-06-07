@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.23
+## 2.9.24
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -80,3 +80,4 @@
 - Prefill the Spotify OAuth Home Assistant external URL from Home Assistant's configured external/Nabu Casa URL when available.
 - Add an options-flow action to re-pair the SpotifyDJ device with a fresh device token.
 - Prevent GitHub firmware release rate limits from crashing the firmware update entity and expose the temporary error in update attributes.
+- Split options-flow pairing recovery into a quick retry with the current code and a full re-pair flow that asks for a new pairing code.

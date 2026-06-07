@@ -87,6 +87,7 @@ PAIR_CODE_PATTERN = re.compile(r"^(?:\d{6}|[0-9A-Fa-f]{12})$")
 ADVANCED_OPTIONS_FIELD = "show_advanced_options"
 OPTIONS_ACTION_FIELD = "options_action"
 OPTIONS_ACTION_SAVE = "save_options"
+OPTIONS_ACTION_RETRY_PAIRING = "retry_device_pairing"
 OPTIONS_ACTION_REPAIR = "repair_device_pairing"
 BLE_ACTION_FIELD = "ble_action"
 BLE_ACTION_PROVISION = "provision_wifi"
@@ -122,11 +123,13 @@ BLE_ACTION_NAMES_NL = {
 }
 OPTIONS_ACTION_NAMES_EN = {
     OPTIONS_ACTION_SAVE: "Save options",
-    OPTIONS_ACTION_REPAIR: "Re-pair SpotifyDJ device",
+    OPTIONS_ACTION_RETRY_PAIRING: "Retry pairing with current code",
+    OPTIONS_ACTION_REPAIR: "Re-pair with new pairing code",
 }
 OPTIONS_ACTION_NAMES_NL = {
     OPTIONS_ACTION_SAVE: "Instellingen opslaan",
-    OPTIONS_ACTION_REPAIR: "SpotifyDJ device opnieuw koppelen",
+    OPTIONS_ACTION_RETRY_PAIRING: "Koppelen opnieuw proberen met huidige code",
+    OPTIONS_ACTION_REPAIR: "Opnieuw koppelen met nieuwe koppelcode",
 }
 
 ADVANCED_VOICE_FIELDS = (
@@ -972,8 +975,11 @@ class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             if _request_advanced(self, user_input):
                 return await self.async_step_init()
-            if user_input.get(OPTIONS_ACTION_FIELD) == OPTIONS_ACTION_REPAIR:
-                return await self._async_repair_pairing()
+            action = user_input.get(OPTIONS_ACTION_FIELD)
+            if action == OPTIONS_ACTION_RETRY_PAIRING:
+                return await self._async_retry_pairing()
+            if action == OPTIONS_ACTION_REPAIR:
+                return await self.async_step_repair_pairing()
             errors = _voice_errors(user_input)
             if not errors:
                 merged = dict(current)
@@ -997,7 +1003,35 @@ class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
             errors=errors,
         )
 
-    async def _async_repair_pairing(self) -> FlowResult:
+    async def async_step_repair_pairing(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Collect a fresh pairing code before fully re-pairing the ESP."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            pair_code = str(user_input.get(CONF_PAIR_CODE, "")).strip()
+            if not pair_code:
+                errors[CONF_PAIR_CODE] = "missing_pair_code"
+            elif not _valid_pair_code(pair_code):
+                errors[CONF_PAIR_CODE] = "invalid_pair_code"
+            else:
+                return await self._async_retry_pairing(pair_code=pair_code)
+
+        return self.async_show_form(
+            step_id="repair_pairing",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_PAIR_CODE,
+                        default=str(self._config_entry.data.get(CONF_PAIR_CODE, "")),
+                    ): str,
+                }
+            ),
+            errors=errors,
+        )
+
+    async def _async_retry_pairing(self, pair_code: str | None = None) -> FlowResult:
         """Generate a fresh device token and retry pairing with the ESP."""
         errors: dict[str, str] = {}
         try:
@@ -1006,10 +1040,22 @@ class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
                 errors["base"] = "repair_pairing_failed"
             else:
                 token = secrets.token_urlsafe(32)
+                data = dict(self._config_entry.data)
+                if pair_code is not None:
+                    device_id = f"spotifydj-{pair_code}"
+                    data[CONF_PAIR_CODE] = pair_code
+                    data[CONF_DEVICE_ID] = device_id
+                    data[CONF_LOCAL_URL] = _clean(
+                        data.get(CONF_LOCAL_URL),
+                        _default_local_url(pair_code),
+                    )
+                    runtime.pairing_code = pair_code
+                    runtime.pairing_device_id = device_id
+                    runtime.device_status["device_id"] = device_id
+                    runtime.device_status.pop("paired", None)
                 runtime.device_token = token
                 runtime.device_status["ha_pairing_status"] = "pending"
                 runtime.update(last_error=None)
-                data = dict(self._config_entry.data)
                 data[CONF_DEVICE_TOKEN] = token
                 self.hass.config_entries.async_update_entry(
                     self._config_entry,

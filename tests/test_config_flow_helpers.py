@@ -282,7 +282,13 @@ class ConfigFlowHelperTest(unittest.TestCase):
             self.config_flow._options_action_names(nl_hass)[
                 self.config_flow.OPTIONS_ACTION_REPAIR
             ],
-            "SpotifyDJ device opnieuw koppelen",
+            "Opnieuw koppelen met nieuwe koppelcode",
+        )
+        self.assertEqual(
+            self.config_flow._options_action_names(en_hass)[
+                self.config_flow.OPTIONS_ACTION_RETRY_PAIRING
+            ],
+            "Retry pairing with current code",
         )
         self.assertEqual(
             self.config_flow._options_action_names(en_hass)[

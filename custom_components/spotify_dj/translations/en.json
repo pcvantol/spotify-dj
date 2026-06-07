@@ -109,7 +109,17 @@
           "min_battery_for_ota": "Minimum battery percentage before OTA is allowed.",
           "dj_response_ttl_seconds": "Number of seconds the temporary WAV download URL remains valid.",
           "show_advanced_options": "Show manual and firmware/OTA override fields.",
-          "options_action": "Choose whether to save options or re-pair with a new device token."
+          "options_action": "Choose whether to save options, retry pairing with the current code, or fully re-pair with a new pairing code."
+        }
+      },
+      "repair_pairing": {
+        "title": "Re-pair SpotifyDJ",
+        "description": "Put the SpotifyDJ device in pairing mode and enter the new pairing code shown on its display. Home Assistant will create a new device token.",
+        "data": {
+          "pair_code": "New pairing code"
+        },
+        "data_description": {
+          "pair_code": "The 6 digit code or 12 character device suffix shown on the device display."
         }
       }
     },
@@ -166,7 +176,17 @@
           "dj_response_ttl_seconds": "Number of seconds the temporary WAV download URL remains valid.",
           "allow_ota_on_battery": "Allow firmware updates while the device is not USB powered.",
           "show_advanced_options": "Show manual and firmware/OTA override fields.",
-          "options_action": "Choose whether to save options or re-pair with a new device token."
+          "options_action": "Choose whether to save options, retry pairing with the current code, or fully re-pair with a new pairing code."
+        }
+      },
+      "repair_pairing": {
+        "title": "Re-pair SpotifyDJ",
+        "description": "Put the SpotifyDJ device in pairing mode and enter the new pairing code shown on its display. Home Assistant will create a new device token.",
+        "data": {
+          "pair_code": "New pairing code"
+        },
+        "data_description": {
+          "pair_code": "The 6 digit code or 12 character device suffix shown on the device display."
         }
       }
     },
