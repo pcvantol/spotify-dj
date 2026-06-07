@@ -56,7 +56,7 @@
         },
         "data_description": {
           "spotify_client_id": "Advanced override for the bundled Spotify Client ID.",
-          "ha_external_url": "Reachable HTTPS URL, preferably your Nabu Casa URL.",
+          "ha_external_url": "Prefilled when Home Assistant has an external URL configured. Prefer your Nabu Casa URL.",
           "spotify_market": "Spotify market used for search and playback requests.",
           "show_advanced_options": "Show manual and firmware/OTA override fields."
         }

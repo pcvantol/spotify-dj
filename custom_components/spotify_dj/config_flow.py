@@ -289,8 +289,17 @@ async def _provision_ble_wifi_safe(
 
 def _spotify_schema(include_advanced: bool = False) -> dict[Any, Any]:
     """Build Spotify OAuth fields; Client ID is an advanced override."""
+    return _spotify_schema_with_defaults(include_advanced)
+
+
+def _spotify_schema_with_defaults(
+    include_advanced: bool = False,
+    *,
+    external_url: str = "",
+) -> dict[Any, Any]:
+    """Build Spotify OAuth fields; Client ID is an advanced override."""
     schema: dict[Any, Any] = {
-        vol.Required(CONF_HA_EXTERNAL_URL): str,
+        vol.Required(CONF_HA_EXTERNAL_URL, default=external_url): str,
         vol.Optional(
             CONF_SPOTIFY_MARKET,
             default=DEFAULT_SPOTIFY_MARKET,
@@ -306,6 +315,23 @@ def _spotify_schema(include_advanced: bool = False) -> dict[Any, Any]:
     else:
         schema[vol.Optional(ADVANCED_OPTIONS_FIELD, default=False)] = bool
     return schema
+
+
+async def _async_default_external_url(hass: Any) -> str:
+    """Return HA's configured external URL when available."""
+    try:
+        from homeassistant.helpers import network
+
+        url = await network.async_get_url(
+            hass,
+            prefer_external=True,
+            allow_internal=False,
+        )
+    except Exception:  # noqa: BLE001
+        url = ""
+    if not url:
+        url = str(getattr(getattr(hass, "config", None), "external_url", "") or "")
+    return url.strip().rstrip("/")
 
 
 def _voice_name(voice: Any) -> tuple[str, str] | None:
@@ -741,7 +767,10 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="spotify",
             data_schema=vol.Schema(
-                _spotify_schema(_advanced_enabled(self))
+                _spotify_schema_with_defaults(
+                    _advanced_enabled(self),
+                    external_url=await _async_default_external_url(self.hass),
+                )
             ),
             errors=errors,
             description_placeholders={

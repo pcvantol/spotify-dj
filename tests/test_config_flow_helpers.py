@@ -293,6 +293,26 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertNotIn(self.const.CONF_SPOTIFY_CLIENT_ID, basic_keys)
         self.assertIn(self.const.CONF_SPOTIFY_CLIENT_ID, advanced_keys)
 
+    def test_spotify_schema_prefills_external_url(self) -> None:
+        schema = self.config_flow._spotify_schema_with_defaults(
+            external_url="https://example.ui.nabu.casa"
+        )
+        marker = next(
+            marker for marker in schema if marker.key == self.const.CONF_HA_EXTERNAL_URL
+        )
+
+        self.assertEqual(marker.default, "https://example.ui.nabu.casa")
+
+    def test_default_external_url_uses_hass_config_fallback(self) -> None:
+        hass = types.SimpleNamespace(
+            config=types.SimpleNamespace(external_url="https://example.ui.nabu.casa/")
+        )
+
+        self.assertEqual(
+            asyncio.run(self.config_flow._async_default_external_url(hass)),
+            "https://example.ui.nabu.casa",
+        )
+
     def test_options_flow_init_does_not_assign_read_only_config_entry(self) -> None:
         entry = types.SimpleNamespace(data={}, options={})
 

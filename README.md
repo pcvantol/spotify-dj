@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `2.9.20`
+- Home Assistant integration: `2.9.21`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: SpotifyDJ device
@@ -131,7 +131,7 @@ The redirect URI in Spotify must exactly match the Home Assistant external URL p
 3. After BLE success or captive-portal WiFi setup, wait for the device to restart and show a pairing code.
 4. Enter the pairing code shown on the SpotifyDJ device display. This can be the short 6 digit setup code or the 12-character device suffix, for example `90B70990A994`.
 5. Choose the SpotifyDJ device UI language (`en` or `nl`); Home Assistant preselects this from the HA language setting when possible.
-6. Enter the HTTPS Home Assistant external URL, preferably the Nabu Casa URL.
+6. Confirm the HTTPS Home Assistant external URL. SpotifyDJ prefills this from Home Assistant when an external URL is configured; the Nabu Casa URL is preferred.
 7. Optionally override the bundled Spotify Client ID under advanced options.
 8. Home Assistant opens the Spotify authorization website.
 9. Approve access in Spotify.
@@ -452,12 +452,12 @@ Example manifest:
 
 ```json
 {
-  "version": "2.9.20",
+  "version": "2.9.21",
   "device": "lilygo-t-embed-s3",
-  "asset": "spotifydj-device-v2.9.20.bin",
+  "asset": "spotifydj-device-v2.9.21.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "2.9.20"
+  "min_ha_integration": "2.9.21"
 }
 ```
 
@@ -472,7 +472,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 2.9.20
+./release.sh 2.9.21
 ```
 
 In the private `spotify-dj-app` repository, the firmware release script should
@@ -483,7 +483,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 2.9.20 --dry-run
+./release.sh 2.9.21 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -541,11 +541,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v2.9.20"
-git tag v2.9.20
+git commit -m "Release SpotifyDJ v2.9.21"
+git tag v2.9.21
 git push origin main
-git push origin v2.9.20
-gh release create v2.9.20 --title "SpotifyDJ v2.9.20" --notes-file CHANGELOG.md
+git push origin v2.9.21
+gh release create v2.9.21 --title "SpotifyDJ v2.9.21" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:
