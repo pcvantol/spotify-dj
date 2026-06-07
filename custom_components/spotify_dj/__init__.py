@@ -67,7 +67,6 @@ DEFAULT_TEST_TTS_TEXT = (
     "en ik sta klaar voor je volgende plaat."
 )
 MDNS_SERVICE_TYPE = "_spotifydj._tcp.local."
-LEGACY_MQTT_KEYS = {"mqtt_host", "mqtt_port", "mqtt_username", "mqtt_password"}
 
 
 @dataclass
@@ -276,7 +275,7 @@ class SpotifyDJRuntime:
         return result
 
     async def async_refresh_device_info(self, hass: HomeAssistant) -> dict[str, Any]:
-        """Refresh local ESP device info without relying on MQTT."""
+        """Refresh local ESP device info through the local API."""
         data = await self.async_device_get(hass, "/api/device/info")
         status = data.get("status") if isinstance(data, dict) else None
         if isinstance(status, dict):
@@ -633,20 +632,6 @@ def register_http_views(hass: HomeAssistant) -> None:
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     register_http_views(hass)
-    return True
-
-
-async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Remove legacy MQTT options now that firmware uses the local API only."""
-    data = {key: value for key, value in entry.data.items() if key not in LEGACY_MQTT_KEYS}
-    options = {
-        key: value
-        for key, value in entry.options.items()
-        if key not in LEGACY_MQTT_KEYS
-    }
-    if data != dict(entry.data) or options != dict(entry.options):
-        hass.config_entries.async_update_entry(entry, data=data, options=options)
-        _LOGGER.info("SpotifyDJ removed legacy MQTT settings from config entry")
     return True
 
 
