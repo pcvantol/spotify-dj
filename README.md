@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 
 ## Current Version
 
-- Home Assistant integration: `2.9.14`
+- Home Assistant integration: `2.9.15`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: SpotifyDJ device
@@ -59,6 +59,14 @@ runtime behavior. These decisions are part of the integration contract:
 This repository contains the Home Assistant custom integration under `custom_components/spotify_dj`.
 
 Brand images for the Home Assistant frontend are bundled in `custom_components/spotify_dj/brand/`.
+
+The product/marketing onepager is available as a standalone static website in
+`website/index.html`. It describes the out-of-the-box experience for
+pre-flashed SpotifyDJ devices, the HACS quick start, requirements such as
+Spotify Premium, Home Assistant, HA Assist/STT/TTS and 2.4 GHz WiFi, plus the
+Spotify trademark/non-affiliation notice. The page can be opened locally in a
+browser or hosted as static HTML, for example through GitHub Pages or a separate
+product website.
 
 ## Licensing And Commercial Use
 
@@ -446,12 +454,12 @@ Example manifest:
 
 ```json
 {
-  "version": "2.9.14",
+  "version": "2.9.15",
   "device": "lilygo-t-embed-s3",
-  "asset": "spotifydj-device-v2.9.14.bin",
+  "asset": "spotifydj-device-v2.9.15.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "2.9.14"
+  "min_ha_integration": "2.9.15"
 }
 ```
 
@@ -466,7 +474,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 2.9.14
+./release.sh 2.9.15
 ```
 
 In the private `spotify-dj-app` repository, the firmware release script should
@@ -477,7 +485,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 2.9.14 --dry-run
+./release.sh 2.9.15 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -504,6 +512,8 @@ Pre-release checklist:
 - Update `README.md` current version, examples, endpoints and HACS instructions.
 - Update `CHANGELOG.md` as a single current-version changelog.
 - Keep `AGENTS.md` aligned with the current version and release expectations.
+- Keep `website/index.html` aligned with the current out-of-the-box setup,
+  requirements and legal/trademark wording.
 - Verify `custom_components/spotify_dj/brand/` contains `icon.png`, `icon@2x.png` and `logo.png`.
 - Verify `LICENSE` covers the Home Assistant integration and `FIRMWARE-LICENSE.md` covers firmware binaries.
 - Run the lightweight tests:
@@ -533,11 +543,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v2.9.14"
-git tag v2.9.14
+git commit -m "Release SpotifyDJ v2.9.15"
+git tag v2.9.15
 git push origin main
-git push origin v2.9.14
-gh release create v2.9.14 --title "SpotifyDJ v2.9.14" --notes-file CHANGELOG.md
+git push origin v2.9.15
+gh release create v2.9.15 --title "SpotifyDJ v2.9.15" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

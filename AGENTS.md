@@ -52,7 +52,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.9.14`.
+- Actuele integratieversie: `2.9.15`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -138,12 +138,14 @@ Firmware releases:
 
 README/release:
 - README moet actueel blijven voor HACS installatie, Spotify OAuth, endpoints, OTA en release workflow.
+- `website/index.html` is de statische product/marketing onepager voor pre-flashed SpotifyDJ devices; houd quick start, randvoorwaarden, MQTT-vrij/local-API verhaal en legal/trademark tekst actueel.
 - Release checklist moet in README en AGENTS blijven staan en bij elke release worden gevolgd.
 - Pre-release checklist:
   - Controleer dat de working tree alleen bedoelde wijzigingen bevat.
   - Update `custom_components/spotify_dj/manifest.json` naar de target versie.
   - Update `custom_components/spotify_dj/const.py` naar dezelfde target versie.
   - Update `README.md` current version, examples, endpoints en HACS instructies.
+  - Update `website/index.html` als out-of-the-box setup, requirements, verkoopverhaal of legal wording wijzigt.
   - Update `CHANGELOG.md` als één actuele versie zonder oude versieblokken.
   - Houd `AGENTS.md` gelijk met actuele versie en release-eisen.
   - Controleer `custom_components/spotify_dj/brand/icon.png`, `icon@2x.png` en `logo.png`.

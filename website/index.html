@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SpotifyDJ — Your Home Assistant Spotify Voice Remote</title>
+  <meta name="description" content="SpotifyDJ is een pre-flashed smart music remote voor Home Assistant, Spotify Premium en HA Assist. Pair, speak, play." />
+  <style>
+    :root {
+      --bg: #0b0d12;
+      --panel: rgba(255, 255, 255, 0.075);
+      --panel-strong: rgba(255, 255, 255, 0.12);
+      --text: #f7f7fb;
+      --muted: #b7bccb;
+      --line: rgba(255, 255, 255, 0.14);
+      --green: #1ed760;
+      --orange: #ff9f1c;
+      --purple: #8b5cf6;
+      --blue: #38bdf8;
+      --red: #fb7185;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+      --radius: 28px;
+      --max: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(30, 215, 96, 0.22), transparent 28rem),
+        radial-gradient(circle at 84% 10%, rgba(139, 92, 246, 0.24), transparent 34rem),
+        radial-gradient(circle at 45% 78%, rgba(56, 189, 248, 0.13), transparent 30rem),
+        linear-gradient(180deg, #0b0d12 0%, #111827 48%, #090b10 100%);
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .wrap {
+      width: min(var(--max), calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(18px);
+      background: rgba(11, 13, 18, 0.68);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 72px;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      font-size: 1.15rem;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: conic-gradient(from 120deg, var(--green), var(--blue), var(--purple), var(--orange), var(--green));
+      box-shadow: 0 0 34px rgba(30, 215, 96, 0.3);
+      position: relative;
+    }
+
+    .logo::after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border-radius: inherit;
+      background: #0b0d12;
+      border: 2px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 46px;
+      padding: 0 18px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      font-weight: 750;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      background: var(--panel-strong);
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, var(--green), #65f08e);
+      color: #07110b;
+      border: 0;
+    }
+
+    .hero {
+      padding: 86px 0 54px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.02fr 0.98fr;
+      gap: 42px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 0.9rem;
+      margin-bottom: 22px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 99px;
+      background: var(--green);
+      box-shadow: 0 0 20px var(--green);
+    }
+
+    h1, h2, h3 { margin: 0; letter-spacing: -0.045em; line-height: 1.04; }
+
+    h1 {
+      font-size: clamp(3.15rem, 8vw, 6.6rem);
+      max-width: 11ch;
+    }
+
+    h2 {
+      font-size: clamp(2rem, 4.6vw, 4.2rem);
+      max-width: 15ch;
+      margin-bottom: 18px;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      margin-bottom: 10px;
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: clamp(1.08rem, 2.2vw, 1.35rem);
+      max-width: 680px;
+      margin: 24px 0 30px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-top: 18px;
+    }
+
+    .device-card {
+      position: relative;
+      min-height: 590px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04)),
+        radial-gradient(circle at 50% 10%, rgba(30, 215, 96, 0.25), transparent 18rem);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      padding: 28px;
+    }
+
+    .device {
+      position: absolute;
+      left: 50%;
+      top: 52%;
+      width: min(78%, 360px);
+      aspect-ratio: 0.72;
+      transform: translate(-50%, -50%);
+      border-radius: 34px;
+      background: linear-gradient(155deg, #1f2937, #050608 64%);
+      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 36px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15);
+      padding: 24px;
+    }
+
+    .screen {
+      height: 48%;
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at 20% 15%, rgba(30,215,96,0.35), transparent 12rem),
+        linear-gradient(180deg, #111827, #06070a);
+      border: 1px solid rgba(255,255,255,0.14);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .screen-title { color: var(--muted); font-size: 0.82rem; }
+    .screen-song { font-size: 1.35rem; font-weight: 850; letter-spacing: -0.03em; }
+    .screen-dj { color: var(--green); font-size: 0.92rem; }
+
+    .controls {
+      height: 52%;
+      display: grid;
+      place-items: center;
+      position: relative;
+    }
+
+    .ring {
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      border: 14px solid rgba(30, 215, 96, 0.86);
+      box-shadow: 0 0 42px rgba(30, 215, 96, 0.45), inset 0 0 30px rgba(30, 215, 96, 0.16);
+      display: grid;
+      place-items: center;
+      animation: pulse 2.2s ease-in-out infinite;
+    }
+
+    .button-core {
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #f9fafb, #9ca3af);
+      color: #111827;
+      display: grid;
+      place-items: center;
+      font-size: 1.8rem;
+      box-shadow: inset 0 2px 0 rgba(255,255,255,0.8), 0 18px 36px rgba(0,0,0,0.35);
+    }
+
+    @keyframes pulse {
+      0%, 100% { filter: hue-rotate(0deg); transform: scale(1); }
+      50% { filter: hue-rotate(50deg); transform: scale(1.035); }
+    }
+
+    .floating {
+      position: absolute;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,0.3);
+      backdrop-filter: blur(16px);
+      border-radius: 18px;
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .floating strong { color: var(--text); display: block; }
+    .f1 { left: 24px; top: 32px; }
+    .f2 { right: 22px; top: 154px; }
+    .f3 { left: 28px; bottom: 38px; }
+
+    section { padding: 72px 0; }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 28px;
+    }
+
+    .section-head p {
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0;
+      font-size: 1.04rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      padding: 24px;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.16);
+    }
+
+    .icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      font-size: 1.45rem;
+      margin-bottom: 18px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid var(--line);
+    }
+
+    .card p, .muted { color: var(--muted); margin: 0; }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .flow-step {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.11), rgba(255,255,255,0.04));
+      padding: 20px;
+      min-height: 160px;
+    }
+
+    .flow-step:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--green);
+      color: #06120a;
+      font-weight: 900;
+      z-index: 2;
+    }
+
+    .num {
+      color: var(--green);
+      font-weight: 900;
+      margin-bottom: 36px;
+    }
+
+    .quick {
+      counter-reset: steps;
+      display: grid;
+      gap: 14px;
+    }
+
+    .quick li {
+      list-style: none;
+      counter-increment: steps;
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      gap: 16px;
+      align-items: start;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .quick li::before {
+      content: counter(steps);
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      background: var(--green);
+      color: #07110b;
+      font-weight: 950;
+      font-size: 1.2rem;
+    }
+
+    .quick h3 { margin-top: 2px; }
+
+    .requirements {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .req {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 18px;
+      background: rgba(255,255,255,0.055);
+    }
+
+    .req .tag {
+      display: inline-flex;
+      margin-bottom: 10px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(30,215,96,0.15);
+      color: #7ef7a7;
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .req.optional .tag { background: rgba(56,189,248,0.16); color: #8ee3ff; }
+    .req.warning .tag { background: rgba(255,159,28,0.18); color: #ffc66d; }
+
+    .callout {
+      border-radius: var(--radius);
+      padding: 34px;
+      background:
+        linear-gradient(135deg, rgba(30,215,96,0.24), rgba(56,189,248,0.12)),
+        rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.18);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: center;
+      box-shadow: var(--shadow);
+    }
+
+    .legal {
+      color: var(--muted);
+      font-size: 0.86rem;
+      padding: 34px 0 44px;
+      border-top: 1px solid var(--line);
+    }
+
+    code {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 2px 7px;
+      color: #d9fbe5;
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid, .grid-2, .section-head, .callout { grid-template-columns: 1fr; }
+      .grid-3, .requirements { grid-template-columns: repeat(2, 1fr); }
+      .flow { grid-template-columns: 1fr; }
+      .flow-step:not(:last-child)::after {
+        content: "↓";
+        right: 50%;
+        top: auto;
+        bottom: -14px;
+        transform: translateX(50%);
+      }
+      .device-card { min-height: 520px; }
+      .nav-links { display: none; }
+    }
+
+    @media (max-width: 620px) {
+      .wrap { width: min(100% - 24px, var(--max)); }
+      .hero { padding-top: 48px; }
+      .grid-3, .requirements { grid-template-columns: 1fr; }
+      .device-card { min-height: 460px; padding: 18px; }
+      .floating { display: none; }
+      .device { width: 88%; }
+      .callout { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#top" aria-label="SpotifyDJ home">
+        <span class="logo" aria-hidden="true"></span>
+        <span>SpotifyDJ</span>
+      </a>
+      <div class="nav-links" aria-label="Navigatie">
+        <a href="#experience">Experience</a>
+        <a href="#quickstart">Quick start</a>
+        <a href="#requirements">Benodigdheden</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <a class="btn primary" href="#quickstart">Start setup</a>
+    </div>
+  </nav>
+
+  <main id="top">
+    <header class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="eyebrow"><span class="dot"></span> Pre-flashed • Home Assistant native • Push-to-talk</div>
+          <h1>Your music. One button away.</h1>
+          <p class="lead">SpotifyDJ is een fysieke voice remote voor Spotify en Home Assistant. Pak het device uit, installeer de HACS integration, pair via Home Assistant en vraag om muziek alsof er een DJ naast je staat.</p>
+          <div class="hero-actions">
+            <a class="btn primary" href="#quickstart">Bekijk quick start</a>
+            <a class="btn" href="#requirements">Check benodigdheden</a>
+          </div>
+          <p class="note">Out of the box: geen firmware flashen, geen MQTT nodig, geen code plakken. Devices komen pre-flashed.</p>
+        </div>
+
+        <div class="device-card" aria-label="SpotifyDJ device visualisatie">
+          <div class="floating f1"><strong>Push to talk</strong>Vraag muziek met één knop</div>
+          <div class="floating f2"><strong>HA Assist</strong>STT + intent via Home Assistant</div>
+          <div class="floating f3"><strong>DJ response</strong>Tekst + WAV/MP3 op device</div>
+          <div class="device">
+            <div class="screen">
+              <div class="screen-title">Now playing</div>
+              <div class="screen-song">Pearl Jam<br />Latest Album</div>
+              <div class="screen-dj">“Daar gaan we. Ik zet ’m klaar.”</div>
+            </div>
+            <div class="controls">
+              <div class="ring"><div class="button-core">▶</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section id="experience">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <h2>De ervaring uit de doos</h2>
+          </div>
+          <p>SpotifyDJ is ontworpen als een product, niet als een hobbyproject met losse scripts. De firmware staat al op het device; Home Assistant doet pairing, OAuth, Assist, TTS, OTA en provisioning.</p>
+        </div>
+        <div class="grid-3">
+          <article class="card">
+            <div class="icon">📦</div>
+            <h3>Pre-flashed geleverd</h3>
+            <p>Geen PlatformIO, geen USB flash, geen firmware build. Het device komt klaar voor setup in Home Assistant.</p>
+          </article>
+          <article class="card">
+            <div class="icon">🏠</div>
+            <h3>Home Assistant native</h3>
+            <p>Pairing, status, OTA updates, voice verwerking en device controls lopen via de SpotifyDJ integration.</p>
+          </article>
+          <article class="card">
+            <div class="icon">🎙️</div>
+            <h3>Push-to-talk muziek</h3>
+            <p>Druk op de knop, spreek je verzoek in, HA Assist verwerkt spraak en SpotifyDJ start muziek via het device.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <h2>Hoe het werkt</h2>
+          </div>
+          <p>De ESP hoeft geen Home Assistant websocket credentials te kennen. Hij praat met de lokale SpotifyDJ API met een eigen bearer token.</p>
+        </div>
+        <div class="flow">
+          <div class="flow-step"><div class="num">01</div><h3>PTT</h3><p class="muted">Device neemt WAV audio op.</p></div>
+          <div class="flow-step"><div class="num">02</div><h3>HA Assist</h3><p class="muted">Home Assistant doet STT en intent verwerking.</p></div>
+          <div class="flow-step"><div class="num">03</div><h3>SpotifyDJ</h3><p class="muted">Integration vertaalt verzoek naar SpotifyDJ command.</p></div>
+          <div class="flow-step"><div class="num">04</div><h3>Spotify</h3><p class="muted">Device gebruikt geprovisionde Spotify credentials.</p></div>
+          <div class="flow-step"><div class="num">05</div><h3>DJ response</h3><p class="muted">Tekst en optionele WAV/MP3 spelen op het device.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="quickstart">
+      <div class="wrap grid-2">
+        <div>
+          <h2>Quick start</h2>
+          <p class="lead">Voor de gebruiker voelt setup als: HACS installeren, Spotify autoriseren, device pairen, klaar. De firmware is al aanwezig.</p>
+        </div>
+        <ol class="quick">
+          <li><div><h3>Installeer via HACS</h3><p class="muted">Voeg de SpotifyDJ custom integration toe in HACS en restart Home Assistant.</p></div></li>
+          <li><div><h3>Voeg SpotifyDJ toe</h3><p class="muted">Ga naar Settings → Devices & services → Add integration → SpotifyDJ.</p></div></li>
+          <li><div><h3>Autoriseer Spotify</h3><p class="muted">De setup opent Spotify OAuth via Home Assistant. Log in met je Spotify Premium account.</p></div></li>
+          <li><div><h3>Pair het device</h3><p class="muted">Voer de pairing code of 12-character device suffix in die op het SpotifyDJ device verschijnt.</p></div></li>
+          <li><div><h3>Druk en praat</h3><p class="muted">Druk op de middelste knop en zeg bijvoorbeeld: “Speel het nieuwste album van Pearl Jam”.</p></div></li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="requirements">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <h2>Benodigdheden & randvoorwaarden</h2>
+          </div>
+          <p>SpotifyDJ is bewust lokaal en Home Assistant native. Dit heb je nodig voor een soepele out-of-the-box ervaring.</p>
+        </div>
+        <div class="requirements">
+          <div class="req"><span class="tag">Verplicht</span><h3>Spotify Premium</h3><p class="muted">Spotify playback control via API vereist een Premium account.</p></div>
+          <div class="req"><span class="tag">Verplicht</span><h3>Home Assistant</h3><p class="muted">Een werkende HA installatie met HACS voor custom integrations.</p></div>
+          <div class="req"><span class="tag">Verplicht</span><h3>HA Assist pipeline</h3><p class="muted">Configureer STT en TTS, bijvoorbeeld Home Assistant Cloud of een andere provider.</p></div>
+          <div class="req"><span class="tag">Verplicht</span><h3>2.4 GHz WiFi</h3><p class="muted">Het device gebruikt WiFi. Zorg voor bereik op de plek waar je muziek wilt bedienen.</p></div>
+          <div class="req"><span class="tag">Aanbevolen</span><h3>Nabu Casa HTTPS</h3><p class="muted">Voor Spotify OAuth callback is een bereikbare HTTPS Home Assistant URL het makkelijkst.</p></div>
+          <div class="req"><span class="tag">Aanbevolen</span><h3>mDNS werkend</h3><p class="muted">Automatische device discovery gebruikt <code>_spotifydj._tcp</code> en <code>.local</code>.</p></div>
+          <div class="req optional"><span class="tag">Optioneel</span><h3>Bluetooth proxy</h3><p class="muted">Voor BLE WiFi provisioning als het device in setup mode staat.</p></div>
+          <div class="req optional"><span class="tag">Niet nodig</span><h3>MQTT broker</h3><p class="muted">Firmware v2.9.12+ gebruikt geen MQTT; lokale HA API met bearer token is leidend.</p></div>
+          <div class="req warning"><span class="tag">Let op</span><h3>Spotify Connect target</h3><p class="muted">Voor playback moet Spotify een bruikbare afspeelcontext/device kunnen gebruiken.</p></div>
+          <div class="req warning"><span class="tag">Let op</span><h3>HA restart na update</h3><p class="muted">Na HACS updates is een Home Assistant restart meestal nodig.</p></div>
+          <div class="req"><span class="tag">Inbegrepen</span><h3>OTA updates</h3><p class="muted">Gekoppelde devices kunnen firmware updates via HA ontvangen.</p></div>
+          <div class="req"><span class="tag">Privacy</span><h3>Geen secrets in logs</h3><p class="muted">Tokens en wachtwoorden worden niet bewust gelogd en diagnostics redacteren secrets.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap grid-3">
+        <article class="card">
+          <div class="icon">🧠</div>
+          <h3>Assist-first</h3>
+          <p>Je gebruikt de Assist pipeline die je al in Home Assistant vertrouwt. SpotifyDJ leunt op HA STT/TTS in plaats van losse device-auth.</p>
+        </article>
+        <article class="card">
+          <div class="icon">🔐</div>
+          <h3>Paired token</h3>
+          <p>Na pairing gebruikt het device een SpotifyDJ bearer token. Geen Home Assistant long-lived token op het ESP device.</p>
+        </article>
+        <article class="card">
+          <div class="icon">✨</div>
+          <h3>DJ personality</h3>
+          <p>De response komt terug als tekst en waar mogelijk als tijdelijke WAV/MP3 audio URL voor de speaker van het device.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="wrap grid-2">
+        <div>
+          <h2>Veelgestelde vragen</h2>
+          <p class="lead">De korte versie: SpotifyDJ is voor mensen die Home Assistant al gebruiken en Spotify hands-on, fysiek en lokaler willen bedienen.</p>
+        </div>
+        <div class="quick">
+          <div class="card"><h3>Moet ik firmware flashen?</h3><p class="muted">Nee. Ga uit van pre-flashed devices. Firmware updates lopen later via Home Assistant OTA.</p></div>
+          <div class="card"><h3>Heb ik MQTT nodig?</h3><p class="muted">Nee. Nieuwe firmware gebruikt de lokale SpotifyDJ API met bearer token.</p></div>
+          <div class="card"><h3>Speelt DJ audio via Spotify Connect?</h3><p class="muted">Nee. DJ responses spelen op de speaker/display van het SpotifyDJ device.</p></div>
+          <div class="card"><h3>Kan ik private playlists gebruiken?</h3><p class="muted">Ja, Spotify OAuth bevat <code>playlist-read-private</code> zodat het device eigen/private playlists kan vinden.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap callout">
+        <div>
+          <h2>Klaar voor je volgende plaat?</h2>
+          <p class="muted">Installeer de integration, pair het pre-flashed device en laat Home Assistant de rest doen.</p>
+        </div>
+        <a class="btn primary" href="#quickstart">Start quick start</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap legal">
+    <p>Copyright © 2026 Peter van Tol. All rights reserved. SpotifyDJ firmware is proprietary software. The Home Assistant integration may be distributed separately for use with SpotifyDJ devices.</p>
+    <p>Spotify is a trademark of Spotify AB. SpotifyDJ is not affiliated with, endorsed by, or sponsored by Spotify AB. Home Assistant and HACS are referenced for integration compatibility.</p>
+  </footer>
+</body>
+</html>

@@ -4,9 +4,10 @@
 
 - Repository: `pcvantol/spotify-dj` Home Assistant custom integration.
 - Integration domain: `spotify_dj`.
-- Current released integration version: `2.9.10`.
-- Latest release commit: `4a7af78 Release SpotifyDJ v2.9.10`.
-- Lightweight unit test suite is available under `tests/` and was last run successfully with `python3 -m unittest discover -s tests` before the `2.9.10` release.
+- Current released integration version: `2.9.14`.
+- Latest release commit: `f54bfd5 Release SpotifyDJ v2.9.14`.
+- Lightweight unit test suite is available under `tests/` and was last run successfully with `python3 -m unittest discover -s tests` before the `2.9.14` release.
+- A static product/marketing onepager exists at `website/index.html`.
 - The integration is intended for HACS distribution and local Home Assistant installation.
 - ESP firmware source remains proprietary in `pcvantol/spotify-dj-app`; public firmware binaries/manifests are released from `pcvantol/spotify-dj-firmware`.
 - The Home Assistant integration is MIT-licensed; firmware binaries/source are covered separately and remain proprietary unless explicitly changed.
@@ -154,7 +155,11 @@ STT provider selection order:
   - `README.md`
   - `CHANGELOG.md`
   - `AGENTS.md`
+  - `website/index.html`
   - `THIRD_PARTY_NOTICES.md`
+- Review `website/index.html` whenever the out-of-the-box setup,
+  requirements, MQTT-free local API architecture or legal/trademark wording
+  changes.
 - Before future releases, run:
   - `python3 -m unittest discover -s tests`
   - `./release.sh X.Y.Z --dry-run`

@@ -89,10 +89,20 @@
 
 - Update `README.md` after any architecture/API change.
 - Update `AGENTS.md` after any durable project decision.
+- Update `website/index.html` after any product positioning, quick-start,
+  requirement, local API, OTA, Assist or legal/trademark wording change.
 - Keep `CHANGELOG.md` consolidated to the current release only.
 - Keep `HANDOFF.md` current after major debugging sessions.
 - Keep `TODO.md` and `ISSUES.md` current after field testing.
 - Document known HA restart requirement after HACS custom integration updates.
+
+## Website / Marketing
+
+- Review `website/index.html` on mobile and desktop before publishing.
+- Decide whether to host the onepager from this repo, GitHub Pages or a separate product website repo.
+- Add real product photos/screenshots when final hardware imagery is available.
+- Keep requirements clear: Spotify Premium, Home Assistant, HACS, HA Assist pipeline, 2.4 GHz WiFi and mDNS/Nabu Casa recommendations.
+- Keep MQTT wording explicit: not needed for firmware v2.9.12 and newer.
 
 ## Release Workflow
 

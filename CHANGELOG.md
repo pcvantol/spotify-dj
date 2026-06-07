@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.14
+## 2.9.15
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -66,3 +66,4 @@
 - Add native HA controls for next/previous/play-pause, device info refresh, reboot, volume, speaker volume, screen brightness, timeouts, language, theme, log level and sound output.
 - Add a lightweight DataUpdateCoordinator hook for explicit local device-info refreshes without continuous polling.
 - Refresh local device info after OTA reconnect and clear the updating state when the ESP reports back in.
+- Add a static `website/index.html` marketing onepager and document it in the repository handoff, release checklist and backlog.
