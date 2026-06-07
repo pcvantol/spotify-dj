@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth provisioning, OTA 
 
 ## Current Version
 
-- Home Assistant integration: `2.9.11`
+- Home Assistant integration: `2.9.12`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: SpotifyDJ device
@@ -459,12 +459,12 @@ Example manifest:
 
 ```json
 {
-  "version": "2.9.11",
+  "version": "2.9.12",
   "device": "lilygo-t-embed-s3",
-  "asset": "spotifydj-device-v2.9.11.bin",
+  "asset": "spotifydj-device-v2.9.12.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "2.9.11"
+  "min_ha_integration": "2.9.12"
 }
 ```
 
@@ -479,7 +479,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 2.9.11
+./release.sh 2.9.12
 ```
 
 In the private `spotify-dj-app` repository, the firmware release script should
@@ -490,7 +490,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 2.9.11 --dry-run
+./release.sh 2.9.12 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -546,11 +546,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v2.9.11"
-git tag v2.9.11
+git commit -m "Release SpotifyDJ v2.9.12"
+git tag v2.9.12
 git push origin main
-git push origin v2.9.11
-gh release create v2.9.11 --title "SpotifyDJ v2.9.11" --notes-file CHANGELOG.md
+git push origin v2.9.12
+gh release create v2.9.12 --title "SpotifyDJ v2.9.12" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:
