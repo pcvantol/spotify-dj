@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.28
+## 2.9.29
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -88,3 +88,4 @@
 - Add a native Home Assistant Repairs Fix flow for Spotify reauthorization, opening Spotify OAuth and clearing the repair issue after a new refresh token is stored.
 - Add Spotify reauthorization as an explicit options-flow action.
 - Include cached playback in ESP `/api/spotify_dj/status` responses and harden HA number entities for firmware setting aliases such as brightness, cue volume and millisecond timeouts.
+- Return playback backend failures from `/api/spotify_dj/command` as HTTP 200 JSON failures so ESP pairing is not cleared by Spotify/backend outages.

@@ -1471,9 +1471,10 @@ class VoiceHttpHelperTest(unittest.TestCase):
         finally:
             self.http.handle_spotify_command = original
 
-        self.assertEqual(response["status_code"], 503)
+        self.assertEqual(response["status_code"], 200)
         self.assertFalse(response["payload"]["success"])
         self.assertEqual(response["payload"]["error"], "backend_unavailable")
+        self.assertFalse(response["payload"]["backend_available"])
         self.assertIn("Spotify OAuth", response["payload"]["message"])
 
     def test_store_rotated_spotify_refresh_token_persists_without_logging_secret(self) -> None:

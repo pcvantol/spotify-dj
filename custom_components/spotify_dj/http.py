@@ -524,7 +524,16 @@ class SpotifyDJCommandView(HomeAssistantView):
             return _json_error(self, "invalid_command", 400, str(exc))
         except SpotifyBackendError as exc:
             runtime.update(last_error=str(exc))
-            return _json_error(self, "backend_unavailable", 503, str(exc))
+            runtime.device_status["backend_available"] = False
+            return self.json(
+                {
+                    "success": False,
+                    "error": "backend_unavailable",
+                    "message": str(exc) or ERROR_MESSAGES["backend_unavailable"],
+                    "backend_available": False,
+                    "playback": getattr(runtime, "last_playback", None) or {},
+                }
+            )
         except Exception as exc:  # noqa: BLE001
             _LOGGER.warning("SpotifyDJ backend command failed: %s", exc)
             runtime.update(last_error=str(exc))
