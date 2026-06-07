@@ -103,7 +103,8 @@ STT provider selection order:
 - BLE provisioning writes WiFi SSID/password only. No Spotify credentials, device tokens or other secrets over BLE.
 - Runtime discovery prefers device-reported `local_url`, exact `_spotifydj._tcp` mDNS matches, then a single visible SpotifyDJ mDNS device.
 - Never generate or store `spotifydj-[6-digit-code].local` as a valid device URL. Only 12-hex device suffixes may become `http://spotifydj-[suffix].local` fallbacks.
-- Pair/status handlers persist the real `spotifydj-XXXXXXXXXXXX` identity and reported `local_url` so HA restarts do not fall back to setup-code identities.
+- Pair/status/command/voice handlers persist the real `spotifydj-XXXXXXXXXXXX` identity and reported `local_url` so HA restarts do not fall back to setup-code identities.
+- Setup-code based direct pairing may start with `spotifydj-[6-digit-code]`; the first authenticated ESP call with the same bearer token and real `spotifydj-XXXXXXXXXXXX` ID must be accepted and used to repair the stored device identity.
 - HA pairing remains `pending` until the ESP confirms `ha_pairing_status=paired`; HA may retry `/api/device/pair` when a local token exists but the ESP has not confirmed pairing yet.
 - BLE setup offers one mutually exclusive action: write WiFi over Bluetooth, rescan Bluetooth devices, or continue to pairing when captive-portal WiFi already put the device online.
 - Firmware asset name is distributive, e.g. `spotifydj-device-vX.Y.Z.bin`; OTA target device comes from `firmware_manifest.json` field `device`, currently `lilygo-t-embed-s3`.

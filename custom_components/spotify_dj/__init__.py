@@ -142,17 +142,48 @@ class SpotifyDJRuntime:
         headers: Any,
         body_device_id: str | None = None,
     ) -> bool:
-        auth = headers.get("Authorization", "")
+        auth = str(headers.get("Authorization", "") or "").strip()
         token = auth.removeprefix("Bearer ").strip()
-        if not self.device_token or token != self.device_token:
+        header_device = str(headers.get("X-SpotifyDJ-Device-ID") or "").strip()
+        body_device = str(body_device_id or "").strip()
+        token_match = bool(self.device_token and token == self.device_token)
+        expected_present = bool(self.device_token)
+        device_id = header_device or body_device or None
+        _LOGGER.debug(
+            "SpotifyDJ device auth: device_id=%s auth=%s token_match=%s "
+            "expected_token_present=%s entry_id=%s",
+            device_id,
+            "present" if auth else "missing",
+            token_match,
+            expected_present,
+            getattr(self.entry, "entry_id", None),
+        )
+        if not token_match:
             return False
-        header_device = headers.get("X-SpotifyDJ-Device-ID")
         known_device = self.device_status.get("device_id") or self.pairing_device_id
-        if known_device and header_device and header_device != known_device:
+        if known_device and header_device and not _device_id_matches(known_device, header_device):
             return False
-        if known_device and body_device_id and body_device_id != known_device:
+        if known_device and body_device and not _device_id_matches(known_device, body_device):
             return False
+        self._learn_device_id(header_device or body_device)
         return True
+
+    def _learn_device_id(self, device_id: str | None) -> None:
+        """Adopt the ESP's real device ID after setup-code based pairing."""
+        if not device_id or not _is_real_spotifydj_device_id(device_id):
+            return
+        known_device = self.device_status.get("device_id") or self.pairing_device_id
+        if known_device == device_id:
+            return
+        if known_device and not _is_setup_code_device_id(str(known_device)):
+            return
+        self.pairing_device_id = device_id
+        self.device_status["device_id"] = device_id
+        _LOGGER.debug(
+            "SpotifyDJ learned real device_id=%s for entry_id=%s",
+            device_id,
+            getattr(self.entry, "entry_id", None),
+        )
 
     def get_current_spotify_credentials(self) -> dict[str, Any]:
         """Return canonical latest Spotify credentials for HA backend use."""
@@ -492,6 +523,23 @@ def _device_id_mdns_fallback_url(device_id: Any) -> str | None:
     if re.fullmatch(r"spotifydj-[0-9A-Fa-f]{12}", normalized):
         return f"http://{normalized}.local"
     return None
+
+
+def _is_real_spotifydj_device_id(device_id: str) -> bool:
+    return bool(re.fullmatch(r"spotifydj-[0-9A-Fa-f]{12}", str(device_id or "").strip()))
+
+
+def _is_setup_code_device_id(device_id: str) -> bool:
+    return bool(re.fullmatch(r"spotifydj-\d{6}", str(device_id or "").strip()))
+
+
+def _device_id_matches(known_device: str, request_device: str) -> bool:
+    """Allow the ESP real ID to replace a temporary setup-code ID."""
+    known = str(known_device or "").strip()
+    requested = str(request_device or "").strip()
+    if not known or not requested or known == requested:
+        return True
+    return _is_setup_code_device_id(known) and _is_real_spotifydj_device_id(requested)
 
 
 def _is_pair_code_mdns_url(value: str) -> bool:

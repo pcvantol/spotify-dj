@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from aiohttp import web
@@ -43,8 +44,59 @@ from .spotify_oauth import exchange_code_for_refresh_token
 _LOGGER = logging.getLogger(__name__)
 
 
-def _runtime(hass):
-    return hass.data.get(DOMAIN, {}).get("runtime")
+def _request_token(headers: Any) -> str:
+    auth = str(headers.get("Authorization", "") or "").strip()
+    return auth.removeprefix("Bearer ").strip()
+
+
+def _runtime_matches_device(runtime: Any, device_id: str) -> bool:
+    known = str(
+        getattr(runtime, "device_status", {}).get("device_id")
+        or getattr(runtime, "pairing_device_id", "")
+        or getattr(runtime, "config", {}).get(CONF_DEVICE_ID, "")
+        or ""
+    ).strip()
+    if not known or not device_id:
+        return False
+    if known == device_id:
+        return True
+    return bool(
+        re.fullmatch(r"spotifydj-\d{6}", known)
+        and re.fullmatch(r"spotifydj-[0-9A-Fa-f]{12}", device_id)
+    )
+
+
+def _runtime(hass, device_id: str | None = None, headers: Any | None = None):
+    data = hass.data.get(DOMAIN, {})
+    runtimes = [
+        runtime
+        for key, runtime in data.items()
+        if key != "runtime" and hasattr(runtime, "authorize_device_request")
+    ]
+    device_id = str(device_id or "").strip()
+    if device_id:
+        matches = [runtime for runtime in runtimes if _runtime_matches_device(runtime, device_id)]
+        if len(matches) == 1:
+            return matches[0]
+        if len(matches) > 1:
+            _LOGGER.warning(
+                "SpotifyDJ found multiple runtimes for device_id=%s; using active runtime",
+                device_id,
+            )
+    token = _request_token(headers or {})
+    if token:
+        token_matches = [
+            runtime
+            for runtime in runtimes
+            if getattr(runtime, "device_token", None) == token
+        ]
+        if len(token_matches) == 1:
+            return token_matches[0]
+        if len(token_matches) > 1:
+            _LOGGER.warning(
+                "SpotifyDJ found multiple runtimes with matching device token; using active runtime"
+            )
+    return data.get("runtime")
 
 
 ERROR_MESSAGES = {
@@ -352,13 +404,17 @@ class SpotifyDJStatusView(HomeAssistantView):
 
     async def post(self, request):
         hass = request.app["hass"]
-        runtime = _runtime(hass)
-        if runtime is None:
-            return _json_error(self, "not_configured", 503)
         try:
             data = await request.json()
         except Exception:  # noqa: BLE001
             return _json_error(self, "invalid_json", 400)
+        runtime = _runtime(
+            hass,
+            data.get("device_id") or request.headers.get("X-SpotifyDJ-Device-ID"),
+            request.headers,
+        )
+        if runtime is None:
+            return _json_error(self, "not_configured", 503)
         if not runtime.authorize_device_request(request.headers, data.get("device_id")):
             return _json_error(self, "unauthorized", 401)
         runtime.device_status.update(data)
@@ -408,15 +464,29 @@ class SpotifyDJCommandView(HomeAssistantView):
 
     async def post(self, request):
         hass = request.app["hass"]
-        runtime = _runtime(hass)
-        if runtime is None:
-            return _json_error(self, "not_configured", 503)
         try:
             data = await request.json()
         except Exception:  # noqa: BLE001
             return _json_error(self, "invalid_json", 400)
+        runtime = _runtime(
+            hass,
+            data.get("device_id") or request.headers.get("X-SpotifyDJ-Device-ID"),
+            request.headers,
+        )
+        if runtime is None:
+            return _json_error(self, "not_configured", 503)
         if not runtime.authorize_device_request(request.headers, data.get("device_id")):
             return _json_error(self, "unauthorized", 401)
+        header_device = request.headers.get("X-SpotifyDJ-Device-ID")
+        real_device_id = data.get("device_id") or header_device
+        if real_device_id and getattr(runtime, "device_token", None):
+            _persist_paired_device(
+                hass,
+                runtime,
+                real_device_id,
+                getattr(runtime, "device_status", {}).get("local_url"),
+                runtime.device_token,
+            )
         command = str(data.get("command") or "").strip()
         if not command:
             return _json_error(self, "invalid_command", 400)
@@ -482,14 +552,22 @@ class SpotifyDJVoiceView(HomeAssistantView):
 
     async def post(self, request):
         hass = request.app["hass"]
-        runtime = _runtime(hass)
-        if runtime is None:
-            return _json_error(self, "not_configured", 503)
         device_id = request.headers.get("X-SpotifyDJ-Device-ID")
         if not device_id:
             return _json_error(self, "unauthorized", 401)
+        runtime = _runtime(hass, device_id, request.headers)
+        if runtime is None:
+            return _json_error(self, "not_configured", 503)
         if not runtime.authorize_device_request(request.headers, device_id):
             return _json_error(self, "unauthorized", 401)
+        if getattr(runtime, "device_token", None):
+            _persist_paired_device(
+                hass,
+                runtime,
+                device_id,
+                getattr(runtime, "device_status", {}).get("local_url"),
+                runtime.device_token,
+            )
 
         try:
             content_type = request.headers.get("Content-Type", "")

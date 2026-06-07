@@ -364,6 +364,170 @@ class TtsHelperTest(unittest.TestCase):
         self.assertNotIn("client_id", payload)
         self.assertNotIn("spotify_client_id", payload)
 
+    def test_setup_code_pairing_accepts_real_device_id_after_token_sync(self) -> None:
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={
+                self.const.CONF_DEVICE_ID: "spotifydj-328823",
+                self.const.CONF_DEVICE_TOKEN: "token-new",
+            },
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime.device_token = "token-new"
+        runtime.pairing_device_id = "spotifydj-328823"
+        runtime.device_status["device_id"] = "spotifydj-328823"
+
+        headers = {
+            "Authorization": " Bearer token-new ",
+            "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+        }
+        with self.assertLogs(self.integration._LOGGER, level="DEBUG") as captured:
+            allowed = runtime.authorize_device_request(
+                headers,
+                "spotifydj-90B70990A994",
+            )
+
+        self.assertTrue(allowed)
+        self.assertEqual(runtime.pairing_device_id, "spotifydj-90B70990A994")
+        self.assertEqual(runtime.device_status["device_id"], "spotifydj-90B70990A994")
+        logs = "\n".join(captured.output)
+        self.assertIn("token_match=True", logs)
+        self.assertNotIn("token-new", logs)
+
+    def test_repair_replaces_old_token_for_device_auth(self) -> None:
+        entry = types.SimpleNamespace(entry_id="entry-1", data={}, options={})
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime.device_token = "token-new"
+        runtime.pairing_device_id = "spotifydj-90B70990A994"
+        runtime.device_status["device_id"] = "spotifydj-90B70990A994"
+        headers = {"X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994"}
+
+        self.assertTrue(
+            runtime.authorize_device_request(
+                {**headers, "Authorization": "Bearer token-new"},
+                "spotifydj-90B70990A994",
+            )
+        )
+        self.assertFalse(
+            runtime.authorize_device_request(
+                {**headers, "Authorization": "Bearer token-old"},
+                "spotifydj-90B70990A994",
+            )
+        )
+
+    def test_status_command_and_voice_share_same_runtime_token_lookup(self) -> None:
+        const = self.const
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={
+                const.CONF_DEVICE_ID: "spotifydj-328823",
+                const.CONF_DEVICE_TOKEN: "token-shared",
+            },
+            options={},
+        )
+        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime.device_token = "token-shared"
+        runtime.pairing_device_id = "spotifydj-328823"
+        runtime.device_status["device_id"] = "spotifydj-328823"
+
+        class ConfigEntries:
+            def async_update_entry(self, entry, *, data):
+                entry.data = data
+
+        hass = types.SimpleNamespace(
+            data={const.DOMAIN: {entry.entry_id: runtime, "runtime": runtime}},
+            config_entries=ConfigEntries(),
+        )
+        headers = {
+            "Authorization": "Bearer token-shared",
+            "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+            "Content-Type": "application/json",
+        }
+
+        class StatusRequest:
+            def __init__(self):
+                self.app = {"hass": hass}
+                self.headers = headers
+
+            async def json(self):
+                return {"device_id": "spotifydj-90B70990A994"}
+
+        async def command_handler(hass, runtime, command, value=None, *, play=None):
+            return {"success": True, "playback": {"has_playback": False}}
+
+        async def dj_response_handler(hass, runtime, text):
+            return {"audio_url_value": ""}
+
+        class CommandRequest:
+            def __init__(self):
+                self.app = {"hass": hass}
+                self.headers = headers
+
+            async def json(self):
+                return {
+                    "device_id": "spotifydj-90B70990A994",
+                    "command": "status",
+                }
+
+        class VoiceRequest:
+            def __init__(self):
+                self.app = {"hass": hass}
+                self.headers = headers
+
+            async def json(self):
+                return {"text": "test"}
+
+        original_command = self.http.handle_spotify_command
+        original_dj_response = self.http.async_send_dj_response_best_effort
+        self.http.handle_spotify_command = command_handler
+        self.http.async_send_dj_response_best_effort = dj_response_handler
+        try:
+            status_response = asyncio.run(self.http.SpotifyDJStatusView(None).post(StatusRequest()))
+            command_response = asyncio.run(self.http.SpotifyDJCommandView(None).post(CommandRequest()))
+            voice_response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(VoiceRequest()))
+        finally:
+            self.http.handle_spotify_command = original_command
+            self.http.async_send_dj_response_best_effort = original_dj_response
+
+        self.assertEqual(status_response["status_code"], 200)
+        self.assertEqual(command_response["status_code"], 200)
+        self.assertEqual(voice_response["status_code"], 200)
+
+    def test_runtime_lookup_prefers_token_over_stale_duplicate_device_id(self) -> None:
+        const = self.const
+        stale = types.SimpleNamespace(
+            device_token="old-token",
+            pairing_device_id="spotifydj-90B70990A994",
+            device_status={"device_id": "spotifydj-90B70990A994"},
+            config={const.CONF_DEVICE_ID: "spotifydj-90B70990A994"},
+            authorize_device_request=lambda headers, body_device_id=None: False,
+        )
+        active = types.SimpleNamespace(
+            device_token="new-token",
+            pairing_device_id="spotifydj-90B70990A994",
+            device_status={"device_id": "spotifydj-90B70990A994"},
+            config={const.CONF_DEVICE_ID: "spotifydj-90B70990A994"},
+            authorize_device_request=lambda headers, body_device_id=None: True,
+        )
+        hass = types.SimpleNamespace(
+            data={
+                const.DOMAIN: {
+                    "stale-entry": stale,
+                    "active-entry": active,
+                    "runtime": active,
+                }
+            }
+        )
+
+        resolved = self.http._runtime(
+            hass,
+            "spotifydj-90B70990A994",
+            {"Authorization": "Bearer new-token"},
+        )
+
+        self.assertIs(resolved, active)
+
     def test_start_ota_payload_uses_manifest_device_target(self) -> None:
         class Response:
             status = 200
