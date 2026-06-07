@@ -109,7 +109,7 @@
           "min_battery_for_ota": "Minimum battery percentage before OTA is allowed.",
           "dj_response_ttl_seconds": "Number of seconds the temporary WAV download URL remains valid.",
           "show_advanced_options": "Show manual and firmware/OTA override fields.",
-          "options_action": "Choose whether to save options, retry pairing with the current code, or fully re-pair with a new pairing code."
+          "options_action": "Choose whether to save options, reauthorize Spotify, retry pairing with the current code, or fully re-pair with a new pairing code."
         }
       },
       "repair_pairing": {
@@ -176,7 +176,7 @@
           "dj_response_ttl_seconds": "Number of seconds the temporary WAV download URL remains valid.",
           "allow_ota_on_battery": "Allow firmware updates while the device is not USB powered.",
           "show_advanced_options": "Show manual and firmware/OTA override fields.",
-          "options_action": "Choose whether to save options, retry pairing with the current code, or fully re-pair with a new pairing code."
+          "options_action": "Choose whether to save options, reauthorize Spotify, retry pairing with the current code, or fully re-pair with a new pairing code."
         }
       },
       "repair_pairing": {

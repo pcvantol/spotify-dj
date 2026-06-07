@@ -6,7 +6,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `2.9.27`
+- Home Assistant integration: `2.9.28`
 - Domain: `spotify_dj`
 - HACS category: `Integration`
 - Device target: SpotifyDJ device
@@ -163,9 +163,10 @@ SpotifyDJ scopes.
 
 Where Home Assistant exposes choices, SpotifyDJ shows populated dropdowns for Assist pipeline, TTS entity, known TTS voices, Spotify market, DJ style, and firmware channel. Stored custom values remain selectable so existing setups keep working. Backend playback is handled by Home Assistant through the SpotifyDJ playback proxy; ESP device settings use the local device command API. Spotify source override, firmware repository settings, firmware channel, manual device URL, max audio bytes, and OTA battery settings are shown only after enabling the inline advanced-options checkbox. The manual device URL is normally not needed: SpotifyDJ resolves the device through `_spotifydj._tcp` mDNS, uses the device-reported `local_url` when available, and only builds `http://spotifydj-[device-suffix].local` when the configured ID contains a real 12-character device suffix.
 
-The options flow also includes an action selector. Use `Re-pair SpotifyDJ device`
-when the ESP shows a pairing code again or pairing is stale. Home Assistant then
-generates a fresh device token, persists it, and retries `/api/device/pair`.
+The options flow also includes an action selector. Use `Reauthorize Spotify` to
+refresh OAuth from the integration page, `Retry pairing with current code` to
+push a fresh device token to the existing ESP, or `Re-pair with new pairing
+code` when the ESP shows a new code.
 
 
 ## Security And Diagnostics
@@ -456,12 +457,12 @@ Example manifest:
 
 ```json
 {
-  "version": "2.9.27",
+  "version": "2.9.28",
   "device": "lilygo-t-embed-s3",
-  "asset": "spotifydj-device-v2.9.27.bin",
+  "asset": "spotifydj-device-v2.9.28.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "2.9.27"
+  "min_ha_integration": "2.9.28"
 }
 ```
 
@@ -476,7 +477,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 2.9.27
+./release.sh 2.9.28
 ```
 
 In the private `spotify-dj-app` repository, the firmware release script should
@@ -487,7 +488,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 2.9.27 --dry-run
+./release.sh 2.9.28 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -545,11 +546,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release SpotifyDJ v2.9.27"
-git tag v2.9.27
+git commit -m "Release SpotifyDJ v2.9.28"
+git tag v2.9.28
 git push origin main
-git push origin v2.9.27
-gh release create v2.9.27 --title "SpotifyDJ v2.9.27" --notes-file CHANGELOG.md
+git push origin v2.9.28
+gh release create v2.9.28 --title "SpotifyDJ v2.9.28" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:
@@ -613,6 +614,7 @@ These tests use local stubs for Home Assistant imports and focus on pure Spotify
 - If Home Assistant added the integration but the ESP still shows a pairing code, check `sensor.spotifydj_ha_pairingstatus`: `pending` means HA has a local token but the ESP has not confirmed `/api/device/pair` yet. Verify the device URL/mDNS reachability and wait for the next pairing retry or re-pair from the config flow.
 - If the ESP briefly shows Home Assistant paired and then returns to a pairing code after the first command, update to this release or newer; SpotifyDJ now accepts the real `spotifydj-XXXXXXXXXXXX` device ID after setup-code based direct pairing.
 - If the pairing token is stale, open SpotifyDJ options and choose `Retry pairing with current code`. If the device shows a new code, choose `Re-pair with new pairing code`.
+- If brightness, speaker volume or timeout entities stay at defaults, make sure the ESP firmware sends these settings in its periodic Home Assistant status payload; SpotifyDJ accepts common aliases such as `brightness`, `cue_volume`, `screen_dim_timeout` and `turn_off_after_ms`.
 - If `/api/spotify_dj/voice` returns `No STT provider configured`, select an STT engine in SpotifyDJ options, configure an Assist pipeline with STT such as Home Assistant Cloud STT, or clear the stale SpotifyDJ pipeline option so the integration can use Home Assistant's preferred/default Assist pipeline.
 - If WiFi/pairing works but Spotify does not, reauthorize Spotify in Home Assistant; pair/status payloads must not contain Spotify OAuth secrets.
 - If Home Assistant cannot find a private `SpotifyDJ Liked Proxy` playlist, reauthorize Spotify so the refresh token includes `playlist-read-private`.

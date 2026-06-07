@@ -178,10 +178,12 @@ class SpotifyDJCommandNumber(NumberEntity):
 
     @property
     def native_value(self) -> float | None:
-        value = self.runtime.device_status.get(self.status_key)
-        try:
-            number = float(value)
-        except (TypeError, ValueError):
+        number = _device_setting_number(
+            self.runtime.device_status,
+            self.status_key,
+            self.value_multiplier,
+        )
+        if number is None:
             return None
         if number < self._attr_native_min_value:
             return None
@@ -207,3 +209,52 @@ class SpotifyDJCommandNumber(NumberEntity):
     async def async_will_remove_from_hass(self) -> None:
         if self._handle_runtime_update in self.runtime.listeners:
             self.runtime.listeners.remove(self._handle_runtime_update)
+
+
+def _device_setting_number(
+    status: dict[str, Any],
+    status_key: str,
+    value_multiplier: int,
+) -> float | None:
+    for key, divisor in _status_key_aliases(status_key, value_multiplier):
+        if key not in status:
+            continue
+        try:
+            value = float(status[key])
+        except (TypeError, ValueError):
+            continue
+        if divisor > 1:
+            value /= divisor
+        return value
+    return None
+
+
+def _status_key_aliases(status_key: str, value_multiplier: int) -> list[tuple[str, int]]:
+    if status_key == "screen_brightness":
+        return [
+            ("screen_brightness", 1),
+            ("brightness", 1),
+            ("display_brightness", 1),
+        ]
+    if status_key == "speaker_volume":
+        return [
+            ("speaker_volume", 1),
+            ("speaker_volume_percent", 1),
+            ("cue_volume", 1),
+            ("sound_volume", 1),
+        ]
+    if status_key == "screen_timeout":
+        return [
+            ("screen_timeout", 1),
+            ("screen_timeout_seconds", 1),
+            ("screen_dim_timeout", value_multiplier),
+            ("screen_dim_timeout_ms", value_multiplier),
+        ]
+    if status_key == "turn_off_after":
+        return [
+            ("turn_off_after", 1),
+            ("turn_off_after_minutes", 1),
+            ("turn_off_after_ms", value_multiplier),
+            ("auto_off_timeout", value_multiplier),
+        ]
+    return [(status_key, 1)]

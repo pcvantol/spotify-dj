@@ -455,6 +455,7 @@ class SpotifyDJStatusView(HomeAssistantView):
             "device_token": runtime.device_token or "",
             "device_language": runtime.device_language(),
             "language": runtime.device_language(),
+            "playback": getattr(runtime, "last_playback", None) or {},
         }
         backend_available = bool(_current_spotify_credentials(runtime))
         _LOGGER.debug(
@@ -854,6 +855,9 @@ class SpotifyDJSpotifyCallbackView(HomeAssistantView):
                 _LOGGER.debug("SpotifyDJ Spotify refresh_token=rotated/present")
             _delete_spotify_reauth_issues(hass, entry.entry_id)
             await hass.config_entries.async_reload(entry.entry_id)
+            flow_id = ctx.get("flow_id")
+            if flow_id:
+                await hass.config_entries.flow.async_configure(flow_id, {"state": state})
             return web.Response(
                 text=(
                     "SpotifyDJ Spotify OAuth is gelukt. De refresh token is opgeslagen in Home Assistant. "

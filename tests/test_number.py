@@ -100,6 +100,70 @@ class NumberTest(unittest.TestCase):
 
         self.assertEqual(entity.native_value, 60.0)
 
+    def test_device_setting_numbers_read_firmware_aliases(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            device_status={
+                "brightness": 73,
+                "cue_volume": 44,
+                "screen_dim_timeout": 45000,
+                "turn_off_after_ms": 900000,
+            },
+            listeners=[],
+        )
+
+        brightness = self.number.SpotifyDJCommandNumber(
+            runtime,
+            object(),
+            "screen_brightness",
+            "brightness",
+            "screen_brightness",
+            "value",
+            0,
+            100,
+            "%",
+        )
+        speaker = self.number.SpotifyDJCommandNumber(
+            runtime,
+            object(),
+            "speaker_volume",
+            "speaker_volume",
+            "speaker_volume",
+            "value",
+            0,
+            100,
+            "%",
+        )
+        screen_timeout = self.number.SpotifyDJCommandNumber(
+            runtime,
+            object(),
+            "screen_timeout",
+            "screen_timeout",
+            "screen_dim_timeout",
+            "value",
+            0,
+            600,
+            "s",
+            value_multiplier=1000,
+        )
+        turn_off_after = self.number.SpotifyDJCommandNumber(
+            runtime,
+            object(),
+            "turn_off_after",
+            "turn_off_after",
+            "turn_off_after",
+            "value",
+            0,
+            240,
+            "min",
+            value_multiplier=60000,
+        )
+
+        self.assertEqual(brightness.native_value, 73)
+        self.assertEqual(speaker.native_value, 44)
+        self.assertEqual(screen_timeout.native_value, 45)
+        self.assertEqual(turn_off_after.native_value, 15)
+
 
 if __name__ == "__main__":
     unittest.main()

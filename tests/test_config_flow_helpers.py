@@ -308,6 +308,12 @@ class ConfigFlowHelperTest(unittest.TestCase):
         )
         self.assertEqual(
             self.config_flow._options_action_names(en_hass)[
+                self.config_flow.OPTIONS_ACTION_SPOTIFY_REAUTH
+            ],
+            "Reauthorize Spotify",
+        )
+        self.assertEqual(
+            self.config_flow._options_action_names(en_hass)[
                 self.config_flow.OPTIONS_ACTION_SAVE
             ],
             "Save options",

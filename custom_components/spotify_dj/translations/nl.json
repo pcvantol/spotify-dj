@@ -109,7 +109,7 @@
           "min_battery_for_ota": "Minimaal batterijpercentage voordat OTA is toegestaan.",
           "dj_response_ttl_seconds": "Aantal seconden dat de tijdelijke WAV download URL geldig blijft.",
           "show_advanced_options": "Toon handmatige en firmware/OTA overridevelden.",
-          "options_action": "Kies instellingen opslaan of opnieuw koppelen met een nieuw device token."
+          "options_action": "Kies instellingen opslaan, Spotify opnieuw autoriseren, koppelen opnieuw proberen met de huidige code, of volledig opnieuw koppelen met een nieuwe koppelcode."
         }
       },
       "repair_pairing": {
@@ -176,7 +176,7 @@
           "dj_response_ttl_seconds": "Aantal seconden dat de tijdelijke WAV download URL geldig blijft.",
           "allow_ota_on_battery": "Sta firmware updates toe als het apparaat niet via USB gevoed wordt.",
           "show_advanced_options": "Toon handmatige en firmware/OTA overridevelden.",
-          "options_action": "Kies instellingen opslaan, koppelen opnieuw proberen met de huidige code, of volledig opnieuw koppelen met een nieuwe koppelcode."
+          "options_action": "Kies instellingen opslaan, Spotify opnieuw autoriseren, koppelen opnieuw proberen met de huidige code, of volledig opnieuw koppelen met een nieuwe koppelcode."
         }
       },
       "repair_pairing": {

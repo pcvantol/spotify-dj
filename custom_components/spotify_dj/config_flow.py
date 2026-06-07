@@ -89,6 +89,7 @@ OPTIONS_ACTION_FIELD = "options_action"
 OPTIONS_ACTION_SAVE = "save_options"
 OPTIONS_ACTION_RETRY_PAIRING = "retry_device_pairing"
 OPTIONS_ACTION_REPAIR = "repair_device_pairing"
+OPTIONS_ACTION_SPOTIFY_REAUTH = "spotify_reauthorize"
 BLE_ACTION_FIELD = "ble_action"
 BLE_ACTION_PROVISION = "provision_wifi"
 BLE_ACTION_RETRY_SCAN = "retry_ble_scan"
@@ -123,11 +124,13 @@ BLE_ACTION_NAMES_NL = {
 }
 OPTIONS_ACTION_NAMES_EN = {
     OPTIONS_ACTION_SAVE: "Save options",
+    OPTIONS_ACTION_SPOTIFY_REAUTH: "Reauthorize Spotify",
     OPTIONS_ACTION_RETRY_PAIRING: "Retry pairing with current code",
     OPTIONS_ACTION_REPAIR: "Re-pair with new pairing code",
 }
 OPTIONS_ACTION_NAMES_NL = {
     OPTIONS_ACTION_SAVE: "Instellingen opslaan",
+    OPTIONS_ACTION_SPOTIFY_REAUTH: "Spotify opnieuw autoriseren",
     OPTIONS_ACTION_RETRY_PAIRING: "Koppelen opnieuw proberen met huidige code",
     OPTIONS_ACTION_REPAIR: "Opnieuw koppelen met nieuwe koppelcode",
 }
@@ -988,6 +991,7 @@ class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self._config_entry = config_entry
         self._show_advanced_options = False
+        self._oauth: dict[str, str] = {}
 
     async def async_step_init(
         self,
@@ -1001,6 +1005,8 @@ class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
             if _request_advanced(self, user_input):
                 return await self.async_step_init()
             action = user_input.get(OPTIONS_ACTION_FIELD)
+            if action == OPTIONS_ACTION_SPOTIFY_REAUTH:
+                return await self.async_step_spotify_reauth()
             if action == OPTIONS_ACTION_RETRY_PAIRING:
                 return await self._async_retry_pairing()
             if action == OPTIONS_ACTION_REPAIR:
@@ -1026,6 +1032,69 @@ class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
                 include_options_action=True,
             ),
             errors=errors,
+        )
+
+    async def async_step_spotify_reauth(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> FlowResult:
+        """Reauthorize Spotify from the options flow."""
+        if user_input is not None:
+            return self.async_create_entry(
+                title="",
+                data=dict(self._config_entry.options),
+            )
+        current = {**self._config_entry.data, **self._config_entry.options}
+        client_id = str(
+            current.get(CONF_SPOTIFY_CLIENT_ID) or DEFAULT_SPOTIFY_CLIENT_ID
+        ).strip()
+        external_url = str(
+            current.get(CONF_HA_EXTERNAL_URL)
+            or await _async_default_external_url(self.hass)
+            or ""
+        ).strip().rstrip("/")
+        if not client_id or not external_url:
+            return self.async_show_form(
+                step_id="init",
+                data_schema=await _voice_schema(
+                    self.hass,
+                    _voice_defaults(current),
+                    include_advanced=_advanced_enabled(self),
+                    include_options_action=True,
+                ),
+                errors={"base": "oauth_setup_failed"},
+            )
+        redirect_uri = build_redirect_uri(external_url)
+        state = secrets.token_urlsafe(24)
+        code_verifier = create_code_verifier()
+        self._oauth = {
+            "state": state,
+            "redirect_uri": redirect_uri,
+            "authorize_url": build_authorize_url(
+                client_id,
+                redirect_uri,
+                DEFAULT_SPOTIFY_SCOPES,
+                state,
+                code_verifier,
+            ),
+        }
+        pending = self.hass.data.setdefault(DOMAIN, {}).setdefault(
+            "spotify_oauth_pending",
+            {},
+        )
+        pending[state] = {
+            "flow_id": self.flow_id,
+            "entry_id": self._config_entry.entry_id,
+            "client_id": client_id,
+            "code_verifier": code_verifier,
+            "redirect_uri": redirect_uri,
+            "market": current.get(CONF_SPOTIFY_MARKET, DEFAULT_SPOTIFY_MARKET),
+            "scopes": DEFAULT_SPOTIFY_SCOPES,
+        }
+        return self.async_external_step(
+            step_id="spotify_reauth",
+            url=self._oauth["authorize_url"],
+            description_placeholders={"redirect_uri": redirect_uri},
         )
 
     async def async_step_repair_pairing(

@@ -52,7 +52,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.9.27`.
+- Actuele integratieversie: `2.9.28`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -63,6 +63,7 @@ HA integration:
 - Nieuwe Spotify refresh tokens uit OAuth callbacks moeten `CONF_SPOTIFY_REFRESH_TOKEN` persistent overschrijven en in runtime als latest token beschikbaar zijn.
 - Pair/status responses mogen nooit Spotify OAuth secrets bevatten; gebruik latest refresh token alleen HA-intern.
 - Spotify `invalid_grant` / revoked refresh tokens moeten als gebruikersvriendelijke reauthorize melding en native HA Repairs Fix-flow zichtbaar worden; de Fix-flow opent Spotify OAuth, slaat de nieuwe refresh token op en verwijdert de repair issue. Toon geen ruwe token-response en log nooit de refresh token.
+- Options-flow moet ook een expliciete `Spotify opnieuw autoriseren` actie hebben die dezelfde OAuth callback gebruikt.
 - Redirect path: `/api/spotify_dj/spotify/callback`
 - Geen handmatig `oauth_result` veld tonen.
 - Config flow ondersteunt optionele BLE WiFi provisioning vóór normale pairing.
@@ -98,6 +99,7 @@ HA integration:
 - Verberg lokale/manual device URL in de normale flow; toon die alleen onder HA advanced options als mDNS/manual override nodig is.
 - Als manual device URL leeg is tijdens setup, sla alleen automatisch `http://spotifydj-[device-suffix].local` op als de pairingwaarde een echte 12-hex device suffix is; runtime blijft device-reported `local_url` en `_spotifydj._tcp` mDNS prefereren en negeert oude `spotifydj-[6-digit-code].local` fallbacks.
 - Alle SpotifyDJ entities moeten onder één HA device vallen met hetzelfde device identifier.
+- ESP status payloads naar HA moeten actuele device settings meesturen voor native entities, zoals brightness/screen_brightness, cue_volume/speaker_volume, screen_dim_timeout en turn_off_after_ms; HA accepteert aliases en converteert milliseconden naar seconden/minuten.
 - `number.spotifydj_volume` mag onbekende devicewaarden zoals `-1` nooit publiceren; geef dan `None/unavailable` terug binnen HA range 0–60.
 - Config-flow foutpaden moeten heldere NL/EN gebruikersmeldingen hebben, bijvoorbeeld bij lege of foutieve koppelcode/device-suffix, ontbrekende Spotify Client ID, foutieve external URL en OAuth fouten.
 - Bestaande modules niet verwijderen, zoals `wav_util.py`, `pipeline.py`.
