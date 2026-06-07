@@ -2,11 +2,11 @@
 
 ## Immediate Validation
 
-- Install HACS release `v2.9.10` in Home Assistant.
+- Install the latest HACS release in Home Assistant.
 - Restart Home Assistant after installation.
 - Open SpotifyDJ options flow and confirm there is no internal server error.
-- Confirm existing paired device remains paired after HA restart.
-- Confirm HA no longer attempts ESP re-pairing when `device_token` exists.
+- Confirm existing paired device remains paired after HA restart when ESP reports `ha_pairing_status=paired`.
+- Confirm HA shows pairing `pending` and retries `/api/device/pair` when a local token exists but ESP has not confirmed pairing.
 - Confirm ESP `/status` updates persist the real `spotifydj-XXXXXXXXXXXX` device id.
 - Confirm ESP `/status` updates persist the real `local_url` when provided.
 - Confirm old setup-code entries stop using `spotifydj-[6-digit-code].local` after status repair.
@@ -38,6 +38,9 @@
 ## Pairing / Discovery
 
 - Test pairing with a fresh ESP in setup mode.
+- Test captive-portal WiFi setup followed by BLE screen action `Continue to pairing`.
+- Test BLE screen action `Rescan Bluetooth devices`.
+- Test BLE screen action `Write WiFi over Bluetooth`.
 - Test pairing with manual device URL left empty.
 - Test mDNS discovery through `_spotifydj._tcp`.
 - Test mDNS single-device fallback when only one SpotifyDJ device is visible.

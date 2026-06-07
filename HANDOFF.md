@@ -104,7 +104,8 @@ STT provider selection order:
 - Runtime discovery prefers device-reported `local_url`, exact `_spotifydj._tcp` mDNS matches, then a single visible SpotifyDJ mDNS device.
 - Never generate or store `spotifydj-[6-digit-code].local` as a valid device URL. Only 12-hex device suffixes may become `http://spotifydj-[suffix].local` fallbacks.
 - Pair/status handlers persist the real `spotifydj-XXXXXXXXXXXX` identity and reported `local_url` so HA restarts do not fall back to setup-code identities.
-- HA startup skips ESP re-pairing if a device token already exists; Spotify credential provisioning is opportunistic and may defer until the device is reachable.
+- HA pairing remains `pending` until the ESP confirms `ha_pairing_status=paired`; HA may retry `/api/device/pair` when a local token exists but the ESP has not confirmed pairing yet.
+- BLE setup offers one mutually exclusive action: write WiFi over Bluetooth, rescan Bluetooth devices, or continue to pairing when captive-portal WiFi already put the device online.
 - Firmware asset name is distributive, e.g. `spotifydj-device-vX.Y.Z.bin`; OTA target device comes from `firmware_manifest.json` field `device`, currently `lilygo-t-embed-s3`.
 - All HA entities should belong to one stable Home Assistant device identifier.
 - Secrets must not be logged or exposed in diagnostics; redact keys containing `token`, `password` or `secret`.
@@ -121,12 +122,12 @@ STT provider selection order:
 
 ## Next Tasks
 
-- Install `v2.9.10` through HACS, restart Home Assistant and verify:
+- Install the latest HACS release, restart Home Assistant and verify:
   - Options flow opens without internal server error.
-  - Existing paired device remains paired.
-  - No startup re-pair attempt is logged when `device_token` exists.
+  - Existing paired device remains paired after ESP confirms `ha_pairing_status=paired`.
+  - New or uncertain pairing shows `pending` until ESP confirms `/api/device/pair`.
   - ESP `/status` persists real `spotifydj-XXXXXXXXXXXX` and `local_url`.
-  - Spotify provisioning no longer fails because HA only knows a 6-digit setup-code URL.
+  - Pairing no longer depends on a 6-digit setup-code URL.
 - Test physical PTT end-to-end:
   - ESP uploads raw WAV.
   - HA selects/logs the intended STT provider.

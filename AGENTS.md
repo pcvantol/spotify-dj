@@ -52,7 +52,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.9.19`.
+- Actuele integratieversie: `2.9.20`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -64,6 +64,7 @@ HA integration:
 - Redirect path: `/api/spotify_dj/spotify/callback`
 - Geen handmatig `oauth_result` veld tonen.
 - Config flow ondersteunt optionele BLE WiFi provisioning vóór normale pairing.
+- BLE config-flow gebruikt één exclusieve actie-keuze: WiFi via Bluetooth schrijven, Bluetooth devices opnieuw scannen of doorgaan naar koppelen als captive-portal WiFi al klaar is.
 - BLE provisioning schrijft alleen WiFi SSID/password naar het SpotifyDJ device; geen Spotify credentials, device tokens of andere secrets via BLE.
 - BLE service UUID: `7f705000-9f8f-4f1a-9b5f-570071fd0001`
 - BLE WiFi write characteristic: `7f705001-9f8f-4f1a-9b5f-570071fd0001`
@@ -72,6 +73,7 @@ HA integration:
 - Options-flow mag `config_entry` niet assignen; gebruik een eigen attribuut omdat recente Home Assistant versies `config_entry` read-only maken.
 - Device UI language wordt tijdens pairing gekozen als `en`/`nl`, default op HA taal indien ondersteund, en meegestuurd als `device_language` en `language`; ESP slaat dit op als `provision.language`.
 - Koppelcode/device-suffix uit de HA config-flow moet worden opgeslagen en ESP pairing moet een afwijkende code weigeren.
+- HA pairingstatus mag pas `paired` tonen nadat ESP `ha_pairing_status=paired` bevestigt; een lokaal HA `device_token` is hooguit `pending`.
 - `spotify_player` is niet meer nodig; backend playback loopt via de HA playback proxy en ESP device-instellingen via de lokale ESP command API.
 - Gebruik waar veilig HA-populated combo boxes/dropdowns i.p.v. vrije tekst:
   - Assist pipeline uit HA Assist pipelines.

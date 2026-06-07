@@ -8,7 +8,7 @@
 - Area: voice endpoint / Home Assistant STT.
 - Symptom: Some HA STT providers may reject WAV metadata or return no recognized text.
 - Current mitigation: Integration logs selected provider, WAV metadata, provider result state and Assist event types without logging transcript/audio/secrets.
-- Next action: Test `v2.9.10` with the actual HA STT provider selected in options.
+- Next action: Test the latest HACS release with the actual HA STT provider selected in options.
 
 ### Existing installations may need one successful `/status` to self-repair
 
@@ -44,17 +44,17 @@
 
 ## Recently Fixed / Monitor
 
-### Startup re-pair attempt on already paired devices
+### Pairing confirmation state
 
-- Status: fixed in `v2.9.10`, monitor after install.
+- Status: fixed in latest release line, monitor after install.
 - Area: pairing/provisioning.
-- Previous symptom: HA startup logged `ESP pairing failed HTTP 502` although the device was already paired.
-- Fix: Startup provisioning skips `/api/device/pair` when a device token already exists.
-- Validation: Confirm no startup re-pair attempt in HA logs after restart.
+- Previous symptom: HA could show `paired` because a local token existed while the ESP still showed its pairing code.
+- Fix: HA shows `pending` until ESP confirms `ha_pairing_status=paired`, and retries `/api/device/pair` when confirmation is missing.
+- Validation: Confirm the ESP leaves the pairing screen and HA status changes from `pending` to `paired`.
 
 ### Unknown local URL during Spotify provisioning
 
-- Status: fixed in `v2.9.10`, monitor after install.
+- Status: fixed in latest release line, monitor after install.
 - Area: provisioning/discovery.
 - Previous symptom: `SpotifyDJ device local_url is unknown` during opportunistic Spotify provisioning.
 - Fix: Expected reachability/local URL failures defer quietly; real device identity and local URL are restored/persisted from entry data, `/pair` and `/status`.
