@@ -43,6 +43,7 @@ class SpotifyDJFirmwareUpdate(UpdateEntity):
         self.hass = hass
         self._latest = None
         self._installed = None
+        self._update_error = None
         runtime.listeners.append(self._handle_runtime_update)
 
     @property
@@ -72,6 +73,7 @@ class SpotifyDJFirmwareUpdate(UpdateEntity):
             return {
                 "repo": self.runtime.config.get("firmware_repo"),
                 "device_status": self.runtime.device_status,
+                "firmware_update_error": self._update_error,
             }
         return {
             "repo": self.runtime.config.get("firmware_repo"),
@@ -85,6 +87,7 @@ class SpotifyDJFirmwareUpdate(UpdateEntity):
             "device_status": self.runtime.device_status,
             "ota_in_progress": self.runtime.ota_in_progress,
             "ota_last_error": self.runtime.ota_last_error,
+            "firmware_update_error": self._update_error,
         }
 
     async def async_added_to_hass(self) -> None:
@@ -98,7 +101,13 @@ class SpotifyDJFirmwareUpdate(UpdateEntity):
         self.async_write_ha_state()
 
     async def async_update(self) -> None:
-        self._latest = await fetch_latest_firmware_release(self.hass, self.runtime.config)
+        try:
+            self._latest = await fetch_latest_firmware_release(self.hass, self.runtime.config)
+            self._update_error = None if self._latest else "No firmware release available"
+        except Exception as exc:  # noqa: BLE001
+            self._latest = None
+            self._update_error = str(exc)
+            _LOGGER.warning("SpotifyDJ firmware update check failed: %s", exc)
 
     async def async_release_notes(self) -> str | None:
         return self.release_summary

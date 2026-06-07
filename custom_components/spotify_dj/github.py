@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from aiohttp import ClientTimeout
+from aiohttp import ClientResponseError, ClientTimeout
 from awesomeversion import AwesomeVersion
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -79,7 +79,19 @@ async def fetch_latest_firmware_release(
         return None
 
     session = async_get_clientsession(hass)
-    release = await _fetch_latest_release_json(session, repo)
+    try:
+        release = await _fetch_latest_release_json(session, repo)
+    except ClientResponseError as exc:
+        if exc.status == 403:
+            _LOGGER.warning(
+                "SpotifyDJ firmware release check is currently rate limited by GitHub"
+            )
+            return None
+        _LOGGER.warning("SpotifyDJ firmware release check failed: %s", exc)
+        return None
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.warning("SpotifyDJ firmware release check failed: %s", exc)
+        return None
     if release is None:
         return None
 

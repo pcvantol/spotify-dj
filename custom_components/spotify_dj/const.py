@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "spotify_dj"
 NAME = "SpotifyDJ"
-VERSION = "2.9.22"
+VERSION = "2.9.23"
 
 API_BASE = "/api/spotify_dj"
 API_PAIR = f"{API_BASE}/pair"

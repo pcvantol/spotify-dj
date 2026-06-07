@@ -20,7 +20,13 @@ def install_github_stubs() -> None:
             self.args = args
             self.kwargs = kwargs
 
+    class ClientResponseError(Exception):
+        def __init__(self, *args, status=None, **kwargs):
+            super().__init__("client response error")
+            self.status = status
+
     aiohttp.ClientTimeout = ClientTimeout
+    aiohttp.ClientResponseError = ClientResponseError
 
     sys.modules.setdefault("homeassistant", types.ModuleType("homeassistant"))
     core = sys.modules.setdefault(
@@ -202,6 +208,45 @@ class GithubFirmwareTest(unittest.TestCase):
             )
 
         self.assertIn("unsupported device other-board", captured.output[0])
+
+    def test_github_rate_limit_returns_no_release_without_crash(self) -> None:
+        class ClientResponseError(Exception):
+            def __init__(self, *args, status=None, **kwargs):
+                super().__init__("rate limit exceeded")
+                self.status = status
+
+        class Response:
+            status = 403
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            def raise_for_status(self):
+                raise ClientResponseError(status=403)
+
+        class Session:
+            def get(self, url, **kwargs):
+                return Response()
+
+        original_error = self.github.ClientResponseError
+        original_session = self.github.async_get_clientsession
+        self.github.ClientResponseError = ClientResponseError
+        self.github.async_get_clientsession = lambda hass: Session()
+        try:
+            release = asyncio.run(
+                self.github.fetch_latest_firmware_release(
+                    object(),
+                    {"firmware_repo": "pcvantol/spotify-dj-firmware"},
+                )
+            )
+        finally:
+            self.github.ClientResponseError = original_error
+            self.github.async_get_clientsession = original_session
+
+        self.assertIsNone(release)
 
 if __name__ == "__main__":
     unittest.main()
