@@ -3,11 +3,12 @@ from __future__ import annotations
 
 DOMAIN = "spotify_dj"
 NAME = "SpotifyDJ"
-VERSION = "2.9.15"
+VERSION = "2.9.16"
 
 API_BASE = "/api/spotify_dj"
 API_PAIR = f"{API_BASE}/pair"
 API_VOICE = f"{API_BASE}/voice"
+API_COMMAND = f"{API_BASE}/command"
 API_STATUS = f"{API_BASE}/status"
 API_EVENT = f"{API_BASE}/event"
 API_TTS_BASE = f"{API_BASE}/tts"
@@ -109,7 +110,7 @@ SPOTIFY_SCOPES = [
 ]
 DEFAULT_SPOTIFY_SCOPES = " ".join(SPOTIFY_SCOPES)
 
-PLATFORMS = ["sensor", "button", "number", "select", "update"]
+PLATFORMS = ["sensor", "button", "number", "select", "update", "media_player"]
 
 # Spotify OAuth/PKCE direct callback support
 SPOTIFY_CALLBACK_PATH = API_SPOTIFY_CALLBACK

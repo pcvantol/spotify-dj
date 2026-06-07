@@ -164,7 +164,14 @@ async def async_send_dj_response(
         last_dj_response_at=time.time(),
         last_error=None,
     )
-    _LOGGER.debug("SpotifyDJ DJ response result: %s", result)
+    _LOGGER.debug(
+        "SpotifyDJ DJ response result success=%s spoken=%s displayed=%s audio_url=%s audio_type=%s",
+        result["success"],
+        result["spoken"],
+        result["displayed"],
+        result["audio_url"],
+        result["audio_type"],
+    )
     return result
 
 

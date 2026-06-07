@@ -30,9 +30,9 @@
 - Verify Spotify OAuth still completes through HA external step.
 - Verify OAuth scopes include `playlist-read-private`.
 - Verify OAuth callback stores latest `spotify_refresh_token` persistently.
-- Verify status payload with `spotify_configured=false` returns current Spotify credentials.
+- Verify status payload with `spotify_configured=false` does not return Spotify credentials.
 - Verify pair response uses latest refresh token, not stale entry data.
-- Verify `spotify_dj.provision_spotify_credentials` sends current credentials to ESP.
+- Verify Spotify OAuth credentials stay in Home Assistant and are not sent to ESP.
 - Verify no Spotify refresh token value appears in logs or diagnostics.
 
 ## Pairing / Discovery
@@ -74,7 +74,7 @@
 - Test `spotify_dj.test_command` with `play: false`.
 - Test `spotify_dj.test_command` with `play: true`.
 - Test `spotify_dj.test_tts` and confirm response is sent to ESP, not HA media player.
-- Test `spotify_dj.provision_spotify_credentials` after OAuth refresh-token rotation.
+- Test Spotify backend playback after OAuth refresh-token rotation.
 - Update service documentation if any response payload changes.
 
 ## Security / Privacy

@@ -5,6 +5,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_LIKED_PROXY, CONF_SPOTIFY_SOURCE
+from .spotify_backend import handle_spotify_command
 
 MEDIA_CONTENT_TYPES = {
     "album": "album",
@@ -21,7 +22,7 @@ async def play_from_intent(
 ) -> dict[str, Any]:
     source = (conf.get(CONF_SPOTIFY_SOURCE) or "").strip()
     if source:
-        await runtime.async_device_command(hass, "set_output", value=source)
+        await handle_spotify_command(hass, runtime, "set_output", source, play=False)
 
     media_content_id, media_content_type = _media_from_intent(intent, conf)
 
@@ -29,11 +30,11 @@ async def play_from_intent(
         raise RuntimeError("Could not determine a Spotify search query")
 
     command = "start_playlist" if media_content_type == "playlist" else "play"
-    response = await runtime.async_device_command(
+    response = await handle_spotify_command(
         hass,
+        runtime,
         command,
-        value=media_content_id,
-        media_type=media_content_type,
+        media_content_id,
     )
 
     return {

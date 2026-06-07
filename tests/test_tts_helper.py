@@ -222,15 +222,10 @@ class TtsHelperTest(unittest.TestCase):
             device_token = "device-token"
             device_status = {}
             pair_called = False
-            provision_called = False
             last_error = "previous"
 
             async def pair_device(self, hass):
                 self.pair_called = True
-
-            async def provision_spotify_credentials(self, hass):
-                self.provision_called = True
-                return {"success": True}
 
             def update(self, **kwargs):
                 for key, value in kwargs.items():
@@ -241,8 +236,6 @@ class TtsHelperTest(unittest.TestCase):
         asyncio.run(self.integration._try_initial_device_provisioning(object(), runtime))
 
         self.assertFalse(runtime.pair_called)
-        self.assertTrue(runtime.provision_called)
-        self.assertTrue(runtime.device_status["spotify_configured"])
         self.assertIsNone(runtime.last_error)
 
     def test_initial_provisioning_defers_unknown_local_url_without_last_error(self) -> None:
@@ -253,9 +246,6 @@ class TtsHelperTest(unittest.TestCase):
 
             async def pair_device(self, hass):
                 raise AssertionError("startup should not re-pair an existing device")
-
-            async def provision_spotify_credentials(self, hass):
-                raise RuntimeError("SpotifyDJ device local_url is unknown")
 
             def update(self, **kwargs):
                 for key, value in kwargs.items():
@@ -301,7 +291,7 @@ class TtsHelperTest(unittest.TestCase):
             "http://spotifydj-90B70990A994.local",
         )
 
-    def test_pair_device_payload_includes_spotify_credentials_when_available(self) -> None:
+    def test_pair_device_payload_omits_spotify_credentials(self) -> None:
         class Response:
             status = 200
 
@@ -347,10 +337,11 @@ class TtsHelperTest(unittest.TestCase):
         payload = session.calls[0]["json"]
         self.assertEqual(payload["device_language"], "nl")
         self.assertEqual(payload["language"], "nl")
-        self.assertEqual(payload["spotify"]["refresh_token"], "rotated-token")
-        self.assertEqual(payload["spotify"]["spotify_refresh_token"], "rotated-token")
-        self.assertEqual(payload["refresh_token"], "rotated-token")
-        self.assertEqual(payload["spotify_refresh_token"], "rotated-token")
+        self.assertNotIn("spotify", payload)
+        self.assertNotIn("refresh_token", payload)
+        self.assertNotIn("spotify_refresh_token", payload)
+        self.assertNotIn("client_id", payload)
+        self.assertNotIn("spotify_client_id", payload)
 
     def test_start_ota_payload_uses_manifest_device_target(self) -> None:
         class Response:

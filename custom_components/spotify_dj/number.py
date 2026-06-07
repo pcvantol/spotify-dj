@@ -10,6 +10,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
+from .spotify_backend import handle_spotify_command
 
 MIN_VOLUME = 0.0
 MAX_VOLUME = 60.0
@@ -29,7 +30,7 @@ async def async_setup_entry(
                 hass,
                 "screen_brightness",
                 "brightness",
-                "set_brightness",
+                "screen_brightness",
                 "value",
                 0,
                 100,
@@ -40,29 +41,31 @@ async def async_setup_entry(
                 hass,
                 "screen_timeout",
                 "screen_timeout",
-                "set_screen_timeout",
-                "seconds",
+                "screen_dim_timeout",
+                "value",
                 0,
                 600,
                 "s",
+                value_multiplier=1000,
             ),
             SpotifyDJCommandNumber(
                 runtime,
                 hass,
                 "turn_off_after",
                 "turn_off_after",
-                "set_turn_off_after",
-                "minutes",
+                "turn_off_after",
+                "value",
                 0,
                 240,
                 "min",
+                value_multiplier=60000,
             ),
             SpotifyDJCommandNumber(
                 runtime,
                 hass,
                 "speaker_volume",
                 "speaker_volume",
-                "set_speaker_volume",
+                "speaker_volume",
                 "value",
                 0,
                 100,
@@ -104,10 +107,11 @@ class SpotifyDJVolumeNumber(NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         volume = max(MIN_VOLUME, min(MAX_VOLUME, float(value)))
-        await self.runtime.async_device_command(
+        await handle_spotify_command(
             self.hass,
+            self.runtime,
             "set_volume",
-            value=int(volume),
+            int(volume),
         )
         self.runtime.device_status["volume"] = volume
         self.runtime.update()
@@ -147,12 +151,15 @@ class SpotifyDJCommandNumber(NumberEntity):
         min_value: float,
         max_value: float,
         unit: str | None,
+        *,
+        value_multiplier: int = 1,
     ) -> None:
         self.runtime = runtime
         self.hass = hass
         self.status_key = status_key
         self.command = command
         self.payload_key = payload_key
+        self.value_multiplier = value_multiplier
         self._attr_translation_key = translation_key
         self._attr_unique_id = f"spotifydj_{translation_key}"
         self._attr_native_min_value = min_value
@@ -188,7 +195,7 @@ class SpotifyDJCommandNumber(NumberEntity):
         await self.runtime.async_device_command(
             self.hass,
             self.command,
-            **{self.payload_key: int(number)},
+            **{self.payload_key: int(number * self.value_multiplier)},
         )
         self.runtime.device_status[self.status_key] = number
         self.runtime.update()

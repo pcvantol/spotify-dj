@@ -8,7 +8,7 @@
           "setup_method": "Setup methode"
         },
         "data_description": {
-          "setup_method": "Bluetooth wordt alleen gebruikt voor WiFi credentials. Pairing en Spotify provisioning blijven via WiFi lopen."
+          "setup_method": "Bluetooth wordt alleen gebruikt voor WiFi credentials. Pairing loopt via WiFi; Spotify playback wordt door Home Assistant afgehandeld."
         }
       },
       "pair": {
@@ -95,7 +95,7 @@
           "dj_response_enabled": "Maak een tijdelijke WAV of MP3 audio URL en stuur die met de DJ tekst naar het SpotifyDJ device.",
           "dj_style": "Toon/stijl voor SpotifyDJ aankondigingen.",
           "dj_profile": "Toon/stijl voor SpotifyDJ aankondigingen.",
-          "spotify_source": "Geavanceerde optionele override voor een Spotify Connect bron. Laat leeg voor dynamische/standaard playback.",
+          "spotify_source": "Geavanceerde optionele override voor een playback uitgang/bron. Laat leeg voor dynamische/standaard playback.",
           "liked_proxy_playlist_uri": "Optionele playlist URI als proxy voor liked songs.",
           "firmware_repo": "Geavanceerde firmware release repository.",
           "firmware_asset_prefix": "Geavanceerde firmware binary bestandsnaam-prefix.",
@@ -192,6 +192,18 @@
       },
       "sound_output": {
         "name": "Geluidsuitvoer"
+      },
+      "playback_available": {
+        "name": "Playback beschikbaar"
+      },
+      "queue": {
+        "name": "Wachtrij"
+      },
+      "playlists": {
+        "name": "Playlists"
+      },
+      "outputs": {
+        "name": "Uitgangen"
       }
     },
     "button": {
@@ -249,12 +261,17 @@
       "log_level": {
         "name": "Logniveau"
       }
+    },
+    "media_player": {
+      "playback_proxy": {
+        "name": "Playback proxy"
+      }
     }
   },
   "issues": {
     "missing_spotify_oauth_scopes": {
       "title": "Spotify autorisatie mist playlist scope",
-      "description": "SpotifyDJ heeft nu de Spotify OAuth scope playlist-read-private nodig zodat het device private SpotifyDJ Liked Proxy playlists via /me/playlists kan vinden. Start Spotify OAuth opnieuw via de SpotifyDJ developer action of voeg de integration opnieuw toe, en voer daarna spotify_dj.provision_spotify_credentials uit."
+      "description": "SpotifyDJ heeft nu de Spotify OAuth scope playlist-read-private nodig zodat het device private SpotifyDJ Liked Proxy playlists via /me/playlists kan vinden. Start Spotify OAuth opnieuw via de SpotifyDJ developer action of voeg de integration opnieuw toe."
     }
   }
 }

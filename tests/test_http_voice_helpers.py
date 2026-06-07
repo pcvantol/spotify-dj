@@ -298,12 +298,16 @@ class VoiceHttpHelperTest(unittest.TestCase):
                 return b"RIFFxxxxWAVEdata"
 
         try:
-            response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+            with self.assertLogs(self.http._LOGGER, level="DEBUG") as captured:
+                response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
         finally:
             self.http.transcribe_wav_with_assist = original_transcribe
             self.http.process_text_command = original_command
             self.http.async_send_dj_response_best_effort = original_dj_response
 
+        log_output = "\n".join(captured.output)
+        self.assertIn("audio_url=True", log_output)
+        self.assertNotIn("http://ha/api/spotify_dj/tts/token.mp3", log_output)
         self.assertEqual(response["status_code"], 200)
         self.assertTrue(response["payload"]["success"])
         self.assertEqual(response["payload"]["recognized_text"], "Speel Pearl Jam")
@@ -1036,7 +1040,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["payload"]["error"], "invalid_pair_code")
         self.assertIn("does not match", response["payload"]["message"])
 
-    def test_pair_view_includes_spotify_refresh_token_aliases(self) -> None:
+    def test_pair_view_does_not_include_spotify_oauth_secrets(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
 
         class Runtime:
@@ -1079,11 +1083,11 @@ class VoiceHttpHelperTest(unittest.TestCase):
         response = asyncio.run(self.http.SpotifyDJPairView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
-        spotify = response["payload"]["spotify"]
-        self.assertEqual(spotify["refresh_token"], "refresh-token")
-        self.assertEqual(spotify["spotify_refresh_token"], "refresh-token")
-        self.assertEqual(response["payload"]["refresh_token"], "refresh-token")
-        self.assertEqual(response["payload"]["spotify_refresh_token"], "refresh-token")
+        self.assertNotIn("spotify", response["payload"])
+        self.assertNotIn("refresh_token", response["payload"])
+        self.assertNotIn("spotify_refresh_token", response["payload"])
+        self.assertNotIn("client_id", response["payload"])
+        self.assertNotIn("spotify_client_id", response["payload"])
         self.assertEqual(response["payload"]["device_language"], "nl")
         self.assertEqual(response["payload"]["language"], "nl")
 
@@ -1133,9 +1137,10 @@ class VoiceHttpHelperTest(unittest.TestCase):
         response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
-        self.assertEqual(response["payload"]["refresh_token"], "refresh-token")
-        self.assertEqual(response["payload"]["spotify_refresh_token"], "refresh-token")
-        self.assertEqual(response["payload"]["spotify"]["refresh_token"], "refresh-token")
+        self.assertTrue(response["payload"]["backend_available"])
+        self.assertNotIn("refresh_token", response["payload"])
+        self.assertNotIn("spotify_refresh_token", response["payload"])
+        self.assertNotIn("spotify", response["payload"])
 
     def test_status_view_persists_reported_device_identity_and_local_url(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
@@ -1251,8 +1256,9 @@ class VoiceHttpHelperTest(unittest.TestCase):
         response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
-        self.assertEqual(response["payload"]["refresh_token"], "rotated-token")
-        self.assertEqual(response["payload"]["spotify_refresh_token"], "rotated-token")
+        self.assertTrue(response["payload"]["backend_available"])
+        self.assertNotIn("refresh_token", response["payload"])
+        self.assertNotIn("spotify_refresh_token", response["payload"])
 
     def test_status_view_reprovision_log_does_not_include_token(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
@@ -1298,7 +1304,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         log_output = "\n".join(captured.output)
         self.assertEqual(response["status_code"], 200)
         self.assertIn("spotify_configured=False", log_output)
-        self.assertIn("reprovision=True", log_output)
+        self.assertIn("backend_available=True", log_output)
         self.assertNotIn("secret-refresh-token", log_output)
 
     def test_status_view_omits_spotify_when_configured_true(self) -> None:
@@ -1385,6 +1391,90 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["status_code"], 200)
         self.assertNotIn("spotify", response["payload"])
         self.assertNotIn("spotify_refresh_token", response["payload"])
+
+    def test_command_view_dispatches_backend_command(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+        calls = []
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {"device_id": "spotifydj-90B70990A994"}
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return headers.get("Authorization") == "Bearer device-token"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+
+        async def command_handler(hass, runtime, command, value=None, *, play=None):
+            calls.append((command, value, play))
+            return {"success": True, "devices": [{"name": "iPhone"}]}
+
+        class Request:
+            headers = {
+                "Authorization": "Bearer device-token",
+                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+            }
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
+
+            async def json(self):
+                return {
+                    "device_id": "spotifydj-90B70990A994",
+                    "command": "devices",
+                    "value": "",
+                    "play": False,
+                }
+
+        original = self.http.handle_spotify_command
+        self.http.handle_spotify_command = command_handler
+        try:
+            response = asyncio.run(self.http.SpotifyDJCommandView(None).post(Request()))
+        finally:
+            self.http.handle_spotify_command = original
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertTrue(response["payload"]["success"])
+        self.assertEqual(response["payload"]["devices"][0]["name"], "iPhone")
+        self.assertEqual(calls, [("devices", "", False)])
+
+    def test_command_view_returns_backend_unavailable_json(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        async def command_handler(hass, runtime, command, value=None, *, play=None):
+            raise self.http.SpotifyBackendError("Spotify OAuth is not configured")
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": Runtime()}})}
+
+            async def json(self):
+                return {"device_id": "spotifydj-90B70990A994", "command": "status"}
+
+        original = self.http.handle_spotify_command
+        self.http.handle_spotify_command = command_handler
+        try:
+            response = asyncio.run(self.http.SpotifyDJCommandView(None).post(Request()))
+        finally:
+            self.http.handle_spotify_command = original
+
+        self.assertEqual(response["status_code"], 503)
+        self.assertFalse(response["payload"]["success"])
+        self.assertEqual(response["payload"]["error"], "backend_unavailable")
+        self.assertIn("Spotify OAuth", response["payload"]["message"])
 
     def test_store_rotated_spotify_refresh_token_persists_without_logging_secret(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")

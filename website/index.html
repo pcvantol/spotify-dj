@@ -79,18 +79,10 @@
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: conic-gradient(from 120deg, var(--green), var(--blue), var(--purple), var(--orange), var(--green));
+      object-fit: cover;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       box-shadow: 0 0 34px rgba(30, 215, 96, 0.3);
-      position: relative;
-    }
-
-    .logo::after {
-      content: "";
-      position: absolute;
-      inset: 8px;
-      border-radius: inherit;
-      background: #0b0d12;
-      border: 2px solid rgba(255, 255, 255, 0.18);
     }
 
     .nav-links {
@@ -226,6 +218,15 @@
       border: 1px solid rgba(255,255,255,0.18);
       box-shadow: 0 36px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15);
       padding: 24px;
+    }
+
+    .device-img {
+      position: absolute;
+      left: 50%;
+      top: 52%;
+      width: min(88%, 470px);
+      transform: translate(-50%, -50%);
+      filter: drop-shadow(0 36px 70px rgba(0, 0, 0, 0.42));
     }
 
     .screen {
@@ -509,7 +510,7 @@
   <nav class="nav">
     <div class="wrap nav-inner">
       <a class="brand" href="#top" aria-label="SpotifyDJ home">
-        <span class="logo" aria-hidden="true"></span>
+        <img class="logo" src="assets/spotifydj-logo.png" alt="" aria-hidden="true" />
         <span>SpotifyDJ</span>
       </a>
       <div class="nav-links" aria-label="Navigatie">
@@ -526,30 +527,25 @@
     <header class="hero">
       <div class="wrap hero-grid">
         <div>
-          <div class="eyebrow"><span class="dot"></span> Pre-flashed • Home Assistant native • Push-to-talk</div>
+          <div class="eyebrow"><span class="dot"></span> Pre-flashed • One-button music control • Home Assistant</div>
           <h1>Your music. One button away.</h1>
-          <p class="lead">SpotifyDJ is een fysieke voice remote voor Spotify en Home Assistant. Pak het device uit, installeer de HACS integration, pair via Home Assistant en vraag om muziek alsof er een DJ naast je staat.</p>
+          <p class="lead">SpotifyDJ is een fysieke voice remote voor je muziek. Pak het device uit, koppel het met Home Assistant en vraag met één druk op de knop om de muziek die je wilt horen.</p>
           <div class="hero-actions">
             <a class="btn primary" href="#quickstart">Bekijk quick start</a>
             <a class="btn" href="#requirements">Check benodigdheden</a>
           </div>
-          <p class="note">Out of the box: geen firmware flashen, geen MQTT nodig, geen code plakken. Devices komen pre-flashed.</p>
+          <p class="note">Out of the box: geen firmware flashen, geen MQTT broker, geen technisch geknutsel. Devices komen pre-flashed.</p>
         </div>
 
         <div class="device-card" aria-label="SpotifyDJ device visualisatie">
           <div class="floating f1"><strong>Push to talk</strong>Vraag muziek met één knop</div>
-          <div class="floating f2"><strong>HA Assist</strong>STT + intent via Home Assistant</div>
-          <div class="floating f3"><strong>DJ response</strong>Tekst + WAV/MP3 op device</div>
-          <div class="device">
-            <div class="screen">
-              <div class="screen-title">Now playing</div>
-              <div class="screen-song">Pearl Jam<br />Latest Album</div>
-              <div class="screen-dj">“Daar gaan we. Ik zet ’m klaar.”</div>
-            </div>
-            <div class="controls">
-              <div class="ring"><div class="button-core">▶</div></div>
-            </div>
-          </div>
+          <div class="floating f2"><strong>Home Assistant</strong>Regelt muziek en stem</div>
+          <div class="floating f3"><strong>DJ response</strong>Antwoord op het device</div>
+          <img
+            class="device-img"
+            src="assets/lilygo-t-embed-spotifydj.svg"
+            alt="SpotifyDJ device op basis van de LilyGO T-Embed vormfactor"
+          />
         </div>
       </div>
     </header>
@@ -560,23 +556,23 @@
           <div>
             <h2>De ervaring uit de doos</h2>
           </div>
-          <p>SpotifyDJ is ontworpen als een product, niet als een hobbyproject met losse scripts. De firmware staat al op het device; Home Assistant doet pairing, OAuth, Assist, TTS, OTA en provisioning.</p>
+          <p>SpotifyDJ is ontworpen als een product, niet als een bouwpakket. De firmware staat al op het device; jij installeert de Home Assistant integration en koppelt het device.</p>
         </div>
         <div class="grid-3">
           <article class="card">
             <div class="icon">📦</div>
             <h3>Pre-flashed geleverd</h3>
-            <p>Geen PlatformIO, geen USB flash, geen firmware build. Het device komt klaar voor setup in Home Assistant.</p>
+            <p>Geen USB flash, geen firmware build. Het device komt klaar voor setup in Home Assistant.</p>
           </article>
           <article class="card">
             <div class="icon">🏠</div>
             <h3>Home Assistant native</h3>
-            <p>Pairing, status, OTA updates, voice verwerking en device controls lopen via de SpotifyDJ integration.</p>
+            <p>Home Assistant regelt pairing, updates, voice verwerking en muziekbediening.</p>
           </article>
           <article class="card">
             <div class="icon">🎙️</div>
             <h3>Push-to-talk muziek</h3>
-            <p>Druk op de knop, spreek je verzoek in, HA Assist verwerkt spraak en SpotifyDJ start muziek via het device.</p>
+            <p>Druk op de knop, spreek je verzoek in en SpotifyDJ helpt je muziek starten.</p>
           </article>
         </div>
       </div>
@@ -588,14 +584,14 @@
           <div>
             <h2>Hoe het werkt</h2>
           </div>
-          <p>De ESP hoeft geen Home Assistant websocket credentials te kennen. Hij praat met de lokale SpotifyDJ API met een eigen bearer token.</p>
+          <p>Je hoeft dit niet te onthouden, maar het idee is simpel: het device luistert lokaal, Home Assistant doet het slimme werk.</p>
         </div>
         <div class="flow">
-          <div class="flow-step"><div class="num">01</div><h3>PTT</h3><p class="muted">Device neemt WAV audio op.</p></div>
-          <div class="flow-step"><div class="num">02</div><h3>HA Assist</h3><p class="muted">Home Assistant doet STT en intent verwerking.</p></div>
-          <div class="flow-step"><div class="num">03</div><h3>SpotifyDJ</h3><p class="muted">Integration vertaalt verzoek naar SpotifyDJ command.</p></div>
-          <div class="flow-step"><div class="num">04</div><h3>Spotify</h3><p class="muted">Device gebruikt geprovisionde Spotify credentials.</p></div>
-          <div class="flow-step"><div class="num">05</div><h3>DJ response</h3><p class="muted">Tekst en optionele WAV/MP3 spelen op het device.</p></div>
+          <div class="flow-step"><div class="num">01</div><h3>Druk</h3><p class="muted">Gebruik de middelste knop.</p></div>
+          <div class="flow-step"><div class="num">02</div><h3>Spreek</h3><p class="muted">Vraag om een artiest, album, playlist of sfeer.</p></div>
+          <div class="flow-step"><div class="num">03</div><h3>Home Assistant</h3><p class="muted">Herkent je stem en stuurt muziek aan.</p></div>
+          <div class="flow-step"><div class="num">04</div><h3>Muziek</h3><p class="muted">Playback loopt via je gekozen muziekapparaat.</p></div>
+          <div class="flow-step"><div class="num">05</div><h3>Antwoord</h3><p class="muted">SpotifyDJ toont en spreekt een korte DJ response.</p></div>
         </div>
       </div>
     </section>
@@ -604,13 +600,13 @@
       <div class="wrap grid-2">
         <div>
           <h2>Quick start</h2>
-          <p class="lead">Voor de gebruiker voelt setup als: HACS installeren, Spotify autoriseren, device pairen, klaar. De firmware is al aanwezig.</p>
+          <p class="lead">Setup is bedoeld als: integration installeren, Spotify autoriseren, device pairen, klaar.</p>
         </div>
         <ol class="quick">
           <li><div><h3>Installeer via HACS</h3><p class="muted">Voeg de SpotifyDJ custom integration toe in HACS en restart Home Assistant.</p></div></li>
           <li><div><h3>Voeg SpotifyDJ toe</h3><p class="muted">Ga naar Settings → Devices & services → Add integration → SpotifyDJ.</p></div></li>
-          <li><div><h3>Autoriseer Spotify</h3><p class="muted">De setup opent Spotify OAuth via Home Assistant. Log in met je Spotify Premium account.</p></div></li>
-          <li><div><h3>Pair het device</h3><p class="muted">Voer de pairing code of 12-character device suffix in die op het SpotifyDJ device verschijnt.</p></div></li>
+          <li><div><h3>Autoriseer Spotify</h3><p class="muted">Log in met je Spotify Premium account wanneer de setup daarom vraagt.</p></div></li>
+          <li><div><h3>Pair het device</h3><p class="muted">Voer de code in die op het SpotifyDJ device verschijnt.</p></div></li>
           <li><div><h3>Druk en praat</h3><p class="muted">Druk op de middelste knop en zeg bijvoorbeeld: “Speel het nieuwste album van Pearl Jam”.</p></div></li>
         </ol>
       </div>
@@ -622,18 +618,18 @@
           <div>
             <h2>Benodigdheden & randvoorwaarden</h2>
           </div>
-          <p>SpotifyDJ is bewust lokaal en Home Assistant native. Dit heb je nodig voor een soepele out-of-the-box ervaring.</p>
+          <p>Dit heb je nodig voor een soepele out-of-the-box ervaring.</p>
         </div>
         <div class="requirements">
-          <div class="req"><span class="tag">Verplicht</span><h3>Spotify Premium</h3><p class="muted">Spotify playback control via API vereist een Premium account.</p></div>
-          <div class="req"><span class="tag">Verplicht</span><h3>Home Assistant</h3><p class="muted">Een werkende HA installatie met HACS voor custom integrations.</p></div>
-          <div class="req"><span class="tag">Verplicht</span><h3>HA Assist pipeline</h3><p class="muted">Configureer STT en TTS, bijvoorbeeld Home Assistant Cloud of een andere provider.</p></div>
+          <div class="req"><span class="tag">Verplicht</span><h3>Spotify Premium</h3><p class="muted">Nodig om muziek te kunnen starten en bedienen.</p></div>
+          <div class="req"><span class="tag">Verplicht</span><h3>Home Assistant</h3><p class="muted">Een werkende Home Assistant installatie met HACS.</p></div>
+          <div class="req"><span class="tag">Verplicht</span><h3>Assist voice setup</h3><p class="muted">Home Assistant moet spraak kunnen herkennen en antwoorden kunnen maken.</p></div>
           <div class="req"><span class="tag">Verplicht</span><h3>2.4 GHz WiFi</h3><p class="muted">Het device gebruikt WiFi. Zorg voor bereik op de plek waar je muziek wilt bedienen.</p></div>
-          <div class="req"><span class="tag">Aanbevolen</span><h3>Nabu Casa HTTPS</h3><p class="muted">Voor Spotify OAuth callback is een bereikbare HTTPS Home Assistant URL het makkelijkst.</p></div>
-          <div class="req"><span class="tag">Aanbevolen</span><h3>mDNS werkend</h3><p class="muted">Automatische device discovery gebruikt <code>_spotifydj._tcp</code> en <code>.local</code>.</p></div>
-          <div class="req optional"><span class="tag">Optioneel</span><h3>Bluetooth proxy</h3><p class="muted">Voor BLE WiFi provisioning als het device in setup mode staat.</p></div>
-          <div class="req optional"><span class="tag">Niet nodig</span><h3>MQTT broker</h3><p class="muted">Firmware v2.9.12+ gebruikt geen MQTT; lokale HA API met bearer token is leidend.</p></div>
-          <div class="req warning"><span class="tag">Let op</span><h3>Spotify Connect target</h3><p class="muted">Voor playback moet Spotify een bruikbare afspeelcontext/device kunnen gebruiken.</p></div>
+          <div class="req"><span class="tag">Aanbevolen</span><h3>Nabu Casa HTTPS</h3><p class="muted">Maakt Spotify autorisatie het makkelijkst.</p></div>
+          <div class="req"><span class="tag">Aanbevolen</span><h3>mDNS werkend</h3><p class="muted">Helpt Home Assistant het device automatisch te vinden.</p></div>
+          <div class="req optional"><span class="tag">Optioneel</span><h3>Bluetooth proxy</h3><p class="muted">Handig om WiFi naar het device te sturen tijdens setup.</p></div>
+          <div class="req optional"><span class="tag">Niet nodig</span><h3>MQTT broker</h3><p class="muted">Nieuwe SpotifyDJ devices werken zonder MQTT.</p></div>
+          <div class="req warning"><span class="tag">Let op</span><h3>Muziekuitvoer</h3><p class="muted">Muziek speelt op je Spotify/huismuziekapparaat, niet op de kleine SpotifyDJ speaker.</p></div>
           <div class="req warning"><span class="tag">Let op</span><h3>HA restart na update</h3><p class="muted">Na HACS updates is een Home Assistant restart meestal nodig.</p></div>
           <div class="req"><span class="tag">Inbegrepen</span><h3>OTA updates</h3><p class="muted">Gekoppelde devices kunnen firmware updates via HA ontvangen.</p></div>
           <div class="req"><span class="tag">Privacy</span><h3>Geen secrets in logs</h3><p class="muted">Tokens en wachtwoorden worden niet bewust gelogd en diagnostics redacteren secrets.</p></div>
@@ -645,18 +641,18 @@
       <div class="wrap grid-3">
         <article class="card">
           <div class="icon">🧠</div>
-          <h3>Assist-first</h3>
-          <p>Je gebruikt de Assist pipeline die je al in Home Assistant vertrouwt. SpotifyDJ leunt op HA STT/TTS in plaats van losse device-auth.</p>
+          <h3>Voice via HA</h3>
+          <p>SpotifyDJ gebruikt de voice setup die je in Home Assistant configureert.</p>
         </article>
         <article class="card">
           <div class="icon">🔐</div>
-          <h3>Paired token</h3>
-          <p>Na pairing gebruikt het device een SpotifyDJ bearer token. Geen Home Assistant long-lived token op het ESP device.</p>
+          <h3>Veilig gekoppeld</h3>
+          <p>Het device krijgt geen Spotify wachtwoorden of refresh tokens. Die blijven in Home Assistant.</p>
         </article>
         <article class="card">
           <div class="icon">✨</div>
           <h3>DJ personality</h3>
-          <p>De response komt terug als tekst en waar mogelijk als tijdelijke WAV/MP3 audio URL voor de speaker van het device.</p>
+          <p>SpotifyDJ geeft korte antwoorden op het scherm en via de eigen speaker.</p>
         </article>
       </div>
     </section>
@@ -665,13 +661,13 @@
       <div class="wrap grid-2">
         <div>
           <h2>Veelgestelde vragen</h2>
-          <p class="lead">De korte versie: SpotifyDJ is voor mensen die Home Assistant al gebruiken en Spotify hands-on, fysiek en lokaler willen bedienen.</p>
+          <p class="lead">Korte antwoorden op de vragen die je waarschijnlijk als eerste hebt.</p>
         </div>
         <div class="quick">
           <div class="card"><h3>Moet ik firmware flashen?</h3><p class="muted">Nee. Ga uit van pre-flashed devices. Firmware updates lopen later via Home Assistant OTA.</p></div>
-          <div class="card"><h3>Heb ik MQTT nodig?</h3><p class="muted">Nee. Nieuwe firmware gebruikt de lokale SpotifyDJ API met bearer token.</p></div>
+          <div class="card"><h3>Heb ik MQTT nodig?</h3><p class="muted">Nee. Nieuwe SpotifyDJ devices werken zonder MQTT.</p></div>
           <div class="card"><h3>Speelt DJ audio via Spotify Connect?</h3><p class="muted">Nee. DJ responses spelen op de speaker/display van het SpotifyDJ device.</p></div>
-          <div class="card"><h3>Kan ik private playlists gebruiken?</h3><p class="muted">Ja, Spotify OAuth bevat <code>playlist-read-private</code> zodat het device eigen/private playlists kan vinden.</p></div>
+          <div class="card"><h3>Kan ik private playlists gebruiken?</h3><p class="muted">Ja, zolang Spotify in Home Assistant goed geautoriseerd is.</p></div>
         </div>
       </div>
     </section>

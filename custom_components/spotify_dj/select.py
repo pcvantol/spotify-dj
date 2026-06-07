@@ -9,6 +9,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
+from .spotify_backend import handle_spotify_command
 
 
 async def async_setup_entry(
@@ -32,7 +33,7 @@ async def async_setup_entry(
                 hass,
                 "language",
                 "language",
-                "set_language",
+                "language",
                 ["en", "nl"],
             ),
             SpotifyDJCommandSelect(
@@ -40,7 +41,7 @@ async def async_setup_entry(
                 hass,
                 "theme",
                 "theme",
-                "set_theme",
+                "theme",
                 ["light", "dark", "auto"],
             ),
             SpotifyDJCommandSelect(
@@ -48,7 +49,7 @@ async def async_setup_entry(
                 hass,
                 "log_level",
                 "log_level",
-                "set_log_level",
+                "log_level",
                 ["debug", "info", "warning", "error"],
             ),
         ]
@@ -105,7 +106,16 @@ class SpotifyDJCommandSelect(SelectEntity):
         return str(value) if value not in (None, "") else None
 
     async def async_select_option(self, option: str) -> None:
-        await self.runtime.async_device_command(self.hass, self.command, value=option)
+        if self.command == "set_output":
+            await handle_spotify_command(
+                self.hass,
+                self.runtime,
+                "set_output",
+                _output_id_from_option(self.runtime.device_status, option),
+                play=False,
+            )
+        else:
+            await self.runtime.async_device_command(self.hass, self.command, value=option)
         self.runtime.device_status[self.status_key] = option
         self.runtime.update()
 
@@ -126,4 +136,24 @@ def _options_from_status(
     values = status.get(key) or fallback or []
     if isinstance(values, str):
         values = [item.strip() for item in values.split(",")]
-    return [str(value) for value in values if str(value or "").strip()]
+    options: list[str] = []
+    for value in values:
+        if isinstance(value, dict):
+            label = value.get("name") or value.get("id")
+        else:
+            label = value
+        if str(label or "").strip():
+            options.append(str(label))
+    return options
+
+
+def _output_id_from_option(status: dict[str, Any], option: str) -> str:
+    values = status.get("available_outputs") or []
+    if not isinstance(values, list):
+        return option
+    for value in values:
+        if not isinstance(value, dict):
+            continue
+        if value.get("name") == option or value.get("id") == option:
+            return str(value.get("id") or option)
+    return option

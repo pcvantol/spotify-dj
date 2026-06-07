@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.15
+## 2.9.16
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -12,7 +12,6 @@
 - Refactor the voice HTTP endpoint to accept authenticated raw WAV uploads and developer text commands.
 - Return controlled JSON errors for missing/oversized/unsupported audio uploads.
 - Include `assist_pipeline_id`, `ha_url`, and `device_token` in ESP provisioning/status payloads where applicable.
-- Include Spotify OAuth credentials during pair/status responses with both nested and top-level `refresh_token`/`spotify_refresh_token` keys for firmware compatibility.
 - Add SpotifyDJ device UI language selection during pairing and provision `device_language`/`language` to the ESP.
 - Remove direct STT/TTS calls from active HTTP voice handling.
 - Remove legacy direct external AI client code from the Home Assistant integration.
@@ -48,7 +47,7 @@
 - Refresh `info.md` and examples to remove old branding/AI/WAV-only references and document current SpotifyDJ endpoints.
 - Add a dry-run-first cleanup helper for old semantic-version GitHub releases and tags.
 - Move voice STT back into the Home Assistant integration backend so ESP devices can upload raw WAV audio without Home Assistant websocket auth.
-- Reprovision the latest Spotify OAuth credentials when ESP status reports `spotify_configured=false`, including refresh-token rotation recovery.
+- Treat ESP `spotify_configured=false` as a compatibility/status hint only; Spotify credentials stay in Home Assistant.
 - Replace the unavailable Assist audio pipeline helper with Home Assistant's supported STT stream helper and return a clear no-provider error.
 - Fix Assist pipeline detection so Home Assistant Cloud/default STT pipelines are selected instead of falsely reporting no STT provider.
 - Treat text-only `/api/spotify_dj/voice` requests as direct DJ-response tests instead of Spotify playback commands.
@@ -62,8 +61,14 @@
 - Skip automatic ESP re-pairing on HA startup when a device token already exists; Spotify credential provisioning now defers quietly until the paired device is reachable.
 - Persist the real device identity and reported local URL from `/api/spotify_dj/status`, allowing already-paired devices to repair old setup-code based entries automatically.
 - Remove MQTT configuration/provisioning from config flow, options flow and ESP pair/status/provision payloads for firmware v2.9.12 and newer.
-- Route Spotify playback and device controls through the authenticated ESP local `/api/device/command` endpoint instead of Home Assistant `media_player` playback.
+- Route backend playback through Home Assistant and reserve the authenticated ESP local `/api/device/command` endpoint for device settings/status/display commands.
 - Add native HA controls for next/previous/play-pause, device info refresh, reboot, volume, speaker volume, screen brightness, timeouts, language, theme, log level and sound output.
+- Add a native SpotifyDJ playback-proxy `media_player` entity for play/pause, next/previous, volume, source selection and playlist/media start.
 - Add a lightweight DataUpdateCoordinator hook for explicit local device-info refreshes without continuous polling.
 - Refresh local device info after OTA reconnect and clear the updating state when the ESP reports back in.
 - Add a static `website/index.html` marketing onepager and document it in the repository handoff, release checklist and backlog.
+- Add `POST /api/spotify_dj/command` so ESP firmware can send generic playback commands to Home Assistant.
+- Keep Spotify OAuth client ID and refresh tokens in Home Assistant only; pair/status responses no longer include Spotify OAuth secrets.
+- Stop using the legacy ESP `/api/device/provision_spotify` endpoint.
+- Route current Spotify playback through a Home Assistant backend adapter so future backends can be added without firmware changes.
+- Simplify the product website copy and add SpotifyDJ logo plus a LilyGO T-Embed style device illustration.

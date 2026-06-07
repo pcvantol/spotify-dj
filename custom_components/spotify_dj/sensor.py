@@ -26,6 +26,10 @@ async def async_setup_entry(
             SpotifyDJSpotifyStatusSensor(runtime),
             SpotifyDJPairingStatusSensor(runtime),
             SpotifyDJSoundOutputSensor(runtime),
+            SpotifyDJPlaybackAvailableSensor(runtime),
+            SpotifyDJQueueSensor(runtime),
+            SpotifyDJPlaylistsSensor(runtime),
+            SpotifyDJOutputsSensor(runtime),
         ]
     )
 
@@ -162,3 +166,57 @@ class SpotifyDJSoundOutputSensor(SpotifyDJBaseSensor):
         return self.runtime.device_status.get("sound_output") or self.runtime.device_status.get(
             "output"
         )
+
+
+class SpotifyDJPlaybackAvailableSensor(SpotifyDJBaseSensor):
+    _attr_translation_key = "playback_available"
+    _attr_unique_id = "spotifydj_playback_available"
+
+    @property
+    def native_value(self):
+        playback = self.runtime.last_playback or {}
+        return bool(playback.get("has_playback")) or self.runtime.device_status.get(
+            "backend_available"
+        )
+
+
+class SpotifyDJQueueSensor(SpotifyDJBaseSensor):
+    _attr_translation_key = "queue"
+    _attr_unique_id = "spotifydj_queue"
+
+    @property
+    def native_value(self):
+        queue = self.runtime.device_status.get("queue") or []
+        return len(queue) if isinstance(queue, list) else None
+
+    @property
+    def extra_state_attributes(self):
+        return {"items": self.runtime.device_status.get("queue") or []}
+
+
+class SpotifyDJPlaylistsSensor(SpotifyDJBaseSensor):
+    _attr_translation_key = "playlists"
+    _attr_unique_id = "spotifydj_playlists"
+
+    @property
+    def native_value(self):
+        playlists = self.runtime.device_status.get("playlists") or []
+        return len(playlists) if isinstance(playlists, list) else None
+
+    @property
+    def extra_state_attributes(self):
+        return {"items": self.runtime.device_status.get("playlists") or []}
+
+
+class SpotifyDJOutputsSensor(SpotifyDJBaseSensor):
+    _attr_translation_key = "outputs"
+    _attr_unique_id = "spotifydj_outputs"
+
+    @property
+    def native_value(self):
+        outputs = self.runtime.device_status.get("available_outputs") or []
+        return len(outputs) if isinstance(outputs, list) else None
+
+    @property
+    def extra_state_attributes(self):
+        return {"items": self.runtime.device_status.get("available_outputs") or []}

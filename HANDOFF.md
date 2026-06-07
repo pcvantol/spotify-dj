@@ -31,7 +31,7 @@ ESP SpotifyDJ device
   - BLE WiFi provisioning.
   - Device pairing and device-token management.
   - Spotify OAuth PKCE via Home Assistant external step.
-  - Spotify refresh-token rotation storage and reprovisioning.
+  - Spotify refresh-token rotation storage for HA backend playback.
   - OTA firmware discovery/update orchestration.
   - ESP status/event endpoints.
   - Raw WAV voice endpoint and HA-native STT/TTS orchestration.
@@ -54,10 +54,10 @@ ESP SpotifyDJ device
 - `GET /api/spotify_dj/tts/{token}.{extension}`
 - `GET /api/spotify_dj/spotify/callback`
 - ESP endpoint used by HA: `POST /api/device/pair`
-- ESP endpoint used by HA: `POST /api/device/provision_spotify`
 - ESP endpoint used by HA: `POST /api/device/ota`
 - ESP endpoint used by HA: `POST /api/device/dj_response`
-- ESP endpoint used by HA: `POST /api/device/command`
+- ESP endpoint used by HA for device settings: `POST /api/device/command`
+- HA endpoint used by ESP for backend playback: `POST /api/spotify_dj/command`
 - ESP endpoint used by HA: `GET /api/device/info`
 - ESP endpoint used by HA: `GET /api/device/pairing-info`
 - ESP endpoint used by HA: `POST /api/device/reboot`
@@ -93,13 +93,13 @@ STT provider selection order:
 - `stt_engine` is the official SpotifyDJ option key for physical PTT STT provider selection.
 - Text-only/JSON requests to `/api/spotify_dj/voice` are developer/DJ-response tests and must not trigger Spotify playback command parsing.
 - Raw WAV requests to `/api/spotify_dj/voice` remain the real PTT path and do trigger STT, command parsing and Spotify playback.
-- Spotify playback and device controls are sent to ESP through `/api/device/command`; Home Assistant `media_player` playback is not required.
+- Backend playback is controlled by the Home Assistant integration and exposed through a native playback-proxy `media_player`; ESP device settings use `/api/device/command`.
 - DJ responses play on the SpotifyDJ ESP device, not through Spotify Connect and not through a Home Assistant media player.
 - HA may send temporary WAV or MP3 `audio_url` values to the ESP; ESP decides how to play supported formats.
 - Spotify OAuth uses PKCE and Home Assistant external step. The config flow must not expose a manual `oauth_result` field.
 - Spotify OAuth scopes must include `playlist-read-private` so private `SpotifyDJ Liked Proxy` playlists can be found by firmware.
 - Spotify refresh tokens may rotate. New tokens must be saved persistently immediately and all pair/status/provision responses must use canonical/latest credentials.
-- ESP `/status` with `spotify_configured=false` is treated as a safe request to reprovision current Spotify credentials.
+- ESP `/status` with `spotify_configured=false` is treated as a compatibility/status hint for HA backend playback, not as a request to send OAuth credentials to ESP.
 - BLE provisioning writes WiFi SSID/password only. No Spotify credentials, device tokens or other secrets over BLE.
 - Runtime discovery prefers device-reported `local_url`, exact `_spotifydj._tcp` mDNS matches, then a single visible SpotifyDJ mDNS device.
 - Never generate or store `spotifydj-[6-digit-code].local` as a valid device URL. Only 12-hex device suffixes may become `http://spotifydj-[suffix].local` fallbacks.
@@ -142,8 +142,7 @@ STT provider selection order:
   - `spotify_dj.test_parse`
   - `spotify_dj.test_command`
   - `spotify_dj.test_tts`
-  - `spotify_dj.provision_spotify_credentials`
-- Verify Spotify token rotation/reprovisioning:
+- Verify Spotify token rotation/backend playback:
   - OAuth callback stores latest refresh token.
   - ESP status with `spotify_configured=false` receives current credentials.
   - Logs do not expose refresh tokens.

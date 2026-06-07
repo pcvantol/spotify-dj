@@ -34,6 +34,10 @@ ENTITY_TRANSLATION_KEYS = {
     ("sensor", "spotify_status"),
     ("sensor", "ha_pairing_status"),
     ("sensor", "sound_output"),
+    ("sensor", "playback_available"),
+    ("sensor", "queue"),
+    ("sensor", "playlists"),
+    ("sensor", "outputs"),
     ("button", "test_dj_response"),
     ("button", "next_track"),
     ("button", "previous_track"),
@@ -50,6 +54,7 @@ ENTITY_TRANSLATION_KEYS = {
     ("select", "theme"),
     ("select", "log_level"),
     ("update", "firmware"),
+    ("media_player", "playback_proxy"),
 }
 
 
@@ -75,7 +80,7 @@ class TranslationTest(unittest.TestCase):
                 self.assertFalse(missing, f"Missing {language} entity translations: {missing}")
 
     def test_entities_use_translation_keys(self) -> None:
-        for filename in ("sensor.py", "button.py", "number.py", "update.py"):
+        for filename in ("sensor.py", "button.py", "number.py", "update.py", "media_player.py"):
             with self.subTest(filename=filename):
                 text = (INTEGRATION / filename).read_text()
                 self.assertIn("_attr_translation_key", text)

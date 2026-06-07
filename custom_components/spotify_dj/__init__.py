@@ -15,6 +15,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    API_COMMAND,
     API_EVENT,
     API_PAIR,
     API_SPOTIFY_CALLBACK,
@@ -41,6 +42,7 @@ from .const import (
     VERSION,
 )
 from .http import (
+    SpotifyDJCommandView,
     SpotifyDJEventView,
     SpotifyDJPairView,
     SpotifyDJSpotifyCallbackView,
@@ -153,7 +155,7 @@ class SpotifyDJRuntime:
         return True
 
     def get_current_spotify_credentials(self) -> dict[str, Any]:
-        """Return canonical latest Spotify credentials for ESP provisioning."""
+        """Return canonical latest Spotify credentials for HA backend use."""
         conf = self.config
         client_id = str(conf.get(CONF_SPOTIFY_CLIENT_ID) or "").strip()
         refresh_token = str(
@@ -177,7 +179,7 @@ class SpotifyDJRuntime:
         }
 
     def spotify_payload(self) -> dict[str, Any]:
-        """Return Spotify credentials for ESP provisioning when OAuth is complete."""
+        """Return Spotify credentials for HA backend compatibility helpers."""
         return self.get_current_spotify_credentials()
 
     def update_spotify_refresh_token(self, refresh_token: str | None) -> bool:
@@ -335,7 +337,6 @@ class SpotifyDJRuntime:
             raise RuntimeError("SpotifyDJ device local_url is unknown")
         token = self.ensure_device_token()
         url = local_url.rstrip("/") + "/api/device/pair"
-        spotify = self.get_current_spotify_credentials()
         payload = {
             "pair_code": conf.get(CONF_PAIR_CODE),
             "device_id": conf.get(CONF_DEVICE_ID),
@@ -345,9 +346,7 @@ class SpotifyDJRuntime:
             "device_token": token,
             "ha_url": conf.get(CONF_HA_EXTERNAL_URL),
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
-            "spotify": spotify,
         }
-        payload.update(spotify)
         session = async_get_clientsession(hass)
         async with session.post(
             url,
@@ -359,48 +358,6 @@ class SpotifyDJRuntime:
             if resp.status < 200 or resp.status >= 300:
                 raise RuntimeError(f"ESP pairing failed HTTP {resp.status}: {text}")
             return json.loads(text) if text else {"success": True}
-
-    async def provision_spotify_credentials(self, hass: HomeAssistant) -> dict[str, Any]:
-        conf = self.config
-        spotify = self.get_current_spotify_credentials()
-        if not spotify:
-            raise RuntimeError("Spotify OAuth is not configured in SpotifyDJ yet")
-        local_url = await self.async_device_local_url(hass)
-        if not local_url:
-            raise RuntimeError(
-                "SpotifyDJ device local_url is unknown; pair first or send /status"
-            )
-        url = local_url.rstrip("/") + "/api/device/provision_spotify"
-        payload = {
-            "spotify_client_id": spotify["spotify_client_id"],
-            "spotify_refresh_token": spotify["spotify_refresh_token"],
-            "client_id": spotify["client_id"],
-            "refresh_token": spotify["refresh_token"],
-            "spotify": spotify,
-            "spotify_market": spotify["spotify_market"],
-            "market": spotify["market"],
-            "spotify_scopes": spotify["spotify_scopes"],
-            "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
-            "ha_url": conf.get(CONF_HA_EXTERNAL_URL),
-            "device_token": self.device_token,
-        }
-        session = async_get_clientsession(hass)
-        async with session.post(
-            url,
-            json=payload,
-            headers=self.device_headers(),
-            timeout=ClientTimeout(total=30),
-        ) as resp:
-            text = await resp.text()
-            if resp.status < 200 or resp.status >= 300:
-                raise RuntimeError(
-                    f"ESP Spotify provisioning failed HTTP {resp.status}: {text}"
-                )
-            try:
-                return json.loads(text) if text else {"success": True}
-            except json.JSONDecodeError:
-                return {"success": True, "response": text}
-
 
 async def async_discover_device_url(
     hass: HomeAssistant,
@@ -610,6 +567,7 @@ def register_http_views(hass: HomeAssistant) -> None:
     if not hass.data[DOMAIN].get("http_registered"):
         for view in [
             SpotifyDJVoiceView(hass),
+            SpotifyDJCommandView(hass),
             SpotifyDJPairView(hass),
             SpotifyDJStatusView(hass),
             SpotifyDJEventView(hass),
@@ -620,8 +578,9 @@ def register_http_views(hass: HomeAssistant) -> None:
         hass.data[DOMAIN]["http_registered"] = True
 
         _LOGGER.info(
-            "SpotifyDJ HTTP endpoints registered: %s, %s, %s, %s, %s, %s",
+            "SpotifyDJ HTTP endpoints registered: %s, %s, %s, %s, %s, %s, %s",
             API_VOICE,
+            API_COMMAND,
             API_PAIR,
             API_STATUS,
             API_EVENT,
@@ -692,10 +651,7 @@ async def _try_initial_device_provisioning(
             )
         else:
             await runtime.pair_device(hass)
-        await runtime.provision_spotify_credentials(hass)
-        runtime.device_status["spotify_configured"] = True
         runtime.update(last_error=None)
-        _LOGGER.info("SpotifyDJ Spotify credentials provisioned to device")
     except Exception as exc:  # noqa: BLE001
         if _is_deferred_provisioning_error(exc):
             _LOGGER.info(
@@ -756,7 +712,15 @@ def _register_developer_services(
             runtime,
             result.get("dj_text") or "",
         )
-        _LOGGER.debug("SpotifyDJ test_command: %s", result)
+        dj_response = result.get("dj_response") or {}
+        _LOGGER.debug(
+            "SpotifyDJ test_command result intent=%s playback=%s dj_text=%s audio_url=%s audio_type=%s",
+            result.get("intent"),
+            bool(result.get("playback")),
+            bool(result.get("dj_text")),
+            bool(dj_response.get("audio_url")),
+            dj_response.get("audio_type"),
+        )
         return result
 
     async def handle_start_spotify_oauth(call: ServiceCall) -> dict[str, Any]:
@@ -813,14 +777,6 @@ def _register_developer_services(
         )
         return {"auth_url": auth_url, "redirect_uri": redirect_uri, "scopes": scopes}
 
-    async def handle_provision_spotify(call: ServiceCall) -> dict[str, Any]:
-        _LOGGER.debug("SpotifyDJ developer action provision_spotify_credentials started")
-        result = await runtime.provision_spotify_credentials(hass)
-        runtime.device_status["spotify_configured"] = True
-        runtime.update(last_error=None)
-        _LOGGER.debug("SpotifyDJ developer action provision_spotify_credentials done")
-        return result
-
     async def handle_device_command(call: ServiceCall) -> dict[str, Any]:
         command = str(call.data.get("command") or "").strip()
         if not command:
@@ -846,7 +802,6 @@ def _register_developer_services(
         "test_tts": (handle_test_tts, "optional"),
         "test_command": (handle_test_command, "optional"),
         "start_spotify_oauth": (handle_start_spotify_oauth, "only"),
-        "provision_spotify_credentials": (handle_provision_spotify, "optional"),
         "device_command": (handle_device_command, "optional"),
         "refresh_device_info": (handle_refresh_device_info, "optional"),
         "reboot_device": (handle_reboot_device, "optional"),

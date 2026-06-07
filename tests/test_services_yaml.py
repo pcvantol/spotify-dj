@@ -17,7 +17,8 @@ class ServicesYamlTest(unittest.TestCase):
             "test_tts",
             "test_command",
             "start_spotify_oauth",
-            "provision_spotify_credentials",
+            "device_command",
+            "refresh_device_info",
         ):
             with self.subTest(service=service):
                 self.assertIn(f"{service}:", text)

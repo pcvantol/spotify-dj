@@ -7,6 +7,7 @@ from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 
 from .const import (
+    API_COMMAND,
     API_SPOTIFY_CALLBACK,
     API_EVENT,
     API_PAIR,
@@ -36,6 +37,7 @@ from .assist_stt import (
 )
 from .dj_response import async_send_dj_response_best_effort, get_tts_audio
 from .processor import process_text_command
+from .spotify_backend import SpotifyBackendError, handle_spotify_command
 from .spotify_oauth import exchange_code_for_refresh_token
 
 _LOGGER = logging.getLogger(__name__)
@@ -54,6 +56,9 @@ ERROR_MESSAGES = {
     "missing_audio": "Send WAV audio bytes in the request body.",
     "audio_too_large": "The uploaded audio is too large.",
     "unsupported_media_type": "Send audio/wav, audio/x-wav, application/octet-stream or JSON text.",
+    "invalid_command": "Send a valid SpotifyDJ command.",
+    "backend_unavailable": "The configured playback backend is unavailable.",
+    "stale_pairing": "SpotifyDJ pairing is stale. Pair the device again.",
 }
 DJ_FAILURE_TEXTS = {
     "assist": {
@@ -334,11 +339,6 @@ class SpotifyDJPairView(HomeAssistantView):
             "status_path": API_STATUS,
             "event_path": API_EVENT,
         }
-        # If Spotify was already provisioned in HA, include credentials during pairing.
-        spotify = _current_spotify_credentials(runtime)
-        if spotify:
-            response["spotify"] = spotify
-            response.update(spotify)
         return self.json(response)
 
 
@@ -386,18 +386,64 @@ class SpotifyDJStatusView(HomeAssistantView):
             "device_language": runtime.device_language(),
             "language": runtime.device_language(),
         }
-        spotify = _current_spotify_credentials(runtime)
-        include_spotify = bool(spotify) and spotify_configured is False
+        backend_available = bool(_current_spotify_credentials(runtime))
         _LOGGER.debug(
-            "SpotifyDJ status from device %s: spotify_configured=%s reprovision=%s",
+            "SpotifyDJ status from device %s: spotify_configured=%s backend_available=%s",
             data.get("device_id"),
             spotify_configured,
-            include_spotify,
+            backend_available,
         )
-        if include_spotify:
-            response["spotify"] = spotify
-            response.update(spotify)
+        response["backend_available"] = backend_available
+        runtime.device_status["backend_available"] = backend_available
         return self.json(response)
+
+
+class SpotifyDJCommandView(HomeAssistantView):
+    url = API_COMMAND
+    name = "api:spotify_dj:command"
+    requires_auth = False
+
+    def __init__(self, hass):
+        self.hass = hass
+
+    async def post(self, request):
+        hass = request.app["hass"]
+        runtime = _runtime(hass)
+        if runtime is None:
+            return _json_error(self, "not_configured", 503)
+        try:
+            data = await request.json()
+        except Exception:  # noqa: BLE001
+            return _json_error(self, "invalid_json", 400)
+        if not runtime.authorize_device_request(request.headers, data.get("device_id")):
+            return _json_error(self, "unauthorized", 401)
+        command = str(data.get("command") or "").strip()
+        if not command:
+            return _json_error(self, "invalid_command", 400)
+        _LOGGER.debug(
+            "SpotifyDJ backend command from %s: %s",
+            data.get("device_id"),
+            command,
+        )
+        try:
+            result = await handle_spotify_command(
+                hass,
+                runtime,
+                command,
+                data.get("value"),
+                play=bool(data.get("play", False)),
+            )
+            runtime.update(last_error=None)
+            return self.json(result)
+        except ValueError as exc:
+            return _json_error(self, "invalid_command", 400, str(exc))
+        except SpotifyBackendError as exc:
+            runtime.update(last_error=str(exc))
+            return _json_error(self, "backend_unavailable", 503, str(exc))
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.warning("SpotifyDJ backend command failed: %s", exc)
+            runtime.update(last_error=str(exc))
+            return _json_error(self, "backend_unavailable", 503, str(exc))
 
 
 class SpotifyDJEventView(HomeAssistantView):
@@ -567,7 +613,14 @@ class SpotifyDJVoiceView(HomeAssistantView):
             )
             audio_url = result.get("dj_response", {}).get("audio_url_value")
             _set_device_state(runtime, "idle")
-            _LOGGER.debug("SpotifyDJ result: %s", result)
+            _LOGGER.debug(
+                "SpotifyDJ result intent=%s playback=%s dj_text=%s audio_url=%s audio_type=%s",
+                result.get("intent"),
+                bool(result.get("playback")),
+                bool(result.get("dj_text")),
+                bool(audio_url),
+                _audio_type_from_url(audio_url),
+            )
             return self.json(
                 {
                     "success": True,
@@ -711,7 +764,7 @@ class SpotifyDJSpotifyCallbackView(HomeAssistantView):
             return web.Response(
                 text=(
                     "SpotifyDJ Spotify OAuth is gelukt. De refresh token is opgeslagen in Home Assistant. "
-                    "Je kunt dit venster sluiten en daarna de service spotify_dj.provision_spotify_credentials uitvoeren."
+                    "Je kunt dit venster sluiten; Home Assistant beheert Spotify playback nu zelf."
                 ),
                 content_type="text/plain",
             )

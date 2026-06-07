@@ -105,3 +105,27 @@ async def exchange_code_for_refresh_token(
         if not body.get("refresh_token"):
             raise RuntimeError("Spotify token response did not contain a refresh_token")
         return body
+
+
+async def refresh_access_token(
+    hass: HomeAssistant,
+    *,
+    client_id: str,
+    refresh_token: str,
+) -> dict[str, Any]:
+    """Refresh a Spotify access token using HA-stored PKCE OAuth credentials."""
+    session = async_get_clientsession(hass)
+    data = {
+        "client_id": client_id,
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+    }
+    async with session.post(
+        SPOTIFY_TOKEN_URL,
+        data=data,
+        timeout=ClientTimeout(total=12),
+    ) as resp:
+        body = await resp.json(content_type=None)
+        if resp.status < 200 or resp.status >= 300:
+            raise RuntimeError(f"Spotify token refresh failed HTTP {resp.status}: {body}")
+        return body

@@ -6,8 +6,8 @@ Doel:
 - SpotifyDJ device als Spotify/HA voice remote.
 - HA custom integration heet `spotify_dj`.
 - ESP firmware heet SpotifyDJ.
-- ESP praat zelfstandig met Spotify API.
-- HA doet pairing, Spotify OAuth provisioning, OTA, status, voice/AI integratie.
+- ESP stuurt generieke playback commands naar Home Assistant en bewaart geen playback-backend credentials.
+- HA doet pairing, Spotify OAuth/backend playback, OTA, status, voice/AI integratie.
 
 Belangrijke repos:
 - HA integration: github.com/pcvantol/spotify-dj
@@ -15,16 +15,16 @@ Belangrijke repos:
 - Public firmware releases: github.com/pcvantol/spotify-dj-firmware
 
 Architectuur beslissingen:
-- HA integration orchestreert pairing, OAuth, OTA, status, Assist/TTS en provisioning; ESP firmware blijft eigenaar van device runtime/audio/UI.
+- HA integration orchestreert pairing, OAuth, backend playback, OTA, status en Assist/TTS; ESP firmware blijft eigenaar van device runtime/audio/UI.
 - Firmware v2.9.12 en nieuwer gebruikt geen MQTT; HA stuurt device-acties via de lokale ESP API met bearer token.
-- Spotify playback en device controls lopen via `POST /api/device/command`; HA `media_player` playback is niet nodig.
+- Backend playback loopt via de HA integration en wordt user-facing aangeboden als optionele/native `media_player` proxy; device-instellingen lopen via `POST /api/device/command`.
 - ESP uploadt raw WAV audio naar `POST /api/spotify_dj/voice`; de HA integration doet Assist/STT intern via HA `stt.async_get_speech_to_text_engine(...).async_process_audio_stream` met eerst `stt_engine` uit options, daarna opgeslagen Assist pipeline, HA preferred/default pipeline, eerste pipeline met STT, eerste HA `stt.*` entity of als laatste HA `assist_pipeline.async_pipeline_from_audio_stream`, en geeft tekst plus optionele WAV/MP3 `audio_url` terug.
 - Actieve HA routes gebruiken geen directe externe AI/STT/TTS APIs; gebruik HA Assist en HA TTS.
 - DJ responses spelen op het SpotifyDJ device af, niet via Spotify Connect of HA media_player; HA post `text` plus optionele tijdelijke WAV/MP3 `audio_url` naar `/api/device/dj_response`.
 - Fallback DJ responses bij command/playback fouten moeten de gekozen `device_language` volgen (`en`/`nl`).
 - Spotify OAuth loopt via HA external step met PKCE; geen handmatig `oauth_result` veld.
-- Spotify OAuth refresh tokens kunnen roteren; bewaar nieuwe refresh tokens direct persistent en gebruik altijd centrale/latest credentials voor pair/status/provision responses.
-- Als ESP `/api/spotify_dj/status` `spotify_configured=false` meldt, behandel dit als veilige reprovisioning request voor actuele Spotify credentials, o.a. na firmware-side `invalid_grant`.
+- Spotify OAuth refresh tokens kunnen roteren; bewaar nieuwe refresh tokens direct persistent en gebruik credentials alleen HA-intern voor backend playback.
+- Als ESP `/api/spotify_dj/status` `spotify_configured=false` meldt, behandel dit alleen als compat/statushint voor backend playback; stuur geen Spotify OAuth credentials naar ESP.
 - BLE provisioning doet alleen WiFi SSID/password; geen Spotify credentials, device tokens of andere secrets via BLE.
 - Runtime discovery prefereert device-reported `local_url`, exacte `_spotifydj._tcp` mDNS matches en daarna alleen een enkele zichtbare SpotifyDJ mDNS service; genereer alleen `http://spotifydj-[device-suffix].local` voor echte 12-hex device suffixes, nooit voor 6-cijferige setupcodes.
 - Normale config-flow blijft klein; operationele overrides zoals firmware repo/channel, Spotify source, max audio bytes en OTA battery settings blijven advanced.
@@ -52,15 +52,15 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.9.15`.
+- Actuele integratieversie: `2.9.16`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
 - Spotify OAuth gebruikt standaard de ingebouwde Spotify Client ID; toon `spotify_client_id` alleen advanced en prefilled voor override.
 - Spotify OAuth scopes moeten `playlist-read-private` bevatten zodat ESP private/eigen `SpotifyDJ Liked Proxy` playlists via `/me/playlists` kan vinden.
-- Oude config entries zonder `playlist-read-private` moeten via diagnostics/repairs duidelijke reauthorize + `spotify_dj.provision_spotify_credentials` instructies krijgen.
+- Oude config entries zonder `playlist-read-private` moeten via diagnostics/repairs duidelijke reauthorize instructies krijgen.
 - Nieuwe Spotify refresh tokens uit OAuth callbacks moeten `CONF_SPOTIFY_REFRESH_TOKEN` persistent overschrijven en in runtime als latest token beschikbaar zijn.
-- Pair/status/provision responses mogen nooit een stale refresh token uit oude config-flow/cache gebruiken als runtime/storage een nieuwere token heeft.
+- Pair/status responses mogen nooit Spotify OAuth secrets bevatten; gebruik latest refresh token alleen HA-intern.
 - Redirect path: `/api/spotify_dj/spotify/callback`
 - Geen handmatig `oauth_result` veld tonen.
 - Config flow ondersteunt optionele BLE WiFi provisioning vóór normale pairing.
@@ -72,7 +72,7 @@ HA integration:
 - Options-flow mag `config_entry` niet assignen; gebruik een eigen attribuut omdat recente Home Assistant versies `config_entry` read-only maken.
 - Device UI language wordt tijdens pairing gekozen als `en`/`nl`, default op HA taal indien ondersteund, en meegestuurd als `device_language` en `language`; ESP slaat dit op als `provision.language`.
 - Koppelcode/device-suffix uit de HA config-flow moet worden opgeslagen en ESP pairing moet een afwijkende code weigeren.
-- `spotify_player` is niet meer nodig; Spotify playback loopt via de lokale ESP command API.
+- `spotify_player` is niet meer nodig; backend playback loopt via de HA playback proxy en ESP device-instellingen via de lokale ESP command API.
 - Gebruik waar veilig HA-populated combo boxes/dropdowns i.p.v. vrije tekst:
   - Assist pipeline uit HA Assist pipelines.
   - TTS engine uit HA `tts` entities.
@@ -112,8 +112,8 @@ ESP firmware:
 - Device ID: `spotifydj-XXXXXXXXXXXX`
 - NVS namespace: `spotifydj`
 - OTA endpoint: `POST /api/device/ota`
-- Spotify provisioning endpoint: `POST /api/device/provision_spotify`
-- Device command endpoint: `POST /api/device/command`
+- ESP device command endpoint voor device-instellingen: `POST /api/device/command`
+- ESP naar HA backend command endpoint: `POST /api/spotify_dj/command`
 - Device info endpoint: `GET /api/device/info`
 - Status endpoint naar HA: `POST /api/spotify_dj/status`
 - Voice tekst endpoint naar HA: `POST /api/spotify_dj/voice`
