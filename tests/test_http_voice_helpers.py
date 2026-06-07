@@ -1047,8 +1047,6 @@ class VoiceHttpHelperTest(unittest.TestCase):
                 self.device_token = "device-token"
                 return self.device_token
 
-            def mqtt_payload(self):
-                return {"host": "mqtt.local"}
 
             def spotify_payload(self):
                 return {
@@ -1086,7 +1084,6 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(spotify["spotify_refresh_token"], "refresh-token")
         self.assertEqual(response["payload"]["refresh_token"], "refresh-token")
         self.assertEqual(response["payload"]["spotify_refresh_token"], "refresh-token")
-        self.assertEqual(response["payload"]["mqtt"]["host"], "mqtt.local")
         self.assertEqual(response["payload"]["device_language"], "nl")
         self.assertEqual(response["payload"]["language"], "nl")
 
@@ -1106,8 +1103,6 @@ class VoiceHttpHelperTest(unittest.TestCase):
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
 
-            def mqtt_payload(self):
-                return {"host": "mqtt.local"}
 
             def spotify_payload(self):
                 return {
@@ -1166,8 +1161,6 @@ class VoiceHttpHelperTest(unittest.TestCase):
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
 
-            def mqtt_payload(self):
-                return {}
 
             def spotify_payload(self):
                 return {}
@@ -1223,8 +1216,6 @@ class VoiceHttpHelperTest(unittest.TestCase):
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
 
-            def mqtt_payload(self):
-                return {}
 
             def spotify_payload(self):
                 return {
@@ -1276,8 +1267,6 @@ class VoiceHttpHelperTest(unittest.TestCase):
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
 
-            def mqtt_payload(self):
-                return {}
 
             def get_current_spotify_credentials(self):
                 return {
@@ -1325,8 +1314,6 @@ class VoiceHttpHelperTest(unittest.TestCase):
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
 
-            def mqtt_payload(self):
-                return {}
 
             def spotify_payload(self):
                 return {
@@ -1373,8 +1360,6 @@ class VoiceHttpHelperTest(unittest.TestCase):
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
 
-            def mqtt_payload(self):
-                return {}
 
             def spotify_payload(self):
                 return {}

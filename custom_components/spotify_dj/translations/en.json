@@ -8,7 +8,7 @@
           "setup_method": "Setup method"
         },
         "data_description": {
-          "setup_method": "Use Bluetooth only to write WiFi credentials. Pairing, Spotify and MQTT provisioning still happen over WiFi."
+          "setup_method": "Use Bluetooth only to write WiFi credentials. Pairing and Spotify provisioning happen over WiFi."
         }
       },
       "pair": {
@@ -31,7 +31,7 @@
       },
       "ble_wifi": {
         "title": "Provision WiFi over Bluetooth",
-        "description": "Select a SpotifyDJ device in setup mode and write WiFi credentials over BLE. No Spotify, MQTT or other secrets are sent over BLE.",
+        "description": "Select a SpotifyDJ device in setup mode and write WiFi credentials over BLE. No Spotify credentials, device tokens or other secrets are sent over BLE.",
         "data": {
           "ble_address": "SpotifyDJ BLE device",
           "wifi_ssid": "WiFi SSID",
@@ -74,12 +74,7 @@
           "dj_response_enabled": "Play DJ response on device",
           "dj_style": "DJ style",
           "dj_profile": "DJ style",
-          "spotify_player": "Spotify media player",
           "spotify_source": "Spotify source override",
-          "mqtt_host": "MQTT broker host",
-          "mqtt_port": "MQTT broker port",
-          "mqtt_username": "MQTT username",
-          "mqtt_password": "MQTT password",
           "liked_proxy_playlist_uri": "Liked songs playlist URI",
           "firmware_repo": "Firmware repository",
           "firmware_asset_prefix": "Firmware asset prefix",
@@ -100,12 +95,7 @@
           "dj_response_enabled": "Create a temporary WAV or MP3 audio URL and send it with the DJ text to the SpotifyDJ device.",
           "dj_style": "Tone used for SpotifyDJ announcements.",
           "dj_profile": "Tone used for SpotifyDJ announcements.",
-          "spotify_player": "Required media player used for Spotify playback.",
           "spotify_source": "Advanced optional override for a Spotify Connect source. Leave empty for dynamic/default playback.",
-          "mqtt_host": "Advanced optional MQTT broker host provisioned to the SpotifyDJ device. Defaults to homeassistant.local.",
-          "mqtt_port": "MQTT broker port, usually 1883.",
-          "mqtt_username": "Optional MQTT username provisioned to the SpotifyDJ device.",
-          "mqtt_password": "Optional MQTT password provisioned to the SpotifyDJ device. It is redacted from diagnostics.",
           "liked_proxy_playlist_uri": "Optional playlist URI used as a proxy for liked songs.",
           "firmware_repo": "Advanced firmware release repository.",
           "firmware_asset_prefix": "Advanced firmware binary asset prefix.",
@@ -129,7 +119,6 @@
       "oauth_setup_failed": "Spotify authorization could not be started. Check the Client ID and external URL, then try again.",
       "oauth_not_completed": "Spotify authorization has not completed yet. Approve access in Spotify and return to Home Assistant.",
       "oauth_failed": "Spotify authorization failed. Start the Spotify step again and check the redirect URI in your Spotify app.",
-      "spotify_player_required": "Select the Spotify media player SpotifyDJ should use for playback.",
       "ble_device_required": "Select a SpotifyDJ BLE device or enter its Bluetooth address.",
       "wifi_ssid_required": "Enter the WiFi SSID to provision.",
       "ble_wifi_failed": "WiFi provisioning over Bluetooth failed. Check the selected device, SSID and password, then try again."
@@ -152,12 +141,7 @@
           "dj_response_enabled": "Play DJ response on device",
           "dj_style": "DJ style",
           "dj_profile": "DJ style",
-          "spotify_player": "Spotify media player",
           "spotify_source": "Spotify source override",
-          "mqtt_host": "MQTT broker host",
-          "mqtt_port": "MQTT broker port",
-          "mqtt_username": "MQTT username",
-          "mqtt_password": "MQTT password",
           "liked_proxy_playlist_uri": "Liked songs playlist URI",
           "firmware_repo": "Firmware repository",
           "firmware_asset_prefix": "Firmware asset prefix",
@@ -172,7 +156,6 @@
         "data_description": {
           "assist_pipeline_id": "Assist pipeline used by SpotifyDJ devices for speech recognition.",
           "stt_engine": "Home Assistant STT entity used for physical PTT speech recognition. Leave empty to use the Assist pipeline STT provider.",
-          "spotify_player": "Required media player used for Spotify playback.",
           "dj_response_enabled": "Create a temporary WAV or MP3 audio URL and send it with the DJ text to the SpotifyDJ device.",
           "dj_response_ttl_seconds": "Number of seconds the temporary WAV download URL remains valid.",
           "allow_ota_on_battery": "Allow firmware updates while the device is not USB powered.",
@@ -200,11 +183,35 @@
       },
       "last_track": {
         "name": "Last track"
+      },
+      "spotify_status": {
+        "name": "Spotify status"
+      },
+      "ha_pairing_status": {
+        "name": "HA pairing status"
+      },
+      "sound_output": {
+        "name": "Sound output"
       }
     },
     "button": {
       "test_dj_response": {
         "name": "Test ESP DJ response"
+      },
+      "next_track": {
+        "name": "Next track"
+      },
+      "previous_track": {
+        "name": "Previous track"
+      },
+      "play_pause": {
+        "name": "Play/pause"
+      },
+      "refresh_device_info": {
+        "name": "Refresh device info"
+      },
+      "reboot_device": {
+        "name": "Reboot device"
       }
     },
     "update": {
@@ -215,6 +222,32 @@
     "number": {
       "volume": {
         "name": "Volume"
+      },
+      "brightness": {
+        "name": "Screen brightness"
+      },
+      "screen_timeout": {
+        "name": "Screen timeout"
+      },
+      "turn_off_after": {
+        "name": "Turn off after"
+      },
+      "speaker_volume": {
+        "name": "Speaker volume"
+      }
+    },
+    "select": {
+      "sound_output": {
+        "name": "Sound output"
+      },
+      "language": {
+        "name": "Device language"
+      },
+      "theme": {
+        "name": "Theme"
+      },
+      "log_level": {
+        "name": "Log level"
       }
     }
   },

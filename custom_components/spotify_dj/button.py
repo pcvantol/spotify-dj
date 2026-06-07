@@ -18,7 +18,16 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     runtime = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([SpotifyDJTestVoiceButton(runtime, hass)])
+    async_add_entities(
+        [
+            SpotifyDJTestVoiceButton(runtime, hass),
+            SpotifyDJCommandButton(runtime, hass, "next", "next_track"),
+            SpotifyDJCommandButton(runtime, hass, "previous", "previous_track"),
+            SpotifyDJCommandButton(runtime, hass, "play_pause", "play_pause"),
+            SpotifyDJRefreshInfoButton(runtime, hass),
+            SpotifyDJRebootButton(runtime, hass),
+        ]
+    )
 
 class SpotifyDJTestVoiceButton(ButtonEntity):
     _attr_has_entity_name = True
@@ -41,3 +50,54 @@ class SpotifyDJTestVoiceButton(ButtonEntity):
     async def async_press(self) -> None:
         await async_speak_dj_test(self.hass, self.runtime, DEFAULT_TEST_TTS_TEXT)
         _LOGGER.debug("SpotifyDJ test button sent DJ response to device")
+
+
+class SpotifyDJBaseButton(ButtonEntity):
+    _attr_has_entity_name = True
+
+    def __init__(self, runtime, hass: HomeAssistant, translation_key: str) -> None:
+        self.runtime = runtime
+        self.hass = hass
+        self._attr_translation_key = translation_key
+        self._attr_unique_id = f"spotifydj_{translation_key}"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.runtime.entry.entry_id)},
+            name="SpotifyDJ",
+            manufacturer="SpotifyDJ",
+            model="SpotifyDJ device",
+        )
+
+
+class SpotifyDJCommandButton(SpotifyDJBaseButton):
+    def __init__(
+        self,
+        runtime,
+        hass: HomeAssistant,
+        command: str,
+        translation_key: str,
+    ) -> None:
+        super().__init__(runtime, hass, translation_key)
+        self.command = command
+
+    async def async_press(self) -> None:
+        await self.runtime.async_device_command(self.hass, self.command)
+        _LOGGER.debug("SpotifyDJ button sent command %s", self.command)
+
+
+class SpotifyDJRefreshInfoButton(SpotifyDJBaseButton):
+    def __init__(self, runtime, hass: HomeAssistant) -> None:
+        super().__init__(runtime, hass, "refresh_device_info")
+
+    async def async_press(self) -> None:
+        await self.runtime.async_refresh_device_info(self.hass)
+
+
+class SpotifyDJRebootButton(SpotifyDJBaseButton):
+    def __init__(self, runtime, hass: HomeAssistant) -> None:
+        super().__init__(runtime, hass, "reboot_device")
+
+    async def async_press(self) -> None:
+        await self.runtime.async_device_post(self.hass, "/api/device/reboot")

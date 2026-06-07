@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.12
+## 2.9.13
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -61,3 +61,8 @@
 - Restore persisted ESP pairing state at startup so HA keeps the real `spotifydj-XXXXXXXXXXXX` device identity and local URL after restart.
 - Skip automatic ESP re-pairing on HA startup when a device token already exists; Spotify credential provisioning now defers quietly until the paired device is reachable.
 - Persist the real device identity and reported local URL from `/api/spotify_dj/status`, allowing already-paired devices to repair old setup-code based entries automatically.
+- Remove MQTT configuration/provisioning from config flow, options flow and ESP pair/status/provision payloads for firmware v2.9.12 and newer.
+- Route Spotify playback and device controls through the authenticated ESP local `/api/device/command` endpoint instead of Home Assistant `media_player` playback.
+- Add native HA controls for next/previous/play-pause, device info refresh, reboot, volume, speaker volume, screen brightness, timeouts, language, theme, log level and sound output.
+- Add a lightweight DataUpdateCoordinator hook for explicit local device-info refreshes without continuous polling.
+- Refresh local device info after OTA reconnect and clear the updating state when the ESP reports back in.

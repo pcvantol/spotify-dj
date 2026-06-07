@@ -104,7 +104,7 @@
 
 - Config flow must not expose manual `oauth_result`.
 - Config flow must not require normal users to fill local device URL.
-- Config/options flow must keep `spotify_player` required.
+- Config/options flow must not require `spotify_player`.
 - `stt_engine` must remain visible and configurable.
 - No direct external AI/STT/TTS calls should be used by active routes.
 - No secret values should appear in logs or diagnostics.
@@ -112,4 +112,4 @@
 - `number.spotifydj_volume` must not publish out-of-range values such as `-1`.
 - Spotify OAuth scopes must keep `playlist-read-private`.
 - Pairing must reject mismatched pairing codes.
-- BLE provisioning must remain WiFi-only.
+- BLE provisioning must remain WiFi-only and MQTT-free.

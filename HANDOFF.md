@@ -10,6 +10,7 @@
 - The integration is intended for HACS distribution and local Home Assistant installation.
 - ESP firmware source remains proprietary in `pcvantol/spotify-dj-app`; public firmware binaries/manifests are released from `pcvantol/spotify-dj-firmware`.
 - The Home Assistant integration is MIT-licensed; firmware binaries/source are covered separately and remain proprietary unless explicitly changed.
+- Firmware v2.9.12 and newer no longer uses MQTT; device control uses the local ESP API with the stored bearer token.
 
 ## Architecture
 
@@ -55,6 +56,11 @@ ESP SpotifyDJ device
 - ESP endpoint used by HA: `POST /api/device/provision_spotify`
 - ESP endpoint used by HA: `POST /api/device/ota`
 - ESP endpoint used by HA: `POST /api/device/dj_response`
+- ESP endpoint used by HA: `POST /api/device/command`
+- ESP endpoint used by HA: `GET /api/device/info`
+- ESP endpoint used by HA: `GET /api/device/pairing-info`
+- ESP endpoint used by HA: `POST /api/device/reboot`
+- ESP endpoint used by HA: `POST /api/device/forget`
 
 ### Voice/PTT Flow
 
@@ -86,13 +92,14 @@ STT provider selection order:
 - `stt_engine` is the official SpotifyDJ option key for physical PTT STT provider selection.
 - Text-only/JSON requests to `/api/spotify_dj/voice` are developer/DJ-response tests and must not trigger Spotify playback command parsing.
 - Raw WAV requests to `/api/spotify_dj/voice` remain the real PTT path and do trigger STT, command parsing and Spotify playback.
+- Spotify playback and device controls are sent to ESP through `/api/device/command`; Home Assistant `media_player` playback is not required.
 - DJ responses play on the SpotifyDJ ESP device, not through Spotify Connect and not through a Home Assistant media player.
 - HA may send temporary WAV or MP3 `audio_url` values to the ESP; ESP decides how to play supported formats.
 - Spotify OAuth uses PKCE and Home Assistant external step. The config flow must not expose a manual `oauth_result` field.
 - Spotify OAuth scopes must include `playlist-read-private` so private `SpotifyDJ Liked Proxy` playlists can be found by firmware.
 - Spotify refresh tokens may rotate. New tokens must be saved persistently immediately and all pair/status/provision responses must use canonical/latest credentials.
 - ESP `/status` with `spotify_configured=false` is treated as a safe request to reprovision current Spotify credentials.
-- BLE provisioning writes WiFi SSID/password only. No Spotify credentials, MQTT credentials or device tokens over BLE.
+- BLE provisioning writes WiFi SSID/password only. No Spotify credentials, device tokens or other secrets over BLE.
 - Runtime discovery prefers device-reported `local_url`, exact `_spotifydj._tcp` mDNS matches, then a single visible SpotifyDJ mDNS device.
 - Never generate or store `spotifydj-[6-digit-code].local` as a valid device URL. Only 12-hex device suffixes may become `http://spotifydj-[suffix].local` fallbacks.
 - Pair/status handlers persist the real `spotifydj-XXXXXXXXXXXX` identity and reported `local_url` so HA restarts do not fall back to setup-code identities.

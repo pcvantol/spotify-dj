@@ -89,33 +89,55 @@ class TtsHelperTest(unittest.TestCase):
         cls.dj_response = importlib.import_module("custom_components.spotify_dj.dj_response")
         cls.http = importlib.import_module("custom_components.spotify_dj.http")
 
-    def test_mqtt_payload_is_empty_without_host(self) -> None:
-        entry = types.SimpleNamespace(data={}, options={})
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+    def test_device_command_posts_to_local_command_api(self) -> None:
+        class Response:
+            status = 200
 
-        self.assertEqual(runtime.mqtt_payload(), {})
+            async def __aenter__(self):
+                return self
 
-    def test_mqtt_payload_contains_configured_broker(self) -> None:
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def text(self):
+                return '{"success": true, "status": {"volume": 35}}'
+
+        class Session:
+            def __init__(self):
+                self.calls = []
+
+            def post(self, url, **kwargs):
+                self.calls.append({"url": url, **kwargs})
+                return Response()
+
         entry = types.SimpleNamespace(
-            data={
-                self.const.CONF_MQTT_HOST: "mqtt.local",
-                self.const.CONF_MQTT_PORT: 1884,
-                self.const.CONF_MQTT_USERNAME: "spotifydj",
-                self.const.CONF_MQTT_PASSWORD: "secret",
-            },
+            data={self.const.CONF_DEVICE_ID: "spotifydj-90B70990A994"},
             options={},
         )
         runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime.device_token = "device-token"
+        runtime.device_status["local_url"] = "http://spotifydj.local"
+        session = Session()
+        original_session = self.integration.async_get_clientsession
+        self.integration.async_get_clientsession = lambda hass: session
+        try:
+            result = asyncio.run(
+                runtime.async_device_command(object(), "set_volume", value=35)
+            )
+        finally:
+            self.integration.async_get_clientsession = original_session
 
+        self.assertTrue(result["success"])
         self.assertEqual(
-            runtime.mqtt_payload(),
-            {
-                "host": "mqtt.local",
-                "port": 1884,
-                "username": "spotifydj",
-                "password": "secret",
-            },
+            session.calls[0]["url"],
+            "http://spotifydj.local/api/device/command",
         )
+        self.assertEqual(session.calls[0]["headers"]["Authorization"], "Bearer device-token")
+        self.assertEqual(
+            session.calls[0]["json"],
+            {"command": "set_volume", "value": 35},
+        )
+        self.assertEqual(runtime.device_status["volume"], 35)
 
     def test_spotify_payload_contains_refresh_token_aliases(self) -> None:
         entry = types.SimpleNamespace(

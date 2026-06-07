@@ -2,12 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from aiohttp import ClientTimeout
 from homeassistant.components.number import NumberEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -23,7 +21,55 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     runtime = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([SpotifyDJVolumeNumber(runtime, hass)])
+    async_add_entities(
+        [
+            SpotifyDJVolumeNumber(runtime, hass),
+            SpotifyDJCommandNumber(
+                runtime,
+                hass,
+                "screen_brightness",
+                "brightness",
+                "set_brightness",
+                "value",
+                0,
+                100,
+                "%",
+            ),
+            SpotifyDJCommandNumber(
+                runtime,
+                hass,
+                "screen_timeout",
+                "screen_timeout",
+                "set_screen_timeout",
+                "seconds",
+                0,
+                600,
+                "s",
+            ),
+            SpotifyDJCommandNumber(
+                runtime,
+                hass,
+                "turn_off_after",
+                "turn_off_after",
+                "set_turn_off_after",
+                "minutes",
+                0,
+                240,
+                "min",
+            ),
+            SpotifyDJCommandNumber(
+                runtime,
+                hass,
+                "speaker_volume",
+                "speaker_volume",
+                "set_speaker_volume",
+                "value",
+                0,
+                100,
+                "%",
+            ),
+        ]
+    )
 
 
 class SpotifyDJVolumeNumber(NumberEntity):
@@ -58,19 +104,11 @@ class SpotifyDJVolumeNumber(NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         volume = max(MIN_VOLUME, min(MAX_VOLUME, float(value)))
-        local_url = await self.runtime.async_device_local_url(self.hass)
-        if not local_url:
-            raise RuntimeError("SpotifyDJ device local_url is unknown")
-        session = async_get_clientsession(self.hass)
-        async with session.post(
-            local_url.rstrip("/") + "/api/device/volume",
-            json={"volume": volume},
-            headers=self.runtime.device_headers(),
-            timeout=ClientTimeout(total=15),
-        ) as resp:
-            text = await resp.text()
-            if resp.status < 200 or resp.status >= 300:
-                raise RuntimeError(f"ESP volume request failed HTTP {resp.status}: {text}")
+        await self.runtime.async_device_command(
+            self.hass,
+            "set_volume",
+            value=int(volume),
+        )
         self.runtime.device_status["volume"] = volume
         self.runtime.update()
 
@@ -92,3 +130,73 @@ def _volume_value(status: dict[str, Any]) -> float | None:
         except (TypeError, ValueError):
             return None
     return None
+
+
+class SpotifyDJCommandNumber(NumberEntity):
+    _attr_has_entity_name = True
+    _attr_native_step = 1.0
+
+    def __init__(
+        self,
+        runtime: Any,
+        hass: HomeAssistant,
+        status_key: str,
+        translation_key: str,
+        command: str,
+        payload_key: str,
+        min_value: float,
+        max_value: float,
+        unit: str | None,
+    ) -> None:
+        self.runtime = runtime
+        self.hass = hass
+        self.status_key = status_key
+        self.command = command
+        self.payload_key = payload_key
+        self._attr_translation_key = translation_key
+        self._attr_unique_id = f"spotifydj_{translation_key}"
+        self._attr_native_min_value = min_value
+        self._attr_native_max_value = max_value
+        self._attr_native_unit_of_measurement = unit
+        runtime.listeners.append(self._handle_runtime_update)
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.runtime.entry.entry_id)},
+            name="SpotifyDJ",
+            manufacturer="SpotifyDJ",
+            model="SpotifyDJ device",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        value = self.runtime.device_status.get(self.status_key)
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            return None
+        if number < self._attr_native_min_value:
+            return None
+        return min(self._attr_native_max_value, number)
+
+    async def async_set_native_value(self, value: float) -> None:
+        number = max(
+            self._attr_native_min_value,
+            min(self._attr_native_max_value, float(value)),
+        )
+        await self.runtime.async_device_command(
+            self.hass,
+            self.command,
+            **{self.payload_key: int(number)},
+        )
+        self.runtime.device_status[self.status_key] = number
+        self.runtime.update()
+
+    @callback
+    def _handle_runtime_update(self) -> None:
+        self.async_write_ha_state()
+
+    async def async_will_remove_from_hass(self) -> None:
+        if self._handle_runtime_update in self.runtime.listeners:
+            self.runtime.listeners.remove(self._handle_runtime_update)

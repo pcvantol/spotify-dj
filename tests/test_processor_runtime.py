@@ -51,7 +51,7 @@ class ProcessorRuntimeTest(unittest.TestCase):
                 "dj_announcement": "Daar gaan we.",
             }
 
-        async def play(hass, intent, conf):
+        async def play(hass, runtime, intent, conf):
             return {"track": "Pearl Jam - Black"}
 
         original_assist = self.processor.process_text_with_assist

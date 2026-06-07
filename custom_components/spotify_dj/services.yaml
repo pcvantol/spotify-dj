@@ -109,3 +109,44 @@ provision_spotify_credentials:
     provisioning metadata stored in Home Assistant to the paired SpotifyDJ
     device.
   fields: {}
+
+device_command:
+  name: Send device command
+  description: >
+    Developer helper: send a command to the paired SpotifyDJ device through the
+    local /api/device/command endpoint using the stored bearer token.
+  fields:
+    command:
+      name: Command
+      description: Local SpotifyDJ command, for example status, next, previous, set_volume, set_output, start_playlist, set_language or dj_response.
+      required: true
+      selector:
+        text:
+          multiline: false
+    payload:
+      name: Payload
+      description: Optional command payload as an object, for example {"value": 35}.
+      required: false
+      selector:
+        object:
+
+refresh_device_info:
+  name: Refresh device info
+  description: >
+    Developer helper: fetch /api/device/info from the paired SpotifyDJ device and
+    update Home Assistant status sensors.
+  fields: {}
+
+reboot_device:
+  name: Reboot device
+  description: >
+    Developer helper: ask the paired SpotifyDJ device to reboot through
+    /api/device/reboot.
+  fields: {}
+
+forget_device:
+  name: Forget device pairing
+  description: >
+    Developer helper: ask the paired SpotifyDJ device to forget its local pairing
+    through /api/device/forget. Re-pair the device afterwards.
+  fields: {}

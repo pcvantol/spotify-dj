@@ -40,7 +40,7 @@ class DiagnosticsTest(unittest.TestCase):
             "device_token": "device-secret",
             "refresh_token": "refresh-secret",
             "spotify_refresh_token": "spotify-secret",
-            "mqtt_password": "mqtt-secret",
+            "wifi_password": "wifi-secret",
             "nested": {
                 "password": "nested-secret",
                 "client_id": "safe-client-id",
@@ -52,7 +52,7 @@ class DiagnosticsTest(unittest.TestCase):
         self.assertEqual(redacted["device_token"], "REDACTED")
         self.assertEqual(redacted["refresh_token"], "REDACTED")
         self.assertEqual(redacted["spotify_refresh_token"], "REDACTED")
-        self.assertEqual(redacted["mqtt_password"], "REDACTED")
+        self.assertEqual(redacted["wifi_password"], "REDACTED")
         self.assertEqual(redacted["nested"]["password"], "REDACTED")
         self.assertEqual(redacted["nested"]["client_id"], "safe-client-id")
 
@@ -64,7 +64,7 @@ class DiagnosticsTest(unittest.TestCase):
                 "spotify_refresh_token": "refresh-secret",
                 "spotify_scopes": "user-read-playback-state user-modify-playback-state",
             },
-            options={"mqtt_password": "mqtt-secret"},
+            options={"wifi_password": "wifi-secret"},
         )
         hass = types.SimpleNamespace(data={"spotify_dj": {"entry-1": None}})
 
@@ -90,7 +90,7 @@ class DiagnosticsTest(unittest.TestCase):
         )
         self.assertTrue(result["spotify_oauth"]["reauthorization_required"])
         self.assertEqual(result["entry"]["data"]["spotify_refresh_token"], "REDACTED")
-        self.assertEqual(result["entry"]["options"]["mqtt_password"], "REDACTED")
+        self.assertEqual(result["entry"]["options"]["wifi_password"], "REDACTED")
 
 
 if __name__ == "__main__":

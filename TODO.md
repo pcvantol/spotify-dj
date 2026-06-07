@@ -54,9 +54,8 @@
 - Confirm `stt_engine` remains free-text capable when no HA `stt.*` entities are discoverable.
 - Confirm advanced-only options remain hidden behind the integration-local advanced checkbox.
 - Confirm HA deprecated `show_advanced_options` is not used.
-- Confirm `spotify_player` remains required.
-- Confirm `mqtt_host` default remains `homeassistant.local`.
-- Confirm existing MQTT values are not overwritten by defaults.
+- Confirm no `spotify_player` field is required in config/options flow.
+- Confirm no MQTT options are shown in config/options flow.
 - Confirm all titles, labels and error messages are available in Dutch and English.
 
 ## OTA / Firmware Updates
@@ -81,9 +80,9 @@
 ## Security / Privacy
 
 - Re-run diagnostics and confirm redaction for keys containing `token`, `password` or `secret`.
-- Confirm no device token, HA token, Spotify refresh token or MQTT password appears in logs.
+- Confirm no device token, HA token, Spotify refresh token or WiFi password appears in logs.
 - Confirm BLE provisioning only sends WiFi SSID/password.
-- Confirm no Spotify/MQTT/device credentials are sent via BLE.
+- Confirm no Spotify/device credentials are sent via BLE.
 - Confirm `THIRD_PARTY_NOTICES.md` remains accurate after dependency changes.
 
 ## Documentation

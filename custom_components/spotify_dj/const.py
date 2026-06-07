@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "spotify_dj"
 NAME = "SpotifyDJ"
-VERSION = "2.9.12"
+VERSION = "2.9.13"
 
 API_BASE = "/api/spotify_dj"
 API_PAIR = f"{API_BASE}/pair"
@@ -30,7 +30,6 @@ CONF_SPOTIFY_CLIENT_ID = "spotify_client_id"
 CONF_SPOTIFY_REFRESH_TOKEN = "spotify_refresh_token"
 CONF_SPOTIFY_MARKET = "spotify_market"
 CONF_SPOTIFY_SCOPES = "spotify_scopes"
-CONF_SPOTIFY_PLAYER = "spotify_player"
 CONF_SPOTIFY_SOURCE = "spotify_source"
 CONF_LIKED_PROXY = "liked_proxy_playlist_uri"
 
@@ -41,11 +40,6 @@ CONF_TTS_LANGUAGE = "tts_language"
 CONF_TTS_VOICE = "tts_voice"
 CONF_DJ_RESPONSE_ENABLED = "dj_response_enabled"
 CONF_DJ_RESPONSE_TTL_SECONDS = "dj_response_ttl_seconds"
-
-CONF_MQTT_HOST = "mqtt_host"
-CONF_MQTT_PORT = "mqtt_port"
-CONF_MQTT_USERNAME = "mqtt_username"
-CONF_MQTT_PASSWORD = "mqtt_password"
 
 # Both names are kept for backwards compatibility with older modules.
 CONF_DJ_STYLE = "dj_style"
@@ -81,9 +75,6 @@ DEFAULT_TTS_LANGUAGE = "nl-NL"
 DEFAULT_TTS_VOICE = ""
 DEFAULT_DJ_RESPONSE_ENABLED = True
 DEFAULT_DJ_RESPONSE_TTL_SECONDS = 120
-DEFAULT_MQTT_HOST = "homeassistant.local"
-DEFAULT_MQTT_PORT = 1883
-
 DJ_STYLE_CLASSIC_DUTCH_RADIO = "classic_dutch_radio"
 DJ_STYLE_CALM_EVENING = "calm_evening"
 DJ_STYLE_FESTIVAL = "festival"
@@ -118,7 +109,7 @@ SPOTIFY_SCOPES = [
 ]
 DEFAULT_SPOTIFY_SCOPES = " ".join(SPOTIFY_SCOPES)
 
-PLATFORMS = ["sensor", "button", "number", "update"]
+PLATFORMS = ["sensor", "button", "number", "select", "update"]
 
 # Spotify OAuth/PKCE direct callback support
 SPOTIFY_CALLBACK_PATH = API_SPOTIFY_CALLBACK

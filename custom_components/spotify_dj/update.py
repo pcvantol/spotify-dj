@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -140,4 +141,26 @@ class SpotifyDJFirmwareUpdate(UpdateEntity):
             raise RuntimeError(f"Battery too low for OTA: {battery}% < {min_battery}%")
 
         await self.runtime.start_ota(self.hass, self._latest)
+        await self._wait_for_reconnect()
         await self.async_update_ha_state(force_refresh=True)
+
+    async def _wait_for_reconnect(self) -> None:
+        """Wait briefly for ESP reboot/reconnect after OTA and refresh device info."""
+        for attempt in range(8):
+            await asyncio.sleep(5 if attempt else 2)
+            try:
+                await self.runtime.async_refresh_device_info(self.hass)
+                self.runtime.ota_in_progress = False
+                self.runtime.ota_last_error = None
+                self._installed = self.runtime.device_status.get("firmware")
+                self.runtime.update()
+                return
+            except Exception as exc:  # noqa: BLE001
+                _LOGGER.debug(
+                    "SpotifyDJ waiting for device after OTA attempt %s: %s",
+                    attempt + 1,
+                    exc,
+                )
+        self.runtime.ota_in_progress = False
+        self.runtime.ota_last_error = "Device did not reconnect after OTA in time"
+        self.runtime.update()

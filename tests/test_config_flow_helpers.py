@@ -153,10 +153,6 @@ class ConfigFlowHelperTest(unittest.TestCase):
         advanced_keys = {marker.key for marker in advanced_schema.schema}
         advanced_only = {
             self.const.CONF_SPOTIFY_SOURCE,
-            self.const.CONF_MQTT_HOST,
-            self.const.CONF_MQTT_PORT,
-            self.const.CONF_MQTT_USERNAME,
-            self.const.CONF_MQTT_PASSWORD,
             self.const.CONF_FIRMWARE_REPO,
             self.const.CONF_FIRMWARE_ASSET_PREFIX,
             self.const.CONF_FIRMWARE_DEVICE,
@@ -180,7 +176,6 @@ class ConfigFlowHelperTest(unittest.TestCase):
                 self.const.CONF_DJ_STYLE: "does_not_exist",
                 self.const.CONF_MAX_AUDIO_BYTES: "not-an-int",
                 self.const.CONF_MIN_BATTERY_FOR_OTA: "55",
-                self.const.CONF_MQTT_PORT: "1884",
             }
         )
 
@@ -190,50 +185,14 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertEqual(data[self.const.CONF_MAX_AUDIO_BYTES], self.const.DEFAULT_MAX_AUDIO_BYTES)
         self.assertTrue(data[self.const.CONF_ALLOW_OTA_ON_BATTERY])
         self.assertEqual(data[self.const.CONF_MIN_BATTERY_FOR_OTA], 55)
-        self.assertEqual(data[self.const.CONF_MQTT_PORT], 1884)
         self.assertTrue(data[self.const.CONF_DJ_RESPONSE_ENABLED])
         self.assertEqual(
             data[self.const.CONF_DJ_RESPONSE_TTL_SECONDS],
             self.const.DEFAULT_DJ_RESPONSE_TTL_SECONDS,
         )
 
-    def test_mqtt_defaults_use_static_homeassistant_host(self) -> None:
-        defaults = self.config_flow._merged_mqtt_defaults(
-            types.SimpleNamespace(),
-            {},
-        )
-
-        self.assertEqual(
-            defaults[self.const.CONF_MQTT_HOST],
-            self.const.DEFAULT_MQTT_HOST,
-        )
-        self.assertEqual(defaults[self.const.CONF_MQTT_PORT], self.const.DEFAULT_MQTT_PORT)
-
-    def test_mqtt_defaults_do_not_override_existing_values(self) -> None:
-        defaults = self.config_flow._merged_mqtt_defaults(
-            types.SimpleNamespace(),
-            {
-                self.const.CONF_MQTT_HOST: "manual-mqtt",
-                self.const.CONF_MQTT_PORT: 1884,
-            },
-        )
-
-        self.assertEqual(defaults[self.const.CONF_MQTT_HOST], "manual-mqtt")
-        self.assertEqual(defaults[self.const.CONF_MQTT_PORT], 1884)
-
-    def test_voice_errors_require_spotify_player(self) -> None:
-        errors = self.config_flow._voice_errors({self.const.CONF_SPOTIFY_PLAYER: ""})
-
-        self.assertEqual(
-            errors,
-            {self.const.CONF_SPOTIFY_PLAYER: "spotify_player_required"},
-        )
-        self.assertEqual(
-            self.config_flow._voice_errors(
-                {self.const.CONF_SPOTIFY_PLAYER: "media_player.spotify"}
-            ),
-            {},
-        )
+    def test_voice_errors_allow_device_owned_spotify_playback(self) -> None:
+        self.assertEqual(self.config_flow._voice_errors({}), {})
 
     def test_user_schema_hides_manual_device_url_until_advanced(self) -> None:
         flow = self.config_flow.SpotifyDJConfigFlow()

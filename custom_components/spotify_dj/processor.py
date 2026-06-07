@@ -15,7 +15,7 @@ async def process_text_command(
     intent = await process_text_with_assist(hass, user_text, conf)
     playback = None
     if play:
-        playback = await play_from_intent(hass, intent, conf)
+        playback = await play_from_intent(hass, runtime, intent, conf)
     dj_text = intent.get("dj_announcement") or "Daar gaan we. Ik zet hem voor je klaar."
     result = {
         "text": user_text,

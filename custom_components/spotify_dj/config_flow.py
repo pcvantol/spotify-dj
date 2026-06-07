@@ -36,14 +36,9 @@ from .const import (
     CONF_LOCAL_URL,
     CONF_MAX_AUDIO_BYTES,
     CONF_MIN_BATTERY_FOR_OTA,
-    CONF_MQTT_HOST,
-    CONF_MQTT_PASSWORD,
-    CONF_MQTT_PORT,
-    CONF_MQTT_USERNAME,
     CONF_PAIR_CODE,
     CONF_SPOTIFY_CLIENT_ID,
     CONF_SPOTIFY_MARKET,
-    CONF_SPOTIFY_PLAYER,
     CONF_SPOTIFY_REFRESH_TOKEN,
     CONF_SPOTIFY_SCOPES,
     CONF_SPOTIFY_SOURCE,
@@ -66,8 +61,6 @@ from .const import (
     DEFAULT_FIRMWARE_REPO,
     DEFAULT_MAX_AUDIO_BYTES,
     DEFAULT_MIN_BATTERY_FOR_OTA,
-    DEFAULT_MQTT_HOST,
-    DEFAULT_MQTT_PORT,
     DEFAULT_SETUP_METHOD,
     DEFAULT_SPOTIFY_CLIENT_ID,
     DEFAULT_SPOTIFY_MARKET,
@@ -106,10 +99,6 @@ SETUP_METHOD_NAMES = {
 
 ADVANCED_VOICE_FIELDS = (
     CONF_SPOTIFY_SOURCE,
-    CONF_MQTT_HOST,
-    CONF_MQTT_PORT,
-    CONF_MQTT_USERNAME,
-    CONF_MQTT_PASSWORD,
     CONF_FIRMWARE_REPO,
     CONF_FIRMWARE_ASSET_PREFIX,
     CONF_FIRMWARE_DEVICE,
@@ -170,16 +159,6 @@ def _default_local_url(pair_code: str | None) -> str:
 def _valid_pair_code(pair_code: str) -> bool:
     """Accept the displayed 6-digit code or 12-character device suffix."""
     return bool(PAIR_CODE_PATTERN.fullmatch(str(pair_code or "").strip()))
-
-
-def _merged_mqtt_defaults(hass: Any, source: dict[str, Any]) -> dict[str, Any]:
-    """Use static MQTT defaults when SpotifyDJ has no stored values."""
-    merged = dict(source)
-    if _clean(merged.get(CONF_MQTT_HOST), "") == "":
-        merged[CONF_MQTT_HOST] = DEFAULT_MQTT_HOST
-    if _clean(merged.get(CONF_MQTT_PORT), "") == "":
-        merged[CONF_MQTT_PORT] = DEFAULT_MQTT_PORT
-    return merged
 
 
 def _is_https_url(value: str) -> bool:
@@ -334,12 +313,10 @@ def _base_voice_schema(
     stt_engine: str,
     tts_engine: str,
     tts_voice: str,
-    player_options: dict[str, str],
 ) -> dict[Any, Any]:
     """Build the non-advanced voice settings schema."""
     stt_validator = vol.In(stt_options) if len(stt_options) > 1 else str
     voice_validator = vol.In(tts_voice_options) if len(tts_voice_options) > 1 else str
-    player_default = defaults.get(CONF_SPOTIFY_PLAYER, "")
     return {
         vol.Optional(
             CONF_ASSIST_PIPELINE_ID,
@@ -363,10 +340,6 @@ def _base_voice_schema(
             CONF_DJ_STYLE,
             default=defaults.get(CONF_DJ_STYLE, DEFAULT_DJ_STYLE),
         ): vol.In(DJ_STYLE_NAMES),
-        vol.Required(
-            CONF_SPOTIFY_PLAYER,
-            default=player_default,
-        ): vol.In(player_options),
         vol.Optional(CONF_LIKED_PROXY, default=defaults.get(CONF_LIKED_PROXY, "")): str,
     }
 
@@ -381,22 +354,6 @@ def _advanced_voice_schema(defaults: dict[str, Any]) -> dict[Any, Any]:
         vol.Optional(
             CONF_SPOTIFY_SOURCE,
             default=defaults.get(CONF_SPOTIFY_SOURCE, ""),
-        ): str,
-        vol.Optional(
-            CONF_MQTT_HOST,
-            default=defaults.get(CONF_MQTT_HOST, ""),
-        ): str,
-        vol.Optional(
-            CONF_MQTT_PORT,
-            default=defaults.get(CONF_MQTT_PORT, DEFAULT_MQTT_PORT),
-        ): int,
-        vol.Optional(
-            CONF_MQTT_USERNAME,
-            default=defaults.get(CONF_MQTT_USERNAME, ""),
-        ): str,
-        vol.Optional(
-            CONF_MQTT_PASSWORD,
-            default=defaults.get(CONF_MQTT_PASSWORD, ""),
         ): str,
         vol.Optional(
             CONF_FIRMWARE_REPO,
@@ -466,12 +423,6 @@ async def _voice_schema(
         stt_engine=stt_engine,
         tts_engine=tts_engine,
         tts_voice=tts_voice,
-        player_options=_entity_options(
-            hass,
-            "media_player",
-            defaults.get(CONF_SPOTIFY_PLAYER, ""),
-            include_empty=False,
-        ),
     )
     if include_advanced:
         schema.update(_advanced_voice_schema(defaults))
@@ -533,20 +484,13 @@ def _voice_defaults(data: dict[str, Any] | None = None) -> dict[str, Any]:
             source.get(CONF_MIN_BATTERY_FOR_OTA),
             DEFAULT_MIN_BATTERY_FOR_OTA,
         ),
-        CONF_SPOTIFY_PLAYER: _clean(source.get(CONF_SPOTIFY_PLAYER), ""),
         CONF_SPOTIFY_SOURCE: _clean(source.get(CONF_SPOTIFY_SOURCE), ""),
-        CONF_MQTT_HOST: _clean(source.get(CONF_MQTT_HOST), ""),
-        CONF_MQTT_PORT: _int(source.get(CONF_MQTT_PORT), DEFAULT_MQTT_PORT),
-        CONF_MQTT_USERNAME: _clean(source.get(CONF_MQTT_USERNAME), ""),
-        CONF_MQTT_PASSWORD: _clean(source.get(CONF_MQTT_PASSWORD), ""),
         CONF_LIKED_PROXY: _clean(source.get(CONF_LIKED_PROXY), ""),
     }
 
 
 def _voice_errors(user_input: dict[str, Any]) -> dict[str, str]:
     """Validate required voice/options fields."""
-    if not _clean(user_input.get(CONF_SPOTIFY_PLAYER), ""):
-        return {CONF_SPOTIFY_PLAYER: "spotify_player_required"}
     return {}
 
 
@@ -859,7 +803,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="voice",
             data_schema=await _voice_schema(
                 self.hass,
-                _voice_defaults(_merged_mqtt_defaults(self.hass, {})),
+                _voice_defaults({}),
                 include_advanced=_advanced_enabled(self),
             ),
             errors=errors,
@@ -887,7 +831,7 @@ class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Manage SpotifyDJ options."""
         current = {**self._config_entry.data, **self._config_entry.options}
-        defaults = _voice_defaults(_merged_mqtt_defaults(self.hass, current))
+        defaults = _voice_defaults(current)
         errors: dict[str, str] = {}
         if user_input is not None:
             if _request_advanced(self, user_input):

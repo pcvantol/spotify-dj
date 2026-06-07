@@ -8,7 +8,7 @@
           "setup_method": "Setup methode"
         },
         "data_description": {
-          "setup_method": "Bluetooth wordt alleen gebruikt voor WiFi credentials. Pairing, Spotify en MQTT provisioning blijven via WiFi lopen."
+          "setup_method": "Bluetooth wordt alleen gebruikt voor WiFi credentials. Pairing en Spotify provisioning blijven via WiFi lopen."
         }
       },
       "pair": {
@@ -31,7 +31,7 @@
       },
       "ble_wifi": {
         "title": "WiFi via Bluetooth provisionen",
-        "description": "Selecteer een SpotifyDJ device in setup mode en schrijf WiFi credentials via BLE. Spotify, MQTT en andere secrets worden niet via BLE verzonden.",
+        "description": "Selecteer een SpotifyDJ device in setup mode en schrijf WiFi credentials via BLE. Spotify credentials, device tokens en andere secrets worden niet via BLE verzonden.",
         "data": {
           "ble_address": "SpotifyDJ BLE device",
           "wifi_ssid": "WiFi SSID",
@@ -74,12 +74,7 @@
           "dj_response_enabled": "DJ response op apparaat afspelen",
           "dj_style": "DJ stijl",
           "dj_profile": "DJ stijl",
-          "spotify_player": "Spotify media player",
           "spotify_source": "Spotify bron override",
-          "mqtt_host": "MQTT broker host",
-          "mqtt_port": "MQTT broker poort",
-          "mqtt_username": "MQTT gebruikersnaam",
-          "mqtt_password": "MQTT wachtwoord",
           "liked_proxy_playlist_uri": "Liked songs playlist URI",
           "firmware_repo": "Firmware repository",
           "firmware_asset_prefix": "Firmware bestandsnaam-prefix",
@@ -100,12 +95,7 @@
           "dj_response_enabled": "Maak een tijdelijke WAV of MP3 audio URL en stuur die met de DJ tekst naar het SpotifyDJ device.",
           "dj_style": "Toon/stijl voor SpotifyDJ aankondigingen.",
           "dj_profile": "Toon/stijl voor SpotifyDJ aankondigingen.",
-          "spotify_player": "Verplichte media player voor Spotify playback.",
           "spotify_source": "Geavanceerde optionele override voor een Spotify Connect bron. Laat leeg voor dynamische/standaard playback.",
-          "mqtt_host": "Geavanceerde optionele MQTT broker host die naar het SpotifyDJ device wordt gestuurd. Standaard homeassistant.local.",
-          "mqtt_port": "MQTT broker poort, meestal 1883.",
-          "mqtt_username": "Optionele MQTT gebruikersnaam voor het SpotifyDJ device.",
-          "mqtt_password": "Optioneel MQTT wachtwoord voor het SpotifyDJ device. Dit wordt in diagnostics afgeschermd.",
           "liked_proxy_playlist_uri": "Optionele playlist URI als proxy voor liked songs.",
           "firmware_repo": "Geavanceerde firmware release repository.",
           "firmware_asset_prefix": "Geavanceerde firmware binary bestandsnaam-prefix.",
@@ -129,7 +119,6 @@
       "oauth_setup_failed": "Spotify autorisatie kon niet worden gestart. Controleer de Client ID en externe URL en probeer opnieuw.",
       "oauth_not_completed": "Spotify autorisatie is nog niet afgerond. Geef akkoord in Spotify en ga terug naar Home Assistant.",
       "oauth_failed": "Spotify autorisatie is mislukt. Start de Spotify stap opnieuw en controleer de Redirect URI in je Spotify app.",
-      "spotify_player_required": "Kies de Spotify media player die SpotifyDJ gebruikt voor playback.",
       "ble_device_required": "Selecteer een SpotifyDJ BLE device of voer het Bluetooth adres in.",
       "wifi_ssid_required": "Vul de WiFi SSID in om te provisionen.",
       "ble_wifi_failed": "WiFi provisioning via Bluetooth is mislukt. Controleer device, SSID en wachtwoord en probeer opnieuw."
@@ -152,12 +141,7 @@
           "dj_response_enabled": "DJ response op apparaat afspelen",
           "dj_style": "DJ stijl",
           "dj_profile": "DJ stijl",
-          "spotify_player": "Spotify media player",
           "spotify_source": "Spotify bron override",
-          "mqtt_host": "MQTT broker host",
-          "mqtt_port": "MQTT broker poort",
-          "mqtt_username": "MQTT gebruikersnaam",
-          "mqtt_password": "MQTT wachtwoord",
           "liked_proxy_playlist_uri": "Liked songs playlist URI",
           "firmware_repo": "Firmware repository",
           "firmware_asset_prefix": "Firmware bestandsnaam-prefix",
@@ -172,7 +156,6 @@
         "data_description": {
           "assist_pipeline_id": "Assist pipeline die SpotifyDJ apparaten gebruiken voor spraakherkenning.",
           "stt_engine": "Home Assistant STT entity voor fysieke PTT spraakherkenning. Laat leeg om de STT provider uit de Assist pipeline te gebruiken.",
-          "spotify_player": "Verplichte media player voor Spotify playback.",
           "dj_response_enabled": "Maak een tijdelijke WAV of MP3 audio URL en stuur die met de DJ tekst naar het SpotifyDJ device.",
           "dj_response_ttl_seconds": "Aantal seconden dat de tijdelijke WAV download URL geldig blijft.",
           "allow_ota_on_battery": "Sta firmware updates toe als het apparaat niet via USB gevoed wordt.",
@@ -200,11 +183,35 @@
       },
       "last_track": {
         "name": "Laatste nummer"
+      },
+      "spotify_status": {
+        "name": "Spotify status"
+      },
+      "ha_pairing_status": {
+        "name": "HA pairingstatus"
+      },
+      "sound_output": {
+        "name": "Geluidsuitvoer"
       }
     },
     "button": {
       "test_dj_response": {
         "name": "Test ESP DJ response"
+      },
+      "next_track": {
+        "name": "Volgende track"
+      },
+      "previous_track": {
+        "name": "Vorige track"
+      },
+      "play_pause": {
+        "name": "Play/pauze"
+      },
+      "refresh_device_info": {
+        "name": "Device-info verversen"
+      },
+      "reboot_device": {
+        "name": "Device herstarten"
       }
     },
     "update": {
@@ -215,6 +222,32 @@
     "number": {
       "volume": {
         "name": "Volume"
+      },
+      "brightness": {
+        "name": "Schermhelderheid"
+      },
+      "screen_timeout": {
+        "name": "Scherm timeout"
+      },
+      "turn_off_after": {
+        "name": "Uitschakelen na"
+      },
+      "speaker_volume": {
+        "name": "Speaker volume"
+      }
+    },
+    "select": {
+      "sound_output": {
+        "name": "Geluidsuitvoer"
+      },
+      "language": {
+        "name": "Device taal"
+      },
+      "theme": {
+        "name": "Thema"
+      },
+      "log_level": {
+        "name": "Logniveau"
       }
     }
   },

@@ -329,7 +329,6 @@ class SpotifyDJPairView(HomeAssistantView):
             "ha_url": conf.get(CONF_HA_EXTERNAL_URL, ""),
             "device_language": runtime.device_language(),
             "language": runtime.device_language(),
-            "mqtt": runtime.mqtt_payload(),
             "api_base": "/api/spotify_dj",
             "voice_path": API_VOICE,
             "status_path": API_STATUS,
@@ -386,7 +385,6 @@ class SpotifyDJStatusView(HomeAssistantView):
             "device_token": runtime.device_token or "",
             "device_language": runtime.device_language(),
             "language": runtime.device_language(),
-            "mqtt": runtime.mqtt_payload(),
         }
         spotify = _current_spotify_credentials(runtime)
         include_spotify = bool(spotify) and spotify_configured is False

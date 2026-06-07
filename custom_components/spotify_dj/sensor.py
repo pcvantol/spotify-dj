@@ -23,6 +23,9 @@ async def async_setup_entry(
             SpotifyDJWifiSensor(runtime),
             SpotifyDJFirmwareSensor(runtime),
             SpotifyDJLastTrackSensor(runtime),
+            SpotifyDJSpotifyStatusSensor(runtime),
+            SpotifyDJPairingStatusSensor(runtime),
+            SpotifyDJSoundOutputSensor(runtime),
         ]
     )
 
@@ -128,3 +131,34 @@ class SpotifyDJLastTrackSensor(SpotifyDJBaseSensor):
     @property
     def extra_state_attributes(self):
         return self.runtime.last_playback or {}
+
+
+class SpotifyDJSpotifyStatusSensor(SpotifyDJBaseSensor):
+    _attr_translation_key = "spotify_status"
+    _attr_unique_id = "spotifydj_spotify_status"
+
+    @property
+    def native_value(self):
+        return self.runtime.device_status.get("spotify_status")
+
+
+class SpotifyDJPairingStatusSensor(SpotifyDJBaseSensor):
+    _attr_translation_key = "ha_pairing_status"
+    _attr_unique_id = "spotifydj_ha_pairing_status"
+
+    @property
+    def native_value(self):
+        if self.runtime.device_token:
+            return self.runtime.device_status.get("ha_pairing_status") or "paired"
+        return "not_paired"
+
+
+class SpotifyDJSoundOutputSensor(SpotifyDJBaseSensor):
+    _attr_translation_key = "sound_output"
+    _attr_unique_id = "spotifydj_sound_output"
+
+    @property
+    def native_value(self):
+        return self.runtime.device_status.get("sound_output") or self.runtime.device_status.get(
+            "output"
+        )

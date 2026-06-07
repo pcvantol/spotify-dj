@@ -28,17 +28,12 @@ from .const import (
     CONF_DEVICE_TOKEN,
     CONF_HA_EXTERNAL_URL,
     CONF_LOCAL_URL,
-    CONF_MQTT_HOST,
-    CONF_MQTT_PASSWORD,
-    CONF_MQTT_PORT,
-    CONF_MQTT_USERNAME,
     CONF_PAIR_CODE,
     CONF_SPOTIFY_CLIENT_ID,
     CONF_SPOTIFY_MARKET,
     CONF_SPOTIFY_REFRESH_TOKEN,
     CONF_SPOTIFY_SCOPES,
     DEFAULT_DEVICE_LANGUAGE,
-    DEFAULT_MQTT_PORT,
     DEFAULT_SPOTIFY_MARKET,
     DEFAULT_SPOTIFY_SCOPES,
     DOMAIN,
@@ -72,6 +67,7 @@ DEFAULT_TEST_TTS_TEXT = (
     "en ik sta klaar voor je volgende plaat."
 )
 MDNS_SERVICE_TYPE = "_spotifydj._tcp.local."
+LEGACY_MQTT_KEYS = {"mqtt_host", "mqtt_port", "mqtt_username", "mqtt_password"}
 
 
 @dataclass
@@ -157,19 +153,6 @@ class SpotifyDJRuntime:
             return False
         return True
 
-    def mqtt_payload(self) -> dict[str, Any]:
-        """Return MQTT settings for ESP provisioning when a broker is configured."""
-        conf = self.config
-        host = str(conf.get(CONF_MQTT_HOST) or "").strip()
-        if not host:
-            return {}
-        return {
-            "host": host,
-            "port": int(conf.get(CONF_MQTT_PORT, DEFAULT_MQTT_PORT)),
-            "username": str(conf.get(CONF_MQTT_USERNAME) or ""),
-            "password": str(conf.get(CONF_MQTT_PASSWORD) or ""),
-        }
-
     def get_current_spotify_credentials(self) -> dict[str, Any]:
         """Return canonical latest Spotify credentials for ESP provisioning."""
         conf = self.config
@@ -217,6 +200,97 @@ class SpotifyDJRuntime:
         """Return the ESP UI language provisioned during pairing."""
         language = str(self.config.get(CONF_DEVICE_LANGUAGE) or DEFAULT_DEVICE_LANGUAGE)
         return "nl" if language.lower().startswith("nl") else "en"
+
+    async def async_device_get(self, hass: HomeAssistant, path: str) -> dict[str, Any]:
+        """Call an authenticated local ESP GET endpoint."""
+        local_url = await self.async_device_local_url(hass)
+        if not local_url:
+            raise RuntimeError("SpotifyDJ device local_url is unknown")
+        session = async_get_clientsession(hass)
+        async with session.get(
+            local_url.rstrip("/") + path,
+            headers=self.device_headers(),
+            timeout=ClientTimeout(total=10),
+        ) as resp:
+            text = await resp.text()
+            if resp.status in (401, 403, 404):
+                self.update(last_error=f"SpotifyDJ pairing is stale: HTTP {resp.status}")
+            if resp.status < 200 or resp.status >= 300:
+                raise RuntimeError(f"ESP GET {path} failed HTTP {resp.status}: {text}")
+            try:
+                return json.loads(text) if text else {"success": True}
+            except json.JSONDecodeError:
+                return {"success": True, "response": text}
+
+    async def async_device_post(
+        self,
+        hass: HomeAssistant,
+        path: str,
+        payload: dict[str, Any] | None = None,
+        *,
+        timeout: int = 15,
+    ) -> dict[str, Any]:
+        """Call an authenticated local ESP POST endpoint."""
+        local_url = await self.async_device_local_url(hass)
+        if not local_url:
+            raise RuntimeError("SpotifyDJ device local_url is unknown")
+        session = async_get_clientsession(hass)
+        async with session.post(
+            local_url.rstrip("/") + path,
+            json=payload or {},
+            headers=self.device_headers(),
+            timeout=ClientTimeout(total=timeout),
+        ) as resp:
+            text = await resp.text()
+            if resp.status in (401, 403, 404):
+                self.update(last_error=f"SpotifyDJ pairing is stale: HTTP {resp.status}")
+            if resp.status < 200 or resp.status >= 300:
+                raise RuntimeError(f"ESP POST {path} failed HTTP {resp.status}: {text}")
+            try:
+                return json.loads(text) if text else {"success": True}
+            except json.JSONDecodeError:
+                return {"success": True, "response": text}
+
+    async def async_device_command(
+        self,
+        hass: HomeAssistant,
+        command: str,
+        **values: Any,
+    ) -> dict[str, Any]:
+        """Send a command to the ESP local command API."""
+        payload = {"command": command}
+        payload.update({key: value for key, value in values.items() if value is not None})
+        result = await self.async_device_post(hass, "/api/device/command", payload)
+        if isinstance(result, dict):
+            status = result.get("status") or result.get("device_status")
+            if isinstance(status, dict):
+                self.device_status.update(status)
+            self.device_status.update(
+                {
+                    key: result[key]
+                    for key in ("spotify_status", "ha_pairing_status", "sound_output")
+                    if key in result
+                }
+            )
+        self.update(last_error=None)
+        return result
+
+    async def async_refresh_device_info(self, hass: HomeAssistant) -> dict[str, Any]:
+        """Refresh local ESP device info without relying on MQTT."""
+        data = await self.async_device_get(hass, "/api/device/info")
+        status = data.get("status") if isinstance(data, dict) else None
+        if isinstance(status, dict):
+            self.device_status.update(status)
+        if isinstance(data, dict):
+            self.device_status.update(
+                {
+                    key: value
+                    for key, value in data.items()
+                    if key not in {"device_token", "spotify_refresh_token", "refresh_token"}
+                }
+            )
+        self.update(last_error=None)
+        return data
 
     async def start_ota(self, hass: HomeAssistant, release: Any) -> None:
         local_url = await self.async_device_local_url(hass)
@@ -272,7 +346,6 @@ class SpotifyDJRuntime:
             "device_token": token,
             "ha_url": conf.get(CONF_HA_EXTERNAL_URL),
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
-            "mqtt": self.mqtt_payload(),
             "spotify": spotify,
         }
         payload.update(spotify)
@@ -311,7 +384,6 @@ class SpotifyDJRuntime:
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
             "ha_url": conf.get(CONF_HA_EXTERNAL_URL),
             "device_token": self.device_token,
-            "mqtt": self.mqtt_payload(),
         }
         session = async_get_clientsession(hass)
         async with session.post(
@@ -564,6 +636,20 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Remove legacy MQTT options now that firmware uses the local API only."""
+    data = {key: value for key, value in entry.data.items() if key not in LEGACY_MQTT_KEYS}
+    options = {
+        key: value
+        for key, value in entry.options.items()
+        if key not in LEGACY_MQTT_KEYS
+    }
+    if data != dict(entry.data) or options != dict(entry.options):
+        hass.config_entries.async_update_entry(entry, data=data, options=options)
+        _LOGGER.info("SpotifyDJ removed legacy MQTT settings from config entry")
+    return True
+
+
 def _restore_runtime(hass: HomeAssistant, entry: ConfigEntry) -> SpotifyDJRuntime:
     runtime = SpotifyDJRuntime(entry=entry)
     if entry.data.get(CONF_SPOTIFY_REFRESH_TOKEN):
@@ -586,6 +672,27 @@ def _restore_runtime(hass: HomeAssistant, entry: ConfigEntry) -> SpotifyDJRuntim
     hass.data[DOMAIN]["runtime"] = runtime
     _LOGGER.debug("SpotifyDJ runtime restored for entry %s", entry.entry_id)
     return runtime
+
+
+def _setup_device_coordinator(hass: HomeAssistant, runtime: SpotifyDJRuntime) -> None:
+    """Create a coordinator for explicit local device-info refreshes."""
+    try:
+        from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("SpotifyDJ DataUpdateCoordinator unavailable", exc_info=True)
+        return
+
+    async def _async_update_data() -> dict[str, Any]:
+        if not runtime.device_token:
+            return {}
+        return await runtime.async_refresh_device_info(hass)
+
+    hass.data[DOMAIN][f"{runtime.entry.entry_id}_coordinator"] = DataUpdateCoordinator(
+        hass,
+        _LOGGER,
+        name="SpotifyDJ local device API",
+        update_method=_async_update_data,
+    )
 
 
 async def _try_initial_device_provisioning(
@@ -729,12 +836,36 @@ def _register_developer_services(
         _LOGGER.debug("SpotifyDJ developer action provision_spotify_credentials done")
         return result
 
+    async def handle_device_command(call: ServiceCall) -> dict[str, Any]:
+        command = str(call.data.get("command") or "").strip()
+        if not command:
+            raise RuntimeError("Provide a SpotifyDJ device command")
+        payload = dict(call.data.get("payload") or {})
+        _LOGGER.debug("SpotifyDJ developer action device_command: %s", command)
+        return await runtime.async_device_command(hass, command, **payload)
+
+    async def handle_refresh_device_info(call: ServiceCall) -> dict[str, Any]:
+        _LOGGER.debug("SpotifyDJ developer action refresh_device_info started")
+        return await runtime.async_refresh_device_info(hass)
+
+    async def handle_reboot_device(call: ServiceCall) -> dict[str, Any]:
+        _LOGGER.debug("SpotifyDJ developer action reboot_device started")
+        return await runtime.async_device_post(hass, "/api/device/reboot")
+
+    async def handle_forget_device(call: ServiceCall) -> dict[str, Any]:
+        _LOGGER.debug("SpotifyDJ developer action forget_device started")
+        return await runtime.async_device_post(hass, "/api/device/forget")
+
     service_handlers = {
         "test_parse": (handle_test_parse, "optional"),
         "test_tts": (handle_test_tts, "optional"),
         "test_command": (handle_test_command, "optional"),
         "start_spotify_oauth": (handle_start_spotify_oauth, "only"),
         "provision_spotify_credentials": (handle_provision_spotify, "optional"),
+        "device_command": (handle_device_command, "optional"),
+        "refresh_device_info": (handle_refresh_device_info, "optional"),
+        "reboot_device": (handle_reboot_device, "optional"),
+        "forget_device": (handle_forget_device, "optional"),
     }
     for service_name, (handler, response_mode) in service_handlers.items():
         hass.services.async_register(
@@ -753,6 +884,7 @@ def _register_developer_services(
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     runtime = _restore_runtime(hass, entry)
+    _setup_device_coordinator(hass, runtime)
     stt_info = detect_stt_support(hass, runtime.config)
     _LOGGER.info(
         "SpotifyDJ STT route: ha_version=%s pipeline_id=%s pipeline_name=%s "
