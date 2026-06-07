@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.18
+## 2.9.19
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -75,3 +75,5 @@
 - Add hard timeouts around BLE discovery/provisioning so the config flow can continue to WiFi pairing instead of hanging on Bluetooth status reads.
 - Add a BLE provisioning rescan control so users can retry Bluetooth discovery from the same setup screen.
 - Add a BLE setup shortcut to continue directly to pairing when WiFi was configured through the device captive portal.
+- Replace separate BLE retry/continue checkboxes with one mutually exclusive BLE action selector.
+- Keep HA pairing status pending until the ESP confirms pairing, and retry the device pair call when confirmation is missing.

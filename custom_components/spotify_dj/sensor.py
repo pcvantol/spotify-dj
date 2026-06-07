@@ -152,8 +152,11 @@ class SpotifyDJPairingStatusSensor(SpotifyDJBaseSensor):
 
     @property
     def native_value(self):
+        status = self.runtime.device_status.get("ha_pairing_status")
+        if status:
+            return status
         if self.runtime.device_token:
-            return self.runtime.device_status.get("ha_pairing_status") or "paired"
+            return "pending"
         return "not_paired"
 
 

@@ -117,7 +117,8 @@ device_command:
           multiline: false
     payload:
       name: Payload
-      description: Optional command payload as an object, for example {"value": 35}.
+      description: >
+        Optional command payload as an object, for example {"value": 35}.
       required: false
       selector:
         object:

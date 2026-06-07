@@ -85,8 +85,10 @@ FIRMWARE_CHANNEL_NAMES = {"stable": "Stable", "beta": "Beta"}
 DEVICE_LANGUAGE_NAMES = {"en": "English", "nl": "Nederlands"}
 PAIR_CODE_PATTERN = re.compile(r"^(?:\d{6}|[0-9A-Fa-f]{12})$")
 ADVANCED_OPTIONS_FIELD = "show_advanced_options"
-BLE_RETRY_SCAN_FIELD = "retry_ble_scan"
-BLE_CONTINUE_PAIR_FIELD = "continue_to_pairing"
+BLE_ACTION_FIELD = "ble_action"
+BLE_ACTION_PROVISION = "provision_wifi"
+BLE_ACTION_RETRY_SCAN = "retry_ble_scan"
+BLE_ACTION_CONTINUE_PAIRING = "continue_to_pairing"
 BLE_DISCOVERY_TIMEOUT = 5
 BLE_PROVISION_TIMEOUT = 25
 SPOTIFY_MARKET_NAMES = {
@@ -97,9 +99,23 @@ SPOTIFY_MARKET_NAMES = {
     "GB": "United Kingdom",
     "US": "United States",
 }
-SETUP_METHOD_NAMES = {
+SETUP_METHOD_NAMES_EN = {
     SETUP_METHOD_PAIR_EXISTING: "Pair existing WiFi device",
     SETUP_METHOD_BLE_WIFI: "Provision WiFi over Bluetooth",
+}
+SETUP_METHOD_NAMES_NL = {
+    SETUP_METHOD_PAIR_EXISTING: "Bestaand WiFi device koppelen",
+    SETUP_METHOD_BLE_WIFI: "WiFi via Bluetooth provisionen",
+}
+BLE_ACTION_NAMES_EN = {
+    BLE_ACTION_PROVISION: "Write WiFi over Bluetooth",
+    BLE_ACTION_RETRY_SCAN: "Rescan Bluetooth devices",
+    BLE_ACTION_CONTINUE_PAIRING: "Continue to pairing",
+}
+BLE_ACTION_NAMES_NL = {
+    BLE_ACTION_PROVISION: "WiFi via Bluetooth schrijven",
+    BLE_ACTION_RETRY_SCAN: "Bluetooth devices opnieuw scannen",
+    BLE_ACTION_CONTINUE_PAIRING: "Doorgaan naar koppelen",
 }
 
 ADVANCED_VOICE_FIELDS = (
@@ -138,6 +154,18 @@ def _ha_device_language(hass: Any) -> str:
     """Return supported device UI language from the current HA language."""
     language = str(getattr(getattr(hass, "config", None), "language", "") or "").lower()
     return "nl" if language.startswith("nl") else DEFAULT_DEVICE_LANGUAGE
+
+
+def _setup_method_names(hass: Any) -> dict[str, str]:
+    """Return setup method labels in the current Home Assistant language."""
+    language = str(getattr(getattr(hass, "config", None), "language", "") or "").lower()
+    return SETUP_METHOD_NAMES_NL if language.startswith("nl") else SETUP_METHOD_NAMES_EN
+
+
+def _ble_action_names(hass: Any) -> dict[str, str]:
+    """Return mutually exclusive BLE setup actions in the current HA language."""
+    language = str(getattr(getattr(hass, "config", None), "language", "") or "").lower()
+    return BLE_ACTION_NAMES_NL if language.startswith("nl") else BLE_ACTION_NAMES_EN
 
 
 def _advanced_enabled(flow: Any) -> bool:
@@ -213,12 +241,13 @@ def _entity_options(
     return _options_with_current(options, current)
 
 
-def _ble_wifi_schema(devices: dict[str, str]) -> dict[Any, Any]:
+def _ble_wifi_schema(devices: dict[str, str], hass: Any = None) -> dict[Any, Any]:
     """Build BLE WiFi provisioning fields with discovered devices when present."""
     device_validator = vol.In({"": "Select device", **devices}) if devices else str
     return {
-        vol.Optional(BLE_CONTINUE_PAIR_FIELD, default=False): bool,
-        vol.Optional(BLE_RETRY_SCAN_FIELD, default=False): bool,
+        vol.Required(BLE_ACTION_FIELD, default=BLE_ACTION_PROVISION): vol.In(
+            _ble_action_names(hass)
+        ),
         vol.Optional(CONF_BLE_ADDRESS, default=""): device_validator,
         vol.Optional(CONF_WIFI_SSID, default=""): str,
         vol.Optional(CONF_WIFI_PASSWORD, default=""): str,
@@ -563,7 +592,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(
                         CONF_SETUP_METHOD,
                         default=DEFAULT_SETUP_METHOD,
-                    ): vol.In(SETUP_METHOD_NAMES),
+                    ): vol.In(_setup_method_names(getattr(self, "hass", None))),
                 }
             ),
         )
@@ -577,9 +606,10 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         devices = await _discover_ble_devices_safe(self.hass)
 
         if user_input is not None:
-            if user_input.get(BLE_CONTINUE_PAIR_FIELD):
+            action = user_input.get(BLE_ACTION_FIELD, BLE_ACTION_PROVISION)
+            if action == BLE_ACTION_CONTINUE_PAIRING:
                 return await self.async_step_pair()
-            if user_input.get(BLE_RETRY_SCAN_FIELD):
+            if action == BLE_ACTION_RETRY_SCAN:
                 return await self.async_step_ble_wifi()
             address = str(user_input.get(CONF_BLE_ADDRESS, "")).strip()
             ssid = str(user_input.get(CONF_WIFI_SSID, "")).strip()
@@ -607,7 +637,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="ble_wifi",
-            data_schema=vol.Schema(_ble_wifi_schema(devices)),
+            data_schema=vol.Schema(_ble_wifi_schema(devices, getattr(self, "hass", None))),
             errors=errors,
         )
 

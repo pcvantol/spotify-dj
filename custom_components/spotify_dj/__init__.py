@@ -643,11 +643,11 @@ async def _try_initial_device_provisioning(
     hass: HomeAssistant,
     runtime: SpotifyDJRuntime,
 ) -> None:
-    """Provision opportunistically without blocking HA startup when ESP is offline."""
+    """Pair opportunistically without blocking HA startup when ESP is offline."""
     try:
-        if runtime.device_token:
+        if runtime.device_status.get("ha_pairing_status") == "paired":
             _LOGGER.debug(
-                "SpotifyDJ startup provisioning skips pairing because device token exists"
+                "SpotifyDJ startup pairing skipped because device already confirmed pairing"
             )
         else:
             await runtime.pair_device(hass)
@@ -655,12 +655,12 @@ async def _try_initial_device_provisioning(
     except Exception as exc:  # noqa: BLE001
         if _is_deferred_provisioning_error(exc):
             _LOGGER.info(
-                "SpotifyDJ Spotify provisioning deferred until device is reachable: %s",
+                "SpotifyDJ device pairing deferred until device is reachable: %s",
                 exc,
             )
             return
-        runtime.update(last_error=f"Spotify provisioning failed: {exc}")
-        _LOGGER.warning("SpotifyDJ Spotify provisioning deferred/failed: %s", exc)
+        runtime.update(last_error=f"SpotifyDJ device pairing failed: {exc}")
+        _LOGGER.warning("SpotifyDJ device pairing deferred/failed: %s", exc)
 
 
 def _is_deferred_provisioning_error(exc: Exception) -> bool:

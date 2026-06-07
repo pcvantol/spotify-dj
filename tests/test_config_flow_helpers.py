@@ -240,12 +240,45 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertEqual(self.config_flow._ha_device_language(nl_hass), "nl")
         self.assertEqual(self.config_flow._ha_device_language(en_hass), "en")
 
+    def test_setup_method_labels_follow_ha_language(self) -> None:
+        nl_hass = types.SimpleNamespace(config=types.SimpleNamespace(language="nl-NL"))
+        en_hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
+
+        self.assertEqual(
+            self.config_flow._setup_method_names(nl_hass)[
+                self.const.SETUP_METHOD_PAIR_EXISTING
+            ],
+            "Bestaand WiFi device koppelen",
+        )
+        self.assertEqual(
+            self.config_flow._setup_method_names(en_hass)[
+                self.const.SETUP_METHOD_PAIR_EXISTING
+            ],
+            "Pair existing WiFi device",
+        )
+
+    def test_ble_action_labels_follow_ha_language(self) -> None:
+        nl_hass = types.SimpleNamespace(config=types.SimpleNamespace(language="nl-NL"))
+        en_hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
+
+        self.assertEqual(
+            self.config_flow._ble_action_names(nl_hass)[
+                self.config_flow.BLE_ACTION_CONTINUE_PAIRING
+            ],
+            "Doorgaan naar koppelen",
+        )
+        self.assertEqual(
+            self.config_flow._ble_action_names(en_hass)[
+                self.config_flow.BLE_ACTION_RETRY_SCAN
+            ],
+            "Rescan Bluetooth devices",
+        )
+
     def test_ble_wifi_schema_uses_discovered_devices_when_available(self) -> None:
         schema = self.config_flow._ble_wifi_schema({"AA:BB": "SpotifyDJ 1234"})
 
         keys = {marker.key for marker in schema}
-        self.assertIn(self.config_flow.BLE_CONTINUE_PAIR_FIELD, keys)
-        self.assertIn(self.config_flow.BLE_RETRY_SCAN_FIELD, keys)
+        self.assertIn(self.config_flow.BLE_ACTION_FIELD, keys)
         self.assertIn(self.const.CONF_BLE_ADDRESS, keys)
         self.assertIn(self.const.CONF_WIFI_SSID, keys)
         self.assertIn(self.const.CONF_WIFI_PASSWORD, keys)

@@ -36,15 +36,13 @@
           "ble_address": "SpotifyDJ BLE device",
           "wifi_ssid": "WiFi SSID",
           "wifi_password": "WiFi wachtwoord",
-          "retry_ble_scan": "Opnieuw scannen",
-          "continue_to_pairing": "Ga door naar koppelen"
+          "ble_action": "Actie"
         },
         "data_description": {
           "ble_address": "Bluetooth adres van het SpotifyDJ setup device.",
           "wifi_ssid": "WiFi netwerknaam die op het SpotifyDJ device wordt opgeslagen.",
           "wifi_password": "WiFi wachtwoord. Dit wordt alleen naar de BLE WiFi characteristic gestuurd en niet gelogd.",
-          "retry_ble_scan": "Vink aan en klik op verzenden om opnieuw naar SpotifyDJ BLE devices te zoeken.",
-          "continue_to_pairing": "Gebruik dit als het device al op WiFi zit en nu een koppelcode toont."
+          "ble_action": "Kies één actie: WiFi via Bluetooth schrijven, opnieuw scannen of direct doorgaan naar koppelen."
         }
       },
       "spotify": {

@@ -217,7 +217,7 @@ class TtsHelperTest(unittest.TestCase):
 
         self.assertNotIn("local_url", runtime.device_status)
 
-    def test_initial_provisioning_skips_pairing_when_device_token_exists(self) -> None:
+    def test_initial_provisioning_pairs_until_device_confirms_pairing(self) -> None:
         class Runtime:
             device_token = "device-token"
             device_status = {}
@@ -235,17 +235,38 @@ class TtsHelperTest(unittest.TestCase):
 
         asyncio.run(self.integration._try_initial_device_provisioning(object(), runtime))
 
+        self.assertTrue(runtime.pair_called)
+        self.assertIsNone(runtime.last_error)
+
+    def test_initial_provisioning_skips_when_device_confirmed_pairing(self) -> None:
+        class Runtime:
+            device_token = "device-token"
+            device_status = {"ha_pairing_status": "paired"}
+            pair_called = False
+            last_error = "previous"
+
+            async def pair_device(self, hass):
+                self.pair_called = True
+
+            def update(self, **kwargs):
+                for key, value in kwargs.items():
+                    setattr(self, key, value)
+
+        runtime = Runtime()
+
+        asyncio.run(self.integration._try_initial_device_provisioning(object(), runtime))
+
         self.assertFalse(runtime.pair_called)
         self.assertIsNone(runtime.last_error)
 
-    def test_initial_provisioning_defers_unknown_local_url_without_last_error(self) -> None:
+    def test_initial_pairing_defers_unknown_local_url_without_last_error(self) -> None:
         class Runtime:
             device_token = "device-token"
             device_status = {}
             last_error = None
 
             async def pair_device(self, hass):
-                raise AssertionError("startup should not re-pair an existing device")
+                raise RuntimeError("SpotifyDJ device local_url is unknown")
 
             def update(self, **kwargs):
                 for key, value in kwargs.items():

@@ -24,6 +24,13 @@ CONFIG_FLOW_ERROR_KEYS = {
     "ble_wifi_failed",
 }
 
+BLE_WIFI_DATA_KEYS = {
+    "ble_action",
+    "ble_address",
+    "wifi_ssid",
+    "wifi_password",
+}
+
 ENTITY_TRANSLATION_KEYS = {
     ("sensor", "status"),
     ("sensor", "last_command"),
@@ -66,6 +73,22 @@ class TranslationTest(unittest.TestCase):
                 errors = data["config"]["error"]
                 missing = CONFIG_FLOW_ERROR_KEYS - set(errors)
                 self.assertFalse(missing, f"Missing {language} translations: {sorted(missing)}")
+
+    def test_ble_wifi_fields_are_translated(self) -> None:
+        for language in ("en", "nl"):
+            with self.subTest(language=language):
+                data = json.loads((TRANSLATIONS / f"{language}.json").read_text())
+                step = data["config"]["step"]["ble_wifi"]
+                missing_labels = BLE_WIFI_DATA_KEYS - set(step["data"])
+                missing_descriptions = BLE_WIFI_DATA_KEYS - set(step["data_description"])
+                self.assertFalse(
+                    missing_labels,
+                    f"Missing {language} BLE labels: {sorted(missing_labels)}",
+                )
+                self.assertFalse(
+                    missing_descriptions,
+                    f"Missing {language} BLE descriptions: {sorted(missing_descriptions)}",
+                )
 
     def test_entity_translation_keys_are_translated(self) -> None:
         for language in ("en", "nl"):
