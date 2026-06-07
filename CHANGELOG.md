@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.21
+## 2.9.22
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -78,3 +78,4 @@
 - Replace separate BLE retry/continue checkboxes with one mutually exclusive BLE action selector.
 - Keep HA pairing status pending until the ESP confirms pairing, and retry the device pair call when confirmation is missing.
 - Prefill the Spotify OAuth Home Assistant external URL from Home Assistant's configured external/Nabu Casa URL when available.
+- Add an options-flow action to re-pair the SpotifyDJ device with a fresh device token.

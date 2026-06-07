@@ -274,6 +274,23 @@ class ConfigFlowHelperTest(unittest.TestCase):
             "Rescan Bluetooth devices",
         )
 
+    def test_options_action_labels_follow_ha_language(self) -> None:
+        nl_hass = types.SimpleNamespace(config=types.SimpleNamespace(language="nl-NL"))
+        en_hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
+
+        self.assertEqual(
+            self.config_flow._options_action_names(nl_hass)[
+                self.config_flow.OPTIONS_ACTION_REPAIR
+            ],
+            "SpotifyDJ device opnieuw koppelen",
+        )
+        self.assertEqual(
+            self.config_flow._options_action_names(en_hass)[
+                self.config_flow.OPTIONS_ACTION_SAVE
+            ],
+            "Save options",
+        )
+
     def test_ble_wifi_schema_uses_discovered_devices_when_available(self) -> None:
         schema = self.config_flow._ble_wifi_schema({"AA:BB": "SpotifyDJ 1234"})
 
@@ -292,6 +309,20 @@ class ConfigFlowHelperTest(unittest.TestCase):
 
         self.assertNotIn(self.const.CONF_SPOTIFY_CLIENT_ID, basic_keys)
         self.assertIn(self.const.CONF_SPOTIFY_CLIENT_ID, advanced_keys)
+
+    def test_voice_schema_can_include_options_action(self) -> None:
+        hass = types.SimpleNamespace(states=None, config=types.SimpleNamespace(language="nl-NL"))
+
+        schema = asyncio.run(
+            self.config_flow._voice_schema(
+                hass,
+                self.config_flow._voice_defaults({}),
+                include_options_action=True,
+            )
+        ).schema
+        keys = {marker.key for marker in schema}
+
+        self.assertIn(self.config_flow.OPTIONS_ACTION_FIELD, keys)
 
     def test_spotify_schema_prefills_external_url(self) -> None:
         schema = self.config_flow._spotify_schema_with_defaults(

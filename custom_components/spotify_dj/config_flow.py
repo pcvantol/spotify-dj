@@ -85,6 +85,9 @@ FIRMWARE_CHANNEL_NAMES = {"stable": "Stable", "beta": "Beta"}
 DEVICE_LANGUAGE_NAMES = {"en": "English", "nl": "Nederlands"}
 PAIR_CODE_PATTERN = re.compile(r"^(?:\d{6}|[0-9A-Fa-f]{12})$")
 ADVANCED_OPTIONS_FIELD = "show_advanced_options"
+OPTIONS_ACTION_FIELD = "options_action"
+OPTIONS_ACTION_SAVE = "save_options"
+OPTIONS_ACTION_REPAIR = "repair_device_pairing"
 BLE_ACTION_FIELD = "ble_action"
 BLE_ACTION_PROVISION = "provision_wifi"
 BLE_ACTION_RETRY_SCAN = "retry_ble_scan"
@@ -116,6 +119,14 @@ BLE_ACTION_NAMES_NL = {
     BLE_ACTION_PROVISION: "WiFi via Bluetooth schrijven",
     BLE_ACTION_RETRY_SCAN: "Bluetooth devices opnieuw scannen",
     BLE_ACTION_CONTINUE_PAIRING: "Doorgaan naar koppelen",
+}
+OPTIONS_ACTION_NAMES_EN = {
+    OPTIONS_ACTION_SAVE: "Save options",
+    OPTIONS_ACTION_REPAIR: "Re-pair SpotifyDJ device",
+}
+OPTIONS_ACTION_NAMES_NL = {
+    OPTIONS_ACTION_SAVE: "Instellingen opslaan",
+    OPTIONS_ACTION_REPAIR: "SpotifyDJ device opnieuw koppelen",
 }
 
 ADVANCED_VOICE_FIELDS = (
@@ -166,6 +177,12 @@ def _ble_action_names(hass: Any) -> dict[str, str]:
     """Return mutually exclusive BLE setup actions in the current HA language."""
     language = str(getattr(getattr(hass, "config", None), "language", "") or "").lower()
     return BLE_ACTION_NAMES_NL if language.startswith("nl") else BLE_ACTION_NAMES_EN
+
+
+def _options_action_names(hass: Any) -> dict[str, str]:
+    """Return options flow actions in the current HA language."""
+    language = str(getattr(getattr(hass, "config", None), "language", "") or "").lower()
+    return OPTIONS_ACTION_NAMES_NL if language.startswith("nl") else OPTIONS_ACTION_NAMES_EN
 
 
 def _advanced_enabled(flow: Any) -> bool:
@@ -408,11 +425,20 @@ def _base_voice_schema(
     stt_engine: str,
     tts_engine: str,
     tts_voice: str,
+    options_actions: dict[str, str] | None = None,
 ) -> dict[Any, Any]:
     """Build the non-advanced voice settings schema."""
     stt_validator = vol.In(stt_options) if len(stt_options) > 1 else str
     voice_validator = vol.In(tts_voice_options) if len(tts_voice_options) > 1 else str
-    return {
+    schema: dict[Any, Any] = {}
+    if options_actions is not None:
+        schema[
+            vol.Required(
+                OPTIONS_ACTION_FIELD,
+                default=OPTIONS_ACTION_SAVE,
+            )
+        ] = vol.In(options_actions)
+    schema.update({
         vol.Optional(
             CONF_ASSIST_PIPELINE_ID,
             default=defaults.get(CONF_ASSIST_PIPELINE_ID, ""),
@@ -436,7 +462,8 @@ def _base_voice_schema(
             default=defaults.get(CONF_DJ_STYLE, DEFAULT_DJ_STYLE),
         ): vol.In(DJ_STYLE_NAMES),
         vol.Optional(CONF_LIKED_PROXY, default=defaults.get(CONF_LIKED_PROXY, "")): str,
-    }
+    })
+    return schema
 
 
 def _advanced_voice_schema(defaults: dict[str, Any]) -> dict[Any, Any]:
@@ -496,6 +523,7 @@ async def _voice_schema(
     defaults: dict[str, Any],
     *,
     include_advanced: bool = False,
+    include_options_action: bool = False,
 ) -> vol.Schema:
     """Build a voice/options schema with dropdowns where HA can provide choices."""
     pipeline = _get_assist_pipeline(hass, defaults.get(CONF_ASSIST_PIPELINE_ID, ""))
@@ -518,6 +546,11 @@ async def _voice_schema(
         stt_engine=stt_engine,
         tts_engine=tts_engine,
         tts_voice=tts_voice,
+        options_actions=(
+            _options_action_names(hass)
+            if include_options_action
+            else None
+        ),
     )
     if include_advanced:
         schema.update(_advanced_voice_schema(defaults))
@@ -939,10 +972,18 @@ class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             if _request_advanced(self, user_input):
                 return await self.async_step_init()
+            if user_input.get(OPTIONS_ACTION_FIELD) == OPTIONS_ACTION_REPAIR:
+                return await self._async_repair_pairing()
             errors = _voice_errors(user_input)
             if not errors:
                 merged = dict(current)
-                merged.update(user_input)
+                merged.update(
+                    {
+                        key: value
+                        for key, value in user_input.items()
+                        if key != OPTIONS_ACTION_FIELD
+                    }
+                )
                 return self.async_create_entry(title="", data=_voice_defaults(merged))
 
         return self.async_show_form(
@@ -951,6 +992,48 @@ class SpotifyDJOptionsFlow(config_entries.OptionsFlow):
                 self.hass,
                 defaults,
                 include_advanced=_advanced_enabled(self),
+                include_options_action=True,
+            ),
+            errors=errors,
+        )
+
+    async def _async_repair_pairing(self) -> FlowResult:
+        """Generate a fresh device token and retry pairing with the ESP."""
+        errors: dict[str, str] = {}
+        try:
+            runtime = self.hass.data.get(DOMAIN, {}).get(self._config_entry.entry_id)
+            if runtime is None:
+                errors["base"] = "repair_pairing_failed"
+            else:
+                token = secrets.token_urlsafe(32)
+                runtime.device_token = token
+                runtime.device_status["ha_pairing_status"] = "pending"
+                runtime.update(last_error=None)
+                data = dict(self._config_entry.data)
+                data[CONF_DEVICE_TOKEN] = token
+                self.hass.config_entries.async_update_entry(
+                    self._config_entry,
+                    data=data,
+                )
+                await runtime.pair_device(self.hass)
+                runtime.device_status["ha_pairing_status"] = "pending"
+                runtime.update(last_error=None)
+                return self.async_create_entry(
+                    title="",
+                    data=dict(self._config_entry.options),
+                )
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.warning("SpotifyDJ re-pair failed: %s", exc)
+            errors["base"] = "repair_pairing_failed"
+
+        current = {**self._config_entry.data, **self._config_entry.options}
+        return self.async_show_form(
+            step_id="init",
+            data_schema=await _voice_schema(
+                self.hass,
+                _voice_defaults(current),
+                include_advanced=_advanced_enabled(self),
+                include_options_action=True,
             ),
             errors=errors,
         )

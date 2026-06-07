@@ -22,6 +22,7 @@ CONFIG_FLOW_ERROR_KEYS = {
     "ble_device_required",
     "wifi_ssid_required",
     "ble_wifi_failed",
+    "repair_pairing_failed",
 }
 
 BLE_WIFI_DATA_KEYS = {
