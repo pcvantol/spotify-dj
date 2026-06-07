@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.26
+## 2.9.27
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -83,3 +83,6 @@
 - Split options-flow pairing recovery into a quick retry with the current code and a full re-pair flow that asks for a new pairing code.
 - Prefill the Spotify OAuth external Home Assistant URL from the Nabu Casa/Cloud remote UI URL when HA's Network external URL helper is empty.
 - Fix pairing-token synchronization so ESP commands using the real `spotifydj-XXXXXXXXXXXX` device ID are accepted after setup-code based direct pairing.
+- Show Spotify refresh-token revocation as a friendly reauthorization error and Home Assistant repair issue instead of raw `invalid_grant` tracebacks.
+- Keep initial SpotifyDJ theme and log-level select entities on safe defaults instead of `unknown`.
+- Add a native Home Assistant Repairs Fix flow for Spotify reauthorization, opening Spotify OAuth and clearing the repair issue after a new refresh token is stored.

@@ -138,6 +138,40 @@ class SpotifyDJMediaPlayerTest(unittest.TestCase):
         self.assertIn(("set_volume", 30, None), calls)
         self.assertIn(("start_playlist", "spotify:playlist:abc", None), calls)
 
+    def test_media_player_update_handles_backend_auth_failure(self) -> None:
+        updates = []
+
+        def update_runtime(**kwargs):
+            updates.append(kwargs)
+            for key, value in kwargs.items():
+                setattr(runtime, key, value)
+
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            device_token="device-token",
+            device_status={},
+            last_error=None,
+            last_playback={},
+            listeners=[],
+            update=update_runtime,
+        )
+        entity = self.media_player.SpotifyDJPlaybackProxyMediaPlayer(runtime, object())
+
+        async def failing_handler(hass, runtime_arg, command, value=None, *, play=None):
+            raise self.media_player.SpotifyBackendError(
+                "Spotify authorization has expired or was revoked. Reauthorize SpotifyDJ."
+            )
+
+        original = self.media_player.handle_spotify_command
+        self.media_player.handle_spotify_command = failing_handler
+        try:
+            asyncio.run(entity.async_update())
+        finally:
+            self.media_player.handle_spotify_command = original
+
+        self.assertFalse(runtime.device_status["backend_available"])
+        self.assertEqual(entity.state, "unavailable")
+
 
 if __name__ == "__main__":
     unittest.main()

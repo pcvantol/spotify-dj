@@ -15,6 +15,19 @@ SPOTIFY_AUTHORIZE_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 
 
+class SpotifyTokenRefreshError(RuntimeError):
+    """Raised when Spotify rejects a refresh token."""
+
+    def __init__(self, status: int, body: dict[str, Any]) -> None:
+        self.status = status
+        self.body = body
+        self.error = str(body.get("error") or "")
+        self.error_description = str(body.get("error_description") or "")
+        super().__init__(
+            f"Spotify token refresh failed HTTP {status}: {self.error or 'unknown'}"
+        )
+
+
 def normalize_spotify_scopes(
     scopes: str | list[str] | tuple[str, ...] | None,
 ) -> list[str]:
@@ -127,5 +140,5 @@ async def refresh_access_token(
     ) as resp:
         body = await resp.json(content_type=None)
         if resp.status < 200 or resp.status >= 300:
-            raise RuntimeError(f"Spotify token refresh failed HTTP {resp.status}: {body}")
+            raise SpotifyTokenRefreshError(resp.status, body)
         return body

@@ -52,7 +52,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.9.26`.
+- Actuele integratieversie: `2.9.27`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -62,6 +62,7 @@ HA integration:
 - Oude config entries zonder `playlist-read-private` moeten via diagnostics/repairs duidelijke reauthorize instructies krijgen.
 - Nieuwe Spotify refresh tokens uit OAuth callbacks moeten `CONF_SPOTIFY_REFRESH_TOKEN` persistent overschrijven en in runtime als latest token beschikbaar zijn.
 - Pair/status responses mogen nooit Spotify OAuth secrets bevatten; gebruik latest refresh token alleen HA-intern.
+- Spotify `invalid_grant` / revoked refresh tokens moeten als gebruikersvriendelijke reauthorize melding en native HA Repairs Fix-flow zichtbaar worden; de Fix-flow opent Spotify OAuth, slaat de nieuwe refresh token op en verwijdert de repair issue. Toon geen ruwe token-response en log nooit de refresh token.
 - Redirect path: `/api/spotify_dj/spotify/callback`
 - Geen handmatig `oauth_result` veld tonen.
 - Config flow ondersteunt optionele BLE WiFi provisioning vóór normale pairing.

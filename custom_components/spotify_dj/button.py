@@ -9,7 +9,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 
 from . import DEFAULT_TEST_TTS_TEXT, async_speak_dj_test
 from .const import DOMAIN
-from .spotify_backend import handle_spotify_command
+from .spotify_backend import SpotifyBackendError, handle_spotify_command
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -84,14 +84,19 @@ class SpotifyDJCommandButton(SpotifyDJBaseButton):
         self.command = command
 
     async def async_press(self) -> None:
-        if self.command in {"next", "previous", "play_pause"}:
-            backend_command = self.command
-            if self.command == "play_pause":
-                playback = self.runtime.last_playback or {}
-                backend_command = "pause" if playback.get("is_playing") else "play"
-            await handle_spotify_command(self.hass, self.runtime, backend_command)
-        else:
-            await self.runtime.async_device_command(self.hass, self.command)
+        try:
+            if self.command in {"next", "previous", "play_pause"}:
+                backend_command = self.command
+                if self.command == "play_pause":
+                    playback = self.runtime.last_playback or {}
+                    backend_command = "pause" if playback.get("is_playing") else "play"
+                await handle_spotify_command(self.hass, self.runtime, backend_command)
+            else:
+                await self.runtime.async_device_command(self.hass, self.command)
+        except SpotifyBackendError as exc:
+            self.runtime.update(last_error=str(exc))
+            _LOGGER.warning("SpotifyDJ button command unavailable: %s", exc)
+            return
         _LOGGER.debug("SpotifyDJ button sent command %s", self.command)
 
 

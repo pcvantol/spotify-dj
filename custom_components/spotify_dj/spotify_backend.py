@@ -12,9 +12,10 @@ from .const import (
     CONF_LIKED_PROXY,
     CONF_SPOTIFY_CLIENT_ID,
     CONF_SPOTIFY_REFRESH_TOKEN,
+    DOMAIN,
     DEFAULT_SPOTIFY_MARKET,
 )
-from .spotify_oauth import refresh_access_token
+from .spotify_oauth import SpotifyTokenRefreshError, refresh_access_token
 
 SPOTIFY_API_BASE = "https://api.spotify.com/v1"
 CACHE_TTL_SECONDS = 30
@@ -23,6 +24,10 @@ _LOGGER = logging.getLogger(__name__)
 
 class SpotifyBackendError(RuntimeError):
     """Raised when the configured Spotify backend cannot serve a command."""
+
+
+class SpotifyReauthRequiredError(SpotifyBackendError):
+    """Raised when Spotify revoked the stored OAuth refresh token."""
 
 
 async def handle_spotify_command(
@@ -96,11 +101,28 @@ class SpotifyBackend:
         ).strip()
         if not client_id or not refresh_token:
             raise SpotifyBackendError("Spotify OAuth is not configured in Home Assistant")
-        token = await refresh_access_token(
-            self.hass,
-            client_id=client_id,
-            refresh_token=refresh_token,
-        )
+        try:
+            token = await refresh_access_token(
+                self.hass,
+                client_id=client_id,
+                refresh_token=refresh_token,
+            )
+        except SpotifyTokenRefreshError as exc:
+            if exc.error == "invalid_grant":
+                _create_spotify_reauth_issue(
+                    self.hass,
+                    getattr(self.runtime, "entry", None),
+                )
+                message = (
+                    "Spotify authorization has expired or was revoked. "
+                    "Reauthorize SpotifyDJ from the integration options or run "
+                    "spotify_dj.start_spotify_oauth, then try again."
+                )
+                self.runtime.update(last_error=message)
+                raise SpotifyReauthRequiredError(message) from exc
+            raise SpotifyBackendError(
+                f"Spotify OAuth refresh failed HTTP {exc.status}: {exc.error or 'unknown'}"
+            ) from exc
         rotated = str(token.get("refresh_token") or "").strip()
         if rotated:
             updater = getattr(self.runtime, "update_spotify_refresh_token", None)
@@ -338,3 +360,26 @@ def _spotify_error_message(body: Any) -> str:
         return str(body.get("message") or "Spotify API error")
     text = str(body or "").strip()
     return text[:240] if text else "Spotify API error"
+
+
+def _create_spotify_reauth_issue(hass: HomeAssistant, entry: Any) -> None:
+    """Create a repair hint when Spotify revoked the stored refresh token."""
+    if entry is None:
+        return
+    try:
+        from homeassistant.helpers import issue_registry as ir
+
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            f"{entry.entry_id}_spotify_refresh_token_revoked",
+            data={"entry_id": entry.entry_id},
+            is_fixable=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="spotify_refresh_token_revoked",
+        )
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug(
+            "SpotifyDJ could not create Spotify reauthorization repair issue",
+            exc_info=True,
+        )

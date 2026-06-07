@@ -103,7 +103,14 @@ class SpotifyDJCommandSelect(SelectEntity):
     @property
     def current_option(self) -> str | None:
         value = self.runtime.device_status.get(self.status_key)
-        return str(value) if value not in (None, "") else None
+        if value not in (None, ""):
+            return str(value)
+        defaults = {
+            "theme": "auto",
+            "log_level": "info",
+            "language": self.runtime.config.get("device_language", "en"),
+        }
+        return defaults.get(self.status_key)
 
     async def async_select_option(self, option: str) -> None:
         if self.command == "set_output":

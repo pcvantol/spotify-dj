@@ -269,6 +269,20 @@ def _store_rotated_spotify_refresh_token(
     return changed
 
 
+def _delete_spotify_reauth_issues(hass: Any, entry_id: str) -> None:
+    try:
+        from homeassistant.helpers import issue_registry as ir
+
+        for suffix in (
+            "missing_spotify_refresh_token",
+            "missing_spotify_oauth_scopes",
+            "spotify_refresh_token_revoked",
+        ):
+            ir.async_delete_issue(hass, DOMAIN, f"{entry_id}_{suffix}")
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("SpotifyDJ could not delete Spotify reauth repair issues", exc_info=True)
+
+
 def _persist_paired_device(
     hass: Any,
     runtime: Any,
@@ -838,6 +852,7 @@ class SpotifyDJSpotifyCallbackView(HomeAssistantView):
             if runtime is not None:
                 runtime.update_spotify_refresh_token(token.get("refresh_token"))
                 _LOGGER.debug("SpotifyDJ Spotify refresh_token=rotated/present")
+            _delete_spotify_reauth_issues(hass, entry.entry_id)
             await hass.config_entries.async_reload(entry.entry_id)
             return web.Response(
                 text=(

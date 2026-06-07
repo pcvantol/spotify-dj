@@ -301,7 +301,15 @@
   "issues": {
     "missing_spotify_oauth_scopes": {
       "title": "Spotify autorisatie mist playlist scope",
-      "description": "SpotifyDJ heeft nu de Spotify OAuth scope playlist-read-private nodig zodat het device private SpotifyDJ Liked Proxy playlists via /me/playlists kan vinden. Start Spotify OAuth opnieuw via de SpotifyDJ developer action of voeg de integration opnieuw toe."
+      "description": "SpotifyDJ heeft nu de Spotify OAuth scope playlist-read-private nodig om private SpotifyDJ Liked Proxy playlists via /me/playlists te vinden. Kies Repareren om SpotifyDJ opnieuw bij Spotify te autoriseren."
+    },
+    "missing_spotify_refresh_token": {
+      "title": "Spotify autorisatie ontbreekt",
+      "description": "SpotifyDJ heeft geen Spotify refresh token in Home Assistant. Kies Repareren om SpotifyDJ opnieuw bij Spotify te autoriseren."
+    },
+    "spotify_refresh_token_revoked": {
+      "title": "Spotify autorisatie is verlopen of ingetrokken",
+      "description": "Spotify heeft de opgeslagen SpotifyDJ refresh token geweigerd. Kies Repareren om SpotifyDJ opnieuw bij Spotify te autoriseren en probeer daarna opnieuw."
     }
   }
 }

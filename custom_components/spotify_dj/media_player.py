@@ -67,7 +67,11 @@ class SpotifyDJPlaybackProxyMediaPlayer(MediaPlayerEntity):
 
     @property
     def available(self) -> bool:
-        return bool(self.runtime.device_token) and not _pairing_is_stale(self.runtime)
+        return (
+            bool(self.runtime.device_token)
+            and not _pairing_is_stale(self.runtime)
+            and not _backend_auth_is_stale(self.runtime)
+        )
 
     @property
     def state(self) -> MediaPlayerState:
@@ -128,7 +132,13 @@ class SpotifyDJPlaybackProxyMediaPlayer(MediaPlayerEntity):
         }
 
     async def async_update(self) -> None:
-        await self._backend_command("status")
+        try:
+            await self._backend_command("status")
+        except SpotifyBackendError:
+            self.runtime.device_status["backend_available"] = False
+        except Exception as exc:  # noqa: BLE001
+            self.runtime.device_status["backend_available"] = False
+            self.runtime.update(last_error=str(exc))
 
     async def async_media_play(self) -> None:
         await self._backend_command("play")
@@ -221,3 +231,10 @@ def _pairing_is_stale(runtime: Any) -> bool:
     status = str(runtime.device_status.get("ha_pairing_status") or "").lower()
     error = str(getattr(runtime, "last_error", None) or "").lower()
     return status in {"stale", "invalid", "unauthorized"} or "pairing is stale" in error
+
+
+def _backend_auth_is_stale(runtime: Any) -> bool:
+    error = str(getattr(runtime, "last_error", None) or "").lower()
+    return "spotify authorization" in error and (
+        "expired" in error or "revoked" in error or "reauthorize" in error
+    )
