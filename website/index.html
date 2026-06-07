@@ -534,7 +534,7 @@
             <a class="btn primary" href="#quickstart">Bekijk quick start</a>
             <a class="btn" href="#requirements">Check benodigdheden</a>
           </div>
-          <p class="note">Out of the box: geen firmware flashen, geen MQTT broker, geen technisch geknutsel. Devices komen pre-flashed.</p>
+          <p class="note">Out of the box: geen firmware flashen, geen technisch geknutsel. Devices komen pre-flashed.</p>
         </div>
 
         <div class="device-card" aria-label="SpotifyDJ device visualisatie">
@@ -573,6 +573,11 @@
             <div class="icon">🎙️</div>
             <h3>Push-to-talk muziek</h3>
             <p>Druk op de knop, spreek je verzoek in en SpotifyDJ helpt je muziek starten.</p>
+          </article>
+          <article class="card">
+            <div class="icon">🏓</div>
+            <h3>Bonus game: Pong</h3>
+            <p>Even geen muziek kiezen? De firmware bevat ook een kleine Pong game op het device.</p>
           </article>
         </div>
       </div>
@@ -628,7 +633,6 @@
           <div class="req"><span class="tag">Aanbevolen</span><h3>Nabu Casa HTTPS</h3><p class="muted">Maakt Spotify autorisatie het makkelijkst.</p></div>
           <div class="req"><span class="tag">Aanbevolen</span><h3>mDNS werkend</h3><p class="muted">Helpt Home Assistant het device automatisch te vinden.</p></div>
           <div class="req optional"><span class="tag">Optioneel</span><h3>Bluetooth proxy</h3><p class="muted">Handig om WiFi naar het device te sturen tijdens setup.</p></div>
-          <div class="req optional"><span class="tag">Niet nodig</span><h3>MQTT broker</h3><p class="muted">Nieuwe SpotifyDJ devices werken zonder MQTT.</p></div>
           <div class="req warning"><span class="tag">Let op</span><h3>Muziekuitvoer</h3><p class="muted">Muziek speelt op je Spotify/huismuziekapparaat, niet op de kleine SpotifyDJ speaker.</p></div>
           <div class="req warning"><span class="tag">Let op</span><h3>HA restart na update</h3><p class="muted">Na HACS updates is een Home Assistant restart meestal nodig.</p></div>
           <div class="req"><span class="tag">Inbegrepen</span><h3>OTA updates</h3><p class="muted">Gekoppelde devices kunnen firmware updates via HA ontvangen.</p></div>
@@ -665,8 +669,8 @@
         </div>
         <div class="quick">
           <div class="card"><h3>Moet ik firmware flashen?</h3><p class="muted">Nee. Ga uit van pre-flashed devices. Firmware updates lopen later via Home Assistant OTA.</p></div>
-          <div class="card"><h3>Heb ik MQTT nodig?</h3><p class="muted">Nee. Nieuwe SpotifyDJ devices werken zonder MQTT.</p></div>
           <div class="card"><h3>Speelt DJ audio via Spotify Connect?</h3><p class="muted">Nee. DJ responses spelen op de speaker/display van het SpotifyDJ device.</p></div>
+          <div class="card"><h3>Zit er echt Pong in?</h3><p class="muted">Ja. Als kleine bonus zit er een eenvoudige Pong game in de firmware.</p></div>
           <div class="card"><h3>Kan ik private playlists gebruiken?</h3><p class="muted">Ja, zolang Spotify in Home Assistant goed geautoriseerd is.</p></div>
         </div>
       </div>

@@ -16,7 +16,7 @@ Belangrijke repos:
 
 Architectuur beslissingen:
 - HA integration orchestreert pairing, OAuth, backend playback, OTA, status en Assist/TTS; ESP firmware blijft eigenaar van device runtime/audio/UI.
-- Firmware v2.9.12 en nieuwer gebruikt geen MQTT; HA stuurt device-acties via de lokale ESP API met bearer token.
+- Firmware v2.9.12 en nieuwer gebruikt de lokale ESP API met bearer token voor device-acties.
 - Backend playback loopt via de HA integration en wordt user-facing aangeboden als optionele/native `media_player` proxy; device-instellingen lopen via `POST /api/device/command`.
 - ESP uploadt raw WAV audio naar `POST /api/spotify_dj/voice`; de HA integration doet Assist/STT intern via HA `stt.async_get_speech_to_text_engine(...).async_process_audio_stream` met eerst `stt_engine` uit options, daarna opgeslagen Assist pipeline, HA preferred/default pipeline, eerste pipeline met STT, eerste HA `stt.*` entity of als laatste HA `assist_pipeline.async_pipeline_from_audio_stream`, en geeft tekst plus optionele WAV/MP3 `audio_url` terug.
 - Actieve HA routes gebruiken geen directe externe AI/STT/TTS APIs; gebruik HA Assist en HA TTS.
@@ -52,7 +52,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.9.17`.
+- Actuele integratieversie: `2.9.18`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -82,7 +82,7 @@ HA integration:
 - Verberg firmware repo settings, firmware channel, max audio bytes, min battery for OTA en allow OTA on battery achter een integration-local advanced checkbox; gebruik niet HA's deprecated `show_advanced_options` property.
 - Laat velden vrije tekst waar HA geen betrouwbare bron heeft, zoals TTS language/voice, playlist URI en firmware repo/asset/device strings.
 - Spotify source/device naam is dynamisch; toon dit niet in de normale flow, alleen advanced als optionele override.
-- Firmware v2.9.12 en nieuwer gebruikt geen MQTT; HA stuurt device-acties via de lokale ESP API met bearer token.
+- Firmware v2.9.12 en nieuwer gebruikt de lokale ESP API met bearer token voor device-acties.
 - Diagnostics moeten alle keys met `token`, `password` of `secret` redacteren; log geen volledige ESP event payloads.
 - Diagnostics output moet legal metadata bevatten:
   - `copyright`: `Copyright (c) 2026 Peter van Tol. All rights reserved.`
@@ -138,7 +138,7 @@ Firmware releases:
 
 README/release:
 - README moet actueel blijven voor HACS installatie, Spotify OAuth, endpoints, OTA en release workflow.
-- `website/index.html` is de statische product/marketing onepager voor pre-flashed SpotifyDJ devices; houd quick start, randvoorwaarden, MQTT-vrij/local-API verhaal en legal/trademark tekst actueel.
+- `website/index.html` is de statische product/marketing onepager voor pre-flashed SpotifyDJ devices; houd quick start, randvoorwaarden, local-API verhaal en legal/trademark tekst actueel.
 - Release checklist moet in README en AGENTS blijven staan en bij elke release worden gevolgd.
 - Pre-release checklist:
   - Controleer dat de working tree alleen bedoelde wijzigingen bevat.

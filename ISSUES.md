@@ -106,7 +106,7 @@
 - Config flow must not require normal users to fill local device URL.
 - Config/options flow must not require `spotify_player`.
 - Website onepager must not imply official Spotify affiliation, endorsement or sponsorship.
-- Website onepager must stay aligned with current setup requirements and MQTT-free local API architecture.
+- Website onepager must stay aligned with current setup requirements and local API architecture.
 - `stt_engine` must remain visible and configurable.
 - No direct external AI/STT/TTS calls should be used by active routes.
 - No secret values should appear in logs or diagnostics.
@@ -114,4 +114,4 @@
 - `number.spotifydj_volume` must not publish out-of-range values such as `-1`.
 - Spotify OAuth scopes must keep `playlist-read-private`.
 - Pairing must reject mismatched pairing codes.
-- BLE provisioning must remain WiFi-only and MQTT-free.
+- BLE provisioning must remain WiFi-only.

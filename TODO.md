@@ -55,7 +55,6 @@
 - Confirm advanced-only options remain hidden behind the integration-local advanced checkbox.
 - Confirm HA deprecated `show_advanced_options` is not used.
 - Confirm no `spotify_player` field is required in config/options flow.
-- Confirm no MQTT options are shown in config/options flow.
 - Confirm all titles, labels and error messages are available in Dutch and English.
 
 ## OTA / Firmware Updates
@@ -102,7 +101,6 @@
 - Decide whether to host the onepager from this repo, GitHub Pages or a separate product website repo.
 - Add real product photos/screenshots when final hardware imagery is available.
 - Keep requirements clear: Spotify Premium, Home Assistant, HACS, HA Assist pipeline, 2.4 GHz WiFi and mDNS/Nabu Casa recommendations.
-- Keep MQTT wording explicit: not needed for firmware v2.9.12 and newer.
 
 ## Release Workflow
 

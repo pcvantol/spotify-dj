@@ -11,7 +11,7 @@
 - The integration is intended for HACS distribution and local Home Assistant installation.
 - ESP firmware source remains proprietary in `pcvantol/spotify-dj-app`; public firmware binaries/manifests are released from `pcvantol/spotify-dj-firmware`.
 - The Home Assistant integration is MIT-licensed; firmware binaries/source are covered separately and remain proprietary unless explicitly changed.
-- Firmware v2.9.12 and newer no longer uses MQTT; device control uses the local ESP API with the stored bearer token.
+- Firmware v2.9.12 and newer uses the local ESP API with the stored bearer token for device control.
 
 ## Architecture
 
@@ -157,7 +157,7 @@ STT provider selection order:
   - `website/index.html`
   - `THIRD_PARTY_NOTICES.md`
 - Review `website/index.html` whenever the out-of-the-box setup,
-  requirements, MQTT-free local API architecture or legal/trademark wording
+  requirements, local API architecture or legal/trademark wording
   changes.
 - Before future releases, run:
   - `python3 -m unittest discover -s tests`

@@ -31,16 +31,20 @@
       },
       "ble_wifi": {
         "title": "Provision WiFi over Bluetooth",
-        "description": "Select a SpotifyDJ device in setup mode and write WiFi credentials over BLE. No Spotify credentials, device tokens or other secrets are sent over BLE.",
+        "description": "Select a SpotifyDJ device in setup mode to write WiFi over BLE, or continue to pairing if WiFi was already configured through the captive portal.",
         "data": {
           "ble_address": "SpotifyDJ BLE device",
           "wifi_ssid": "WiFi SSID",
-          "wifi_password": "WiFi password"
+          "wifi_password": "WiFi password",
+          "retry_ble_scan": "Rescan devices",
+          "continue_to_pairing": "Continue to pairing"
         },
         "data_description": {
           "ble_address": "Bluetooth address of the SpotifyDJ setup device.",
           "wifi_ssid": "WiFi network name to save on the SpotifyDJ device.",
-          "wifi_password": "WiFi password. This is sent only to the BLE WiFi characteristic and is not logged."
+          "wifi_password": "WiFi password. This is sent only to the BLE WiFi characteristic and is not logged.",
+          "retry_ble_scan": "Check this and submit to scan for SpotifyDJ BLE devices again.",
+          "continue_to_pairing": "Use this when the device is already on WiFi and now shows a pairing code."
         }
       },
       "spotify": {

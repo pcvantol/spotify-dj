@@ -244,6 +244,8 @@ class ConfigFlowHelperTest(unittest.TestCase):
         schema = self.config_flow._ble_wifi_schema({"AA:BB": "SpotifyDJ 1234"})
 
         keys = {marker.key for marker in schema}
+        self.assertIn(self.config_flow.BLE_CONTINUE_PAIR_FIELD, keys)
+        self.assertIn(self.config_flow.BLE_RETRY_SCAN_FIELD, keys)
         self.assertIn(self.const.CONF_BLE_ADDRESS, keys)
         self.assertIn(self.const.CONF_WIFI_SSID, keys)
         self.assertIn(self.const.CONF_WIFI_PASSWORD, keys)

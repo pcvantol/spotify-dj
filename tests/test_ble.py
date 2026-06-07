@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import asyncio
 from pathlib import Path
 import sys
 import types
@@ -48,6 +49,40 @@ class BleHelperTest(unittest.TestCase):
     def test_parse_status_rejects_invalid_json(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "Invalid BLE status JSON"):
             self.ble.parse_status(b"not json")
+
+    def test_provision_wifi_status_timeout_returns_submitted(self) -> None:
+        class Client:
+            disconnected = False
+
+            async def write_gatt_char(self, uuid, payload, response=True):
+                self.uuid = uuid
+                self.payload = payload
+
+            async def read_gatt_char(self, uuid):
+                await asyncio.sleep(0.02)
+
+            async def disconnect(self):
+                self.disconnected = True
+
+        client = Client()
+
+        async def connect(hass, address):
+            return client
+
+        original_connect = self.ble._connect_client
+        original_timeout = self.ble.BLE_STATUS_TIMEOUT
+        self.ble._connect_client = connect
+        self.ble.BLE_STATUS_TIMEOUT = 0.001
+        try:
+            status = asyncio.run(
+                self.ble.async_provision_wifi(object(), "AA:BB", "Thuis", "geheim")
+            )
+        finally:
+            self.ble._connect_client = original_connect
+            self.ble.BLE_STATUS_TIMEOUT = original_timeout
+
+        self.assertEqual(status["state"], "submitted")
+        self.assertTrue(client.disconnected)
 
 
 if __name__ == "__main__":

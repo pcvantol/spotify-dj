@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import secrets
@@ -84,6 +85,10 @@ FIRMWARE_CHANNEL_NAMES = {"stable": "Stable", "beta": "Beta"}
 DEVICE_LANGUAGE_NAMES = {"en": "English", "nl": "Nederlands"}
 PAIR_CODE_PATTERN = re.compile(r"^(?:\d{6}|[0-9A-Fa-f]{12})$")
 ADVANCED_OPTIONS_FIELD = "show_advanced_options"
+BLE_RETRY_SCAN_FIELD = "retry_ble_scan"
+BLE_CONTINUE_PAIR_FIELD = "continue_to_pairing"
+BLE_DISCOVERY_TIMEOUT = 5
+BLE_PROVISION_TIMEOUT = 25
 SPOTIFY_MARKET_NAMES = {
     "NL": "Netherlands",
     "BE": "Belgium",
@@ -210,12 +215,47 @@ def _entity_options(
 
 def _ble_wifi_schema(devices: dict[str, str]) -> dict[Any, Any]:
     """Build BLE WiFi provisioning fields with discovered devices when present."""
-    device_validator = vol.In(devices) if devices else str
+    device_validator = vol.In({"": "Select device", **devices}) if devices else str
     return {
-        vol.Required(CONF_BLE_ADDRESS): device_validator,
-        vol.Required(CONF_WIFI_SSID): str,
+        vol.Optional(BLE_CONTINUE_PAIR_FIELD, default=False): bool,
+        vol.Optional(BLE_RETRY_SCAN_FIELD, default=False): bool,
+        vol.Optional(CONF_BLE_ADDRESS, default=""): device_validator,
+        vol.Optional(CONF_WIFI_SSID, default=""): str,
         vol.Optional(CONF_WIFI_PASSWORD, default=""): str,
     }
+
+
+async def _discover_ble_devices_safe(hass: Any) -> dict[str, str]:
+    """Discover setup devices without letting Bluetooth stall the config flow."""
+    try:
+        return await asyncio.wait_for(
+            async_discover_devices(hass),
+            timeout=BLE_DISCOVERY_TIMEOUT,
+        )
+    except TimeoutError:
+        _LOGGER.warning("SpotifyDJ BLE discovery timed out; allowing manual address entry")
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.warning("SpotifyDJ BLE discovery failed: %s", exc)
+    return {}
+
+
+async def _provision_ble_wifi_safe(
+    hass: Any,
+    address: str,
+    ssid: str,
+    password: str,
+) -> dict[str, Any]:
+    """Write WiFi credentials with a hard timeout so setup can continue."""
+    try:
+        return await asyncio.wait_for(
+            async_provision_wifi(hass, address, ssid, password),
+            timeout=BLE_PROVISION_TIMEOUT,
+        )
+    except TimeoutError as exc:
+        raise RuntimeError(
+            "Bluetooth WiFi provisioning timed out. Put the device back in setup "
+            "mode or use normal WiFi pairing."
+        ) from exc
 
 
 def _spotify_schema(include_advanced: bool = False) -> dict[Any, Any]:
@@ -534,9 +574,13 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Provision WiFi credentials to a SpotifyDJ setup device over BLE."""
         errors: dict[str, str] = {}
-        devices = await async_discover_devices(self.hass)
+        devices = await _discover_ble_devices_safe(self.hass)
 
         if user_input is not None:
+            if user_input.get(BLE_CONTINUE_PAIR_FIELD):
+                return await self.async_step_pair()
+            if user_input.get(BLE_RETRY_SCAN_FIELD):
+                return await self.async_step_ble_wifi()
             address = str(user_input.get(CONF_BLE_ADDRESS, "")).strip()
             ssid = str(user_input.get(CONF_WIFI_SSID, "")).strip()
             password = str(user_input.get(CONF_WIFI_PASSWORD, ""))
@@ -546,7 +590,7 @@ class SpotifyDJConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors[CONF_WIFI_SSID] = "wifi_ssid_required"
             else:
                 try:
-                    status = await async_provision_wifi(
+                    status = await _provision_ble_wifi_safe(
                         self.hass,
                         address,
                         ssid,

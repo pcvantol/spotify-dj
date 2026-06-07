@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.17
+## 2.9.18
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
@@ -60,7 +60,7 @@
 - Restore persisted ESP pairing state at startup so HA keeps the real `spotifydj-XXXXXXXXXXXX` device identity and local URL after restart.
 - Skip automatic ESP re-pairing on HA startup when a device token already exists; Spotify credential provisioning now defers quietly until the paired device is reachable.
 - Persist the real device identity and reported local URL from `/api/spotify_dj/status`, allowing already-paired devices to repair old setup-code based entries automatically.
-- Remove MQTT configuration/provisioning from config flow, options flow and ESP pair/status/provision payloads for firmware v2.9.12 and newer.
+- Remove obsolete broker configuration/provisioning from config flow, options flow and ESP pair/status payloads for firmware v2.9.12 and newer.
 - Route backend playback through Home Assistant and reserve the authenticated ESP local `/api/device/command` endpoint for device settings/status/display commands.
 - Add native HA controls for next/previous/play-pause, device info refresh, reboot, volume, speaker volume, screen brightness, timeouts, language, theme, log level and sound output.
 - Add a native SpotifyDJ playback-proxy `media_player` entity for play/pause, next/previous, volume, source selection and playlist/media start.
@@ -72,3 +72,6 @@
 - Stop using the legacy ESP `/api/device/provision_spotify` endpoint.
 - Route current Spotify playback through a Home Assistant backend adapter so future backends can be added without firmware changes.
 - Simplify the product website copy and add SpotifyDJ logo plus a LilyGO T-Embed style device illustration.
+- Add hard timeouts around BLE discovery/provisioning so the config flow can continue to WiFi pairing instead of hanging on Bluetooth status reads.
+- Add a BLE provisioning rescan control so users can retry Bluetooth discovery from the same setup screen.
+- Add a BLE setup shortcut to continue directly to pairing when WiFi was configured through the device captive portal.

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from typing import Any
@@ -12,6 +13,9 @@ BLE_SERVICE_UUID = "7f705000-9f8f-4f1a-9b5f-570071fd0001"
 BLE_WIFI_CHAR_UUID = "7f705001-9f8f-4f1a-9b5f-570071fd0001"
 BLE_STATUS_CHAR_UUID = "7f705002-9f8f-4f1a-9b5f-570071fd0001"
 BLE_NAME_PREFIX = "SpotifyDJ"
+BLE_CONNECT_TIMEOUT = 12
+BLE_WRITE_TIMEOUT = 10
+BLE_STATUS_TIMEOUT = 8
 
 
 def wifi_payload(ssid: str, password: str) -> bytes:
@@ -74,12 +78,25 @@ async def async_provision_wifi(
     _LOGGER.debug("SpotifyDJ BLE WiFi provisioning started for %s", address)
     client = await _connect_client(hass, address)
     try:
-        await client.write_gatt_char(
-            BLE_WIFI_CHAR_UUID,
-            wifi_payload(ssid, password),
-            response=True,
+        await asyncio.wait_for(
+            client.write_gatt_char(
+                BLE_WIFI_CHAR_UUID,
+                wifi_payload(ssid, password),
+                response=True,
+            ),
+            timeout=BLE_WRITE_TIMEOUT,
         )
-        status = parse_status(await client.read_gatt_char(BLE_STATUS_CHAR_UUID))
+        try:
+            raw_status = await asyncio.wait_for(
+                client.read_gatt_char(BLE_STATUS_CHAR_UUID),
+                timeout=BLE_STATUS_TIMEOUT,
+            )
+            status = parse_status(raw_status)
+        except TimeoutError:
+            status = {
+                "state": "submitted",
+                "message": "WiFi credentials written; waiting for device restart",
+            }
         _LOGGER.debug(
             "SpotifyDJ BLE WiFi provisioning status for %s: %s",
             address,
@@ -103,10 +120,13 @@ async def _connect_client(hass: HomeAssistant, address: str) -> Any:
             address,
             connectable=True,
         )
-        return await establish_connection(
-            BleakClient,
-            ble_device or address,
-            "spotify_dj",
+        return await asyncio.wait_for(
+            establish_connection(
+                BleakClient,
+                ble_device or address,
+                "spotify_dj",
+            ),
+            timeout=BLE_CONNECT_TIMEOUT,
         )
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(f"Could not connect to SpotifyDJ BLE device: {exc}") from exc
