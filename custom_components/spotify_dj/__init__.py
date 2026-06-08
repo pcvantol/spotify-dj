@@ -698,9 +698,9 @@ async def _try_initial_device_provisioning(
 ) -> None:
     """Pair opportunistically without blocking HA startup when ESP is offline."""
     try:
-        if runtime.device_status.get("ha_pairing_status") == "paired":
+        if not _should_startup_pair_device(runtime):
             _LOGGER.debug(
-                "SpotifyDJ startup pairing skipped because device already confirmed pairing"
+                "SpotifyDJ startup direct pairing skipped; token is already stored"
             )
         else:
             await runtime.pair_device(hass)
@@ -715,6 +715,14 @@ async def _try_initial_device_provisioning(
         message = _format_exception(exc)
         runtime.update(last_error=f"SpotifyDJ device pairing failed: {message}")
         _LOGGER.warning("SpotifyDJ device pairing deferred/failed: %s", message)
+
+
+def _should_startup_pair_device(runtime: SpotifyDJRuntime) -> bool:
+    """Return true only when startup has no stored ESP token yet."""
+    if getattr(runtime, "device_token", None):
+        return False
+    status = getattr(runtime, "device_status", {}) or {}
+    return status.get("ha_pairing_status") not in {"paired", "pending"}
 
 
 def _is_deferred_provisioning_error(exc: Exception) -> bool:

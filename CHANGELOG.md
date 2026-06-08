@@ -1,7 +1,8 @@
 # Changelog
 
-## 2.9.32
+## 2.9.33
 
+- Prevent repeated ESP `/api/device/pair` callbacks during normal startup, status sync and playback commands when Home Assistant already has a stored device token.
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
 - Keep the Nabu Casa callback path `/api/spotify_dj/spotify/callback` supported.

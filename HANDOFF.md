@@ -94,6 +94,7 @@ Do not use `/api/device/provision_spotify`; it is removed/legacy and should not 
 - Repair flow must open Spotify OAuth and may only close as fixed after a new/missing refresh token is stored, not merely because an old token exists.
 - Options flow also has a “Spotify opnieuw autoriseren” action using the same callback storage path.
 - Token sent by HA to ESP in `POST /api/device/pair` must be exactly the token accepted by HA `/status`, `/command` and `/voice`.
+- HA may call `POST /api/device/pair` only for initial pairing, explicit re-pair/token rotation or stale-pairing recovery. Startup with a stored token, normal status sync, playback commands and settings sync must not call it.
 - Setup-code pairing can start with a temporary six-digit identity, but HA must learn and persist the real `spotifydj-lilygo-XXXXXXXXXXXX` ID from the first authenticated ESP call. Older `spotifydj-XXXXXXXXXXXX` IDs remain accepted for compatibility.
 - ESP status payloads can report device settings as top-level fields or nested `settings`, `screen` and `led` objects; HA flattens those aliases for native entities.
 - HA pairing status is `pending` until ESP confirms `ha_pairing_status=paired`; a locally stored token alone is not enough.

@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def install_integration_stubs() -> None:
     aiohttp = sys.modules.setdefault("aiohttp", types.ModuleType("aiohttp"))
+    voluptuous = sys.modules.setdefault("voluptuous", types.ModuleType("voluptuous"))
     config_entries = sys.modules.setdefault(
         "homeassistant.config_entries",
         types.ModuleType("homeassistant.config_entries"),
@@ -32,6 +33,10 @@ def install_integration_stubs() -> None:
     http = sys.modules.setdefault(
         "homeassistant.components.http",
         types.ModuleType("homeassistant.components.http"),
+    )
+    repairs = sys.modules.setdefault(
+        "homeassistant.components.repairs",
+        types.ModuleType("homeassistant.components.repairs"),
     )
     aiohttp_client = sys.modules.setdefault(
         "homeassistant.helpers.aiohttp_client",
@@ -55,6 +60,9 @@ def install_integration_stubs() -> None:
         def json(self, payload, status_code=200):
             return {"payload": payload, "status_code": status_code}
 
+    class RepairsFlow:
+        pass
+
     class Response:
         def __init__(self, *, status=200, text=None, body=None, content_type=None, headers=None):
             self.status = status
@@ -66,10 +74,13 @@ def install_integration_stubs() -> None:
     sys.modules.setdefault("homeassistant", types.ModuleType("homeassistant"))
     aiohttp.ClientTimeout = ClientTimeout
     aiohttp.web = getattr(aiohttp, "web", types.SimpleNamespace())
+    voluptuous.Schema = lambda schema: schema
     config_entries.ConfigEntry = object
     core.HomeAssistant = object
+    core.Context = object
     core.ServiceCall = object
     http.HomeAssistantView = HomeAssistantView
+    repairs.RepairsFlow = RepairsFlow
     aiohttp_client.async_get_clientsession = lambda hass: None
     issue_registry.IssueSeverity = types.SimpleNamespace(WARNING="warning")
     issue_registry.async_create_issue = lambda *args, **kwargs: None
@@ -77,6 +88,7 @@ def install_integration_stubs() -> None:
     typing.ConfigType = dict
     aiohttp.web = types.SimpleNamespace(Response=Response)
     sys.modules["homeassistant"].components = components
+    components.repairs = repairs
 
 
 class TtsHelperTest(unittest.TestCase):
@@ -217,9 +229,30 @@ class TtsHelperTest(unittest.TestCase):
 
         self.assertNotIn("local_url", runtime.device_status)
 
-    def test_initial_provisioning_pairs_until_device_confirms_pairing(self) -> None:
+    def test_initial_provisioning_skips_when_token_already_stored(self) -> None:
         class Runtime:
             device_token = "device-token"
+            device_status = {}
+            pair_called = False
+            last_error = "previous"
+
+            async def pair_device(self, hass):
+                self.pair_called = True
+
+            def update(self, **kwargs):
+                for key, value in kwargs.items():
+                    setattr(self, key, value)
+
+        runtime = Runtime()
+
+        asyncio.run(self.integration._try_initial_device_provisioning(object(), runtime))
+
+        self.assertFalse(runtime.pair_called)
+        self.assertIsNone(runtime.last_error)
+
+    def test_initial_provisioning_pairs_only_when_no_token_exists(self) -> None:
+        class Runtime:
+            device_token = None
             device_status = {}
             pair_called = False
             last_error = "previous"
@@ -261,7 +294,7 @@ class TtsHelperTest(unittest.TestCase):
 
     def test_initial_pairing_defers_unknown_local_url_without_last_error(self) -> None:
         class Runtime:
-            device_token = "device-token"
+            device_token = None
             device_status = {}
             last_error = None
 
@@ -285,7 +318,7 @@ class TtsHelperTest(unittest.TestCase):
                 return ""
 
         class Runtime:
-            device_token = "device-token"
+            device_token = None
             device_status = {}
             last_error = None
 

@@ -1579,6 +1579,47 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertFalse(response["payload"]["backend_available"])
         self.assertEqual(response["payload"]["playback"], {"has_playback": False})
 
+    def test_command_view_does_not_repair_device_during_normal_command(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {"ha_pairing_status": "paired"}
+            config = {}
+            pair_called = False
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            async def pair_device(self, hass):
+                self.pair_called = True
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+
+        async def command_handler(hass, runtime, command, value=None, *, play=None):
+            return {"success": True, "playback": {"has_playback": True}}
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
+
+            async def json(self):
+                return {"device_id": "spotifydj-lilygo-90B70990A994", "command": "next"}
+
+        original = self.http.handle_spotify_command
+        self.http.handle_spotify_command = command_handler
+        try:
+            response = asyncio.run(self.http.SpotifyDJCommandView(None).post(Request()))
+        finally:
+            self.http.handle_spotify_command = original
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertTrue(response["payload"]["success"])
+        self.assertFalse(runtime.pair_called)
+
     def test_store_rotated_spotify_refresh_token_persists_without_logging_secret(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
         updates = []
