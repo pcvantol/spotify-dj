@@ -111,6 +111,16 @@
           "dj_response_ttl_seconds": "Hoe lang tijdelijke DJ response audio beschikbaar blijft voor het SpotifyDJ device.",
           "options_action": "Kies instellingen opslaan, Spotify opnieuw autoriseren, koppelen opnieuw proberen met de huidige code, of volledig opnieuw koppelen met een nieuwe koppelcode."
         }
+      },
+      "repair_pairing": {
+        "title": "SpotifyDJ opnieuw koppelen",
+        "description": "Zet het SpotifyDJ device in pairingmodus en voer de nieuwe koppelcode in die op het display staat. Home Assistant maakt een nieuw device token.",
+        "data": {
+          "pair_code": "Nieuwe koppelcode"
+        },
+        "data_description": {
+          "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het device-display."
+        }
       }
     },
     "error": {
@@ -167,6 +177,16 @@
           "allow_ota_on_battery": "Sta firmware updates toe als het apparaat niet via USB gevoed wordt.",
           "show_advanced_options": "Toon handmatige en firmware/OTA overridevelden.",
           "options_action": "Kies instellingen opslaan, Spotify opnieuw autoriseren, koppelen opnieuw proberen met de huidige code, of volledig opnieuw koppelen met een nieuwe koppelcode."
+        }
+      },
+      "repair_pairing": {
+        "title": "SpotifyDJ opnieuw koppelen",
+        "description": "Zet het SpotifyDJ device in pairingmodus en voer de nieuwe koppelcode in die op het display staat. Home Assistant maakt een nieuw device token.",
+        "data": {
+          "pair_code": "Nieuwe koppelcode"
+        },
+        "data_description": {
+          "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het device-display."
         }
       }
     },
@@ -281,15 +301,66 @@
   "issues": {
     "missing_spotify_oauth_scopes": {
       "title": "Spotify autorisatie mist playlist scope",
-      "description": "SpotifyDJ heeft nu de Spotify OAuth scope playlist-read-private nodig om private SpotifyDJ Liked Proxy playlists via /me/playlists te vinden. Kies Repareren om SpotifyDJ opnieuw bij Spotify te autoriseren."
+      "fix_flow": {
+        "step": {
+          "authorize": {
+            "title": "SpotifyDJ autoriseren bij Spotify",
+            "description": "Home Assistant opent Spotify in je browser. Geef akkoord in Spotify en keer daarna terug naar Home Assistant."
+          },
+          "oauth_done": {
+            "title": "Spotify autorisatie afronden",
+            "description": "Als je Spotify toestemming hebt gegeven, kies Verzenden om de reparatie af te ronden. Als je de Spotify pagina hebt gesloten zonder akkoord, kies Repareren opnieuw om de autorisatie opnieuw te starten."
+          }
+        },
+        "error": {
+          "oauth_not_completed": "Spotify autorisatie is nog niet afgerond. Geef akkoord in Spotify en probeer daarna opnieuw af te ronden."
+        },
+        "abort": {
+          "entry_not_found": "SpotifyDJ configuratie kon niet worden gevonden."
+        }
+      }
     },
     "missing_spotify_refresh_token": {
       "title": "Spotify autorisatie ontbreekt",
-      "description": "SpotifyDJ heeft geen Spotify refresh token in Home Assistant. Kies Repareren om SpotifyDJ opnieuw bij Spotify te autoriseren."
+      "fix_flow": {
+        "step": {
+          "authorize": {
+            "title": "SpotifyDJ autoriseren bij Spotify",
+            "description": "Home Assistant opent Spotify in je browser. Geef akkoord in Spotify en keer daarna terug naar Home Assistant."
+          },
+          "oauth_done": {
+            "title": "Spotify autorisatie afronden",
+            "description": "Als je Spotify toestemming hebt gegeven, kies Verzenden om de reparatie af te ronden. Als je de Spotify pagina hebt gesloten zonder akkoord, kies Repareren opnieuw om de autorisatie opnieuw te starten."
+          }
+        },
+        "error": {
+          "oauth_not_completed": "Spotify autorisatie is nog niet afgerond. Geef akkoord in Spotify en probeer daarna opnieuw af te ronden."
+        },
+        "abort": {
+          "entry_not_found": "SpotifyDJ configuratie kon niet worden gevonden."
+        }
+      }
     },
     "spotify_refresh_token_revoked": {
       "title": "Spotify autorisatie is verlopen of ingetrokken",
-      "description": "Spotify heeft de opgeslagen SpotifyDJ refresh token geweigerd. Kies Repareren om SpotifyDJ opnieuw bij Spotify te autoriseren en probeer daarna opnieuw."
+      "fix_flow": {
+        "step": {
+          "authorize": {
+            "title": "SpotifyDJ autoriseren bij Spotify",
+            "description": "Home Assistant opent Spotify in je browser. Geef akkoord in Spotify en keer daarna terug naar Home Assistant."
+          },
+          "oauth_done": {
+            "title": "Spotify autorisatie afronden",
+            "description": "Als je Spotify toestemming hebt gegeven, kies Verzenden om de reparatie af te ronden. Als je de Spotify pagina hebt gesloten zonder akkoord, kies Repareren opnieuw om de autorisatie opnieuw te starten."
+          }
+        },
+        "error": {
+          "oauth_not_completed": "Spotify autorisatie is nog niet afgerond. Geef akkoord in Spotify en probeer daarna opnieuw af te ronden."
+        },
+        "abort": {
+          "entry_not_found": "SpotifyDJ configuratie kon niet worden gevonden."
+        }
+      }
     }
   }
 }

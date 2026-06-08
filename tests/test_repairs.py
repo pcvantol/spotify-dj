@@ -61,6 +61,9 @@ def install_repairs_stubs() -> list[dict]:
         def async_external_step(self, **kwargs):
             return {"type": "external", **kwargs}
 
+        def async_external_step_done(self, **kwargs):
+            return {"type": "external_done", **kwargs}
+
     def async_create_issue(hass, domain, issue_id, **kwargs):
         issues.append({"domain": domain, "issue_id": issue_id, **kwargs})
 
@@ -190,6 +193,7 @@ class RepairsTest(unittest.TestCase):
         result = asyncio.run(flow.async_step_init())
 
         self.assertEqual(result["type"], "external")
+        self.assertEqual(result["step_id"], "authorize")
         self.assertIn("https://accounts.spotify.com/authorize", result["url"])
         self.assertIn("authorize_url", result["description_placeholders"])
         self.assertEqual(len(hass.data["spotify_dj"]["spotify_oauth_pending"]), 1)
@@ -217,14 +221,20 @@ class RepairsTest(unittest.TestCase):
 
         start = asyncio.run(flow.async_step_init())
         self.assertEqual(start["type"], "external")
+        self.assertEqual(start["step_id"], "authorize")
 
-        result = asyncio.run(flow.async_step_init({}))
+        done = asyncio.run(flow.async_step_authorize())
+        self.assertEqual(done["type"], "external_done")
+        self.assertEqual(done["next_step_id"], "oauth_done")
+
+        result = asyncio.run(flow.async_step_oauth_done({}))
 
         self.assertEqual(result["type"], "form")
+        self.assertEqual(result["step_id"], "oauth_done")
         self.assertEqual(result["errors"]["base"], "oauth_not_completed")
 
         entry.data["spotify_refresh_token"] = "new-token"
-        result = asyncio.run(flow.async_step_init({}))
+        result = asyncio.run(flow.async_step_oauth_done({}))
 
         self.assertEqual(result["type"], "create_entry")
         self.assertIn(
@@ -260,7 +270,7 @@ class RepairsTest(unittest.TestCase):
         self.assertEqual(start["type"], "external")
 
         entry.data["spotify_refresh_token"] = "new-token"
-        result = asyncio.run(flow.async_step_init({}))
+        result = asyncio.run(flow.async_step_oauth_done({}))
 
         self.assertEqual(result["type"], "create_entry")
 

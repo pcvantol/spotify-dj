@@ -8,6 +8,14 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 TRANSLATIONS = ROOT / "custom_components" / "spotify_dj" / "translations"
 INTEGRATION = ROOT / "custom_components" / "spotify_dj"
+DOCS = [
+    ROOT / "README.md",
+    ROOT / "CHANGELOG.md",
+    ROOT / "HANDOFF.md",
+    ROOT / "TODO.md",
+    ROOT / "ISSUES.md",
+    ROOT / "ESP_SYNC_PROMPT.md",
+]
 
 CONFIG_FLOW_ERROR_KEYS = {
     "missing_pair_code",
@@ -67,6 +75,17 @@ ENTITY_TRANSLATION_KEYS = {
 
 
 class TranslationTest(unittest.TestCase):
+    def test_translation_files_cover_base_strings_schema(self) -> None:
+        base = _leaf_paths(json.loads((INTEGRATION / "strings.json").read_text()))
+        for language in ("en", "nl"):
+            with self.subTest(language=language):
+                data = json.loads((TRANSLATIONS / f"{language}.json").read_text())
+                missing = base - _leaf_paths(data)
+                self.assertFalse(
+                    missing,
+                    f"Missing {language} schema translations: {sorted(missing)}",
+                )
+
     def test_config_flow_error_keys_are_translated(self) -> None:
         for language in ("en", "nl"):
             with self.subTest(language=language):
@@ -122,6 +141,29 @@ class TranslationTest(unittest.TestCase):
                 text = path.read_text().lower()
                 hits = [word for word in forbidden if word in text]
                 self.assertFalse(hits, f"{path} contains legacy wording: {hits}")
+
+    def test_removed_message_bus_wording_stays_out_of_docs_and_ui(self) -> None:
+        checked_files = [
+            *DOCS,
+            *TRANSLATIONS.glob("*.json"),
+            INTEGRATION / "services.yaml",
+            INTEGRATION / "strings.json",
+        ]
+        for path in checked_files:
+            if not path.exists():
+                continue
+            with self.subTest(path=path.name):
+                self.assertNotIn("m" + "qtt", path.read_text().lower())
+
+
+def _leaf_paths(value: object, prefix: str = "") -> set[str]:
+    if not isinstance(value, dict):
+        return {prefix}
+    paths: set[str] = set()
+    for key, child in value.items():
+        child_prefix = f"{prefix}.{key}" if prefix else str(key)
+        paths.update(_leaf_paths(child, child_prefix))
+    return paths
 
 
 if __name__ == "__main__":

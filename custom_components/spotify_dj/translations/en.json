@@ -301,15 +301,66 @@
   "issues": {
     "missing_spotify_oauth_scopes": {
       "title": "Spotify authorization is missing playlist scope",
-      "description": "SpotifyDJ now requires the Spotify OAuth scope playlist-read-private so it can find private SpotifyDJ Liked Proxy playlists via /me/playlists. Choose Fix to authorize SpotifyDJ again with Spotify."
+      "fix_flow": {
+        "step": {
+          "authorize": {
+            "title": "Authorize SpotifyDJ with Spotify",
+            "description": "Home Assistant opens Spotify in your browser. Approve access in Spotify, then return to Home Assistant."
+          },
+          "oauth_done": {
+            "title": "Finish Spotify authorization",
+            "description": "If you approved Spotify access, choose Submit to finish the repair. If you closed the Spotify page without approving, choose Fix again to restart authorization."
+          }
+        },
+        "error": {
+          "oauth_not_completed": "Spotify authorization has not completed yet. Approve access in Spotify, then try finishing again."
+        },
+        "abort": {
+          "entry_not_found": "SpotifyDJ configuration could not be found."
+        }
+      }
     },
     "missing_spotify_refresh_token": {
       "title": "Spotify authorization is missing",
-      "description": "SpotifyDJ has no Spotify refresh token stored in Home Assistant. Choose Fix to authorize SpotifyDJ again with Spotify."
+      "fix_flow": {
+        "step": {
+          "authorize": {
+            "title": "Authorize SpotifyDJ with Spotify",
+            "description": "Home Assistant opens Spotify in your browser. Approve access in Spotify, then return to Home Assistant."
+          },
+          "oauth_done": {
+            "title": "Finish Spotify authorization",
+            "description": "If you approved Spotify access, choose Submit to finish the repair. If you closed the Spotify page without approving, choose Fix again to restart authorization."
+          }
+        },
+        "error": {
+          "oauth_not_completed": "Spotify authorization has not completed yet. Approve access in Spotify, then try finishing again."
+        },
+        "abort": {
+          "entry_not_found": "SpotifyDJ configuration could not be found."
+        }
+      }
     },
     "spotify_refresh_token_revoked": {
       "title": "Spotify authorization expired or was revoked",
-      "description": "Spotify rejected the stored SpotifyDJ refresh token. Choose Fix to authorize SpotifyDJ again with Spotify, then try again."
+      "fix_flow": {
+        "step": {
+          "authorize": {
+            "title": "Authorize SpotifyDJ with Spotify",
+            "description": "Home Assistant opens Spotify in your browser. Approve access in Spotify, then return to Home Assistant."
+          },
+          "oauth_done": {
+            "title": "Finish Spotify authorization",
+            "description": "If you approved Spotify access, choose Submit to finish the repair. If you closed the Spotify page without approving, choose Fix again to restart authorization."
+          }
+        },
+        "error": {
+          "oauth_not_completed": "Spotify authorization has not completed yet. Approve access in Spotify, then try finishing again."
+        },
+        "abort": {
+          "entry_not_found": "SpotifyDJ configuration could not be found."
+        }
+      }
     }
   }
 }

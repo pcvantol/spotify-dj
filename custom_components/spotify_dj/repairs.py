@@ -120,7 +120,7 @@ class SpotifyOAuthRepairFlow(RepairsFlow):
             external_step = getattr(self, "async_external_step", None)
             if callable(external_step):
                 return external_step(
-                    step_id="init",
+                    step_id="authorize",
                     url=self._authorize_url,
                     description_placeholders={"authorize_url": self._authorize_url},
                 )
@@ -129,27 +129,40 @@ class SpotifyOAuthRepairFlow(RepairsFlow):
                 data_schema=vol.Schema({}),
                 description_placeholders={"authorize_url": self._authorize_url},
             )
-        if user_input is not None:
-            current_refresh_token = str(
-                entry.data.get(CONF_SPOTIFY_REFRESH_TOKEN) or ""
-            )
-            token_changed = (
-                bool(current_refresh_token)
-                and current_refresh_token != self._original_refresh_token
-            )
-            token_was_missing = bool(current_refresh_token) and not self._original_refresh_token
-            if token_changed or token_was_missing:
-                _delete_spotify_reauth_issues(self.hass, entry.entry_id)
-                return self.async_create_entry(title="", data={})
-            return self.async_show_form(
-                step_id="init",
-                data_schema=vol.Schema({}),
-                errors={"base": "oauth_not_completed"},
-                description_placeholders={"authorize_url": self._authorize_url},
-            )
+        return await self.async_step_oauth_done(user_input)
+
+    async def async_step_authorize(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Move from the external Spotify page to a translated completion step."""
+        external_done = getattr(self, "async_external_step_done", None)
+        if callable(external_done):
+            return external_done(next_step_id="oauth_done")
+        return await self.async_step_oauth_done(user_input)
+
+    async def async_step_oauth_done(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Finish the repair only after Spotify OAuth stored a new token."""
+        entry = _entry_from_issue(self.hass, self.issue_id, self.data)
+        if entry is None:
+            return self.async_abort(reason="entry_not_found")
+        current_refresh_token = str(entry.data.get(CONF_SPOTIFY_REFRESH_TOKEN) or "")
+        token_changed = (
+            bool(current_refresh_token)
+            and current_refresh_token != self._original_refresh_token
+        )
+        token_was_missing = bool(current_refresh_token) and not self._original_refresh_token
+        if token_changed or token_was_missing:
+            _delete_spotify_reauth_issues(self.hass, entry.entry_id)
+            return self.async_create_entry(title="", data={})
+        errors = {"base": "oauth_not_completed"} if user_input is not None else {}
         return self.async_show_form(
-            step_id="init",
+            step_id="oauth_done",
             data_schema=vol.Schema({}),
+            errors=errors,
             description_placeholders={"authorize_url": self._authorize_url},
         )
 

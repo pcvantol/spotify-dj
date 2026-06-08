@@ -5,7 +5,7 @@
 - Repository: `pcvantol/spotify-dj`.
 - Integration domain: `spotify_dj`.
 - Current released integration version: `2.9.30`.
-- Next expected release after current pending fixes: `2.9.31`.
+- Next expected release after current pending fixes: `2.9.32`.
 - Home Assistant integration is HACS-distributed and MIT-licensed.
 - ESP firmware source remains proprietary in `pcvantol/spotify-dj-app`.
 - Public firmware release assets live in `pcvantol/spotify-dj-firmware`.
@@ -83,7 +83,7 @@ Do not use `/api/device/provision_spotify`; it is removed/legacy and should not 
 
 ## Decisions Made
 
-- Legacy broker-based control is removed and must not be reintroduced.
+- Legacy external message-bus control is removed and must not be reintroduced.
 - ESP is not a Spotify Connect speaker/player.
 - HA `media_player.spotifydj_playback_proxy` represents backend playback, not ESP speaker audio.
 - ESP speaker is only for local cues and DJ/voice response audio.
