@@ -62,7 +62,13 @@ def _runtime_matches_device(runtime: Any, device_id: str) -> bool:
         return True
     return bool(
         re.fullmatch(r"spotifydj-\d{6}", known)
-        and re.fullmatch(r"spotifydj-[0-9A-Fa-f]{12}", device_id)
+        and _is_real_device_id(device_id)
+    )
+
+
+def _is_real_device_id(device_id: str) -> bool:
+    return bool(
+        re.fullmatch(r"spotifydj-(?:lilygo-)?[0-9A-Fa-f]{12}", str(device_id or ""))
     )
 
 
@@ -223,6 +229,34 @@ def _set_device_state(runtime: Any, state: str) -> None:
     status = getattr(runtime, "device_status", None)
     if isinstance(status, dict):
         status["state"] = state
+
+
+def _normalized_status_payload(data: dict[str, Any]) -> dict[str, Any]:
+    """Flatten firmware status compatibility fields into HA entity keys."""
+    normalized = dict(data)
+    settings = data.get("settings")
+    if isinstance(settings, dict):
+        for key, value in settings.items():
+            normalized.setdefault(key, value)
+    screen = data.get("screen")
+    if isinstance(screen, dict):
+        if screen.get("state") is not None:
+            normalized.setdefault("screen_state", screen.get("state"))
+        if screen.get("brightness_level") is not None:
+            normalized.setdefault("screen_brightness_level", screen.get("brightness_level"))
+            normalized.setdefault("screen_brightness", screen.get("brightness_level"))
+    led = data.get("led")
+    if isinstance(led, dict) and led.get("state") is not None:
+        normalized.setdefault("led_state", led.get("state"))
+    aliases = {
+        "screen_brightness_percent": "screen_brightness",
+        "speaker_volume_percent": "speaker_volume",
+        "screen_off_timeout_ms": "screen_timeout_ms",
+    }
+    for source, target in aliases.items():
+        if normalized.get(source) is not None:
+            normalized[target] = normalized[source]
+    return normalized
 
 
 def _current_spotify_credentials(runtime: Any) -> dict[str, Any]:
@@ -431,7 +465,8 @@ class SpotifyDJStatusView(HomeAssistantView):
             return _json_error(self, "not_configured", 503)
         if not runtime.authorize_device_request(request.headers, data.get("device_id")):
             return _json_error(self, "unauthorized", 401)
-        runtime.device_status.update(data)
+        status_update = _normalized_status_payload(data)
+        runtime.device_status.update(status_update)
         if data.get("device_id") and runtime.device_token:
             _persist_paired_device(
                 hass,
@@ -452,7 +487,6 @@ class SpotifyDJStatusView(HomeAssistantView):
             "success": True,
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
             "ha_url": conf.get(CONF_HA_EXTERNAL_URL, ""),
-            "device_token": runtime.device_token or "",
             "device_language": runtime.device_language(),
             "language": runtime.device_language(),
             "playback": getattr(runtime, "last_playback", None) or {},
@@ -537,7 +571,16 @@ class SpotifyDJCommandView(HomeAssistantView):
         except Exception as exc:  # noqa: BLE001
             _LOGGER.warning("SpotifyDJ backend command failed: %s", exc)
             runtime.update(last_error=str(exc))
-            return _json_error(self, "backend_unavailable", 503, str(exc))
+            runtime.device_status["backend_available"] = False
+            return self.json(
+                {
+                    "success": False,
+                    "error": "backend_unavailable",
+                    "message": str(exc) or ERROR_MESSAGES["backend_unavailable"],
+                    "backend_available": False,
+                    "playback": getattr(runtime, "last_playback", None) or {},
+                }
+            )
 
 
 class SpotifyDJEventView(HomeAssistantView):

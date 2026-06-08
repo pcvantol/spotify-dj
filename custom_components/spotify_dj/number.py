@@ -233,6 +233,8 @@ def _status_key_aliases(status_key: str, value_multiplier: int) -> list[tuple[st
     if status_key == "screen_brightness":
         return [
             ("screen_brightness", 1),
+            ("screen_brightness_percent", 1),
+            ("screen_brightness_level", 1),
             ("brightness", 1),
             ("display_brightness", 1),
         ]
@@ -247,13 +249,15 @@ def _status_key_aliases(status_key: str, value_multiplier: int) -> list[tuple[st
         return [
             ("screen_timeout", 1),
             ("screen_timeout_seconds", 1),
+            ("screen_timeout_ms", value_multiplier),
+            ("screen_off_timeout_ms", value_multiplier),
             ("screen_dim_timeout", value_multiplier),
             ("screen_dim_timeout_ms", value_multiplier),
         ]
     if status_key == "turn_off_after":
         return [
-            ("turn_off_after", 1),
             ("turn_off_after_minutes", 1),
+            ("turn_off_after", value_multiplier),
             ("turn_off_after_ms", value_multiplier),
             ("auto_off_timeout", value_multiplier),
         ]

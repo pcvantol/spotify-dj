@@ -104,10 +104,10 @@ class NumberTest(unittest.TestCase):
         runtime = types.SimpleNamespace(
             entry=types.SimpleNamespace(entry_id="entry-1"),
             device_status={
-                "brightness": 73,
-                "cue_volume": 44,
-                "screen_dim_timeout": 45000,
-                "turn_off_after_ms": 900000,
+                "screen_brightness_percent": 73,
+                "speaker_volume_percent": 44,
+                "screen_off_timeout_ms": 45000,
+                "turn_off_after": 900000,
             },
             listeners=[],
         )

@@ -29,7 +29,7 @@ De ESP blijft eigenaar van:
 
 ## Belangrijke beslissingen
 
-- MQTT is volledig verwijderd. Noem MQTT nergens meer in UI, docs, provisioning, status of logs.
+- Legacy broker-based control is verwijderd. Noem die oude route nergens meer in UI, docs, provisioning, status of logs.
 - ESP is geen Spotify Connect speaker/player.
 - ESP bewaart geen Spotify OAuth/client_id/refresh_token of andere playback-backend credentials.
 - ESP stuurt generieke playback commands naar HA.
@@ -37,7 +37,7 @@ De ESP blijft eigenaar van:
 - ESP speaker is alleen voor local cues en DJ/voice response audio.
 - `/api/device/provision_spotify` mag niet meer bestaan of gebruikt worden; als compat route nog aanwezig is, verwijder die of laat hem expliciet `410 Gone` geven zonder secrets.
 - Pairing/status/voice/command auth gebruikt alleen het device bearer token.
-- Device ID format blijft `spotifydj-XXXXXXXXXXXX`.
+- Device ID format voor actuele firmware is `spotifydj-lilygo-XXXXXXXXXXXX`.
 - NVS taal key blijft `provision.language`.
 - Secrets nooit loggen: geen device tokens, HA tokens, Spotify tokens, WiFi wachtwoorden of tijdelijke audio URL tokens.
 
@@ -56,7 +56,7 @@ Headers:
 
 ```http
 Authorization: Bearer <device_token>
-X-SpotifyDJ-Device-ID: spotifydj-XXXXXXXXXXXX
+X-SpotifyDJ-Device-ID: spotifydj-lilygo-XXXXXXXXXXXX
 Content-Type: application/json
 ```
 
@@ -64,7 +64,7 @@ Voor PTT:
 
 ```http
 Authorization: Bearer <device_token>
-X-SpotifyDJ-Device-ID: spotifydj-XXXXXXXXXXXX
+X-SpotifyDJ-Device-ID: spotifydj-lilygo-XXXXXXXXXXXX
 Content-Type: audio/wav
 ```
 
@@ -120,9 +120,9 @@ Stuur minimaal:
 
 ```json
 {
-  "device_id": "spotifydj-XXXXXXXXXXXX",
+  "device_id": "spotifydj-lilygo-XXXXXXXXXXXX",
   "ha_pairing_status": "paired|pending|stale|unpaired",
-  "local_url": "http://spotifydj-XXXXXXXXXXXX.local",
+  "local_url": "http://spotifydj-lilygo-XXXXXXXXXXXX.local",
   "firmware": "2.9.x",
   "battery_percent": 85,
   "wifi_rssi": -55,
@@ -163,19 +163,19 @@ POST /api/spotify_dj/command
 Payload voorbeelden:
 
 ```json
-{"device_id":"spotifydj-XXXXXXXXXXXX","command":"status"}
-{"device_id":"spotifydj-XXXXXXXXXXXX","command":"devices"}
-{"device_id":"spotifydj-XXXXXXXXXXXX","command":"queue"}
-{"device_id":"spotifydj-XXXXXXXXXXXX","command":"playlists"}
-{"device_id":"spotifydj-XXXXXXXXXXXX","command":"pause"}
-{"device_id":"spotifydj-XXXXXXXXXXXX","command":"play"}
-{"device_id":"spotifydj-XXXXXXXXXXXX","command":"next"}
-{"device_id":"spotifydj-XXXXXXXXXXXX","command":"previous"}
-{"device_id":"spotifydj-XXXXXXXXXXXX","command":"set_output","value":"iPhone","play":true}
-{"device_id":"spotifydj-XXXXXXXXXXXX","command":"set_volume","value":35}
-{"device_id":"spotifydj-XXXXXXXXXXXX","command":"start_liked_proxy","play":true}
-{"device_id":"spotifydj-XXXXXXXXXXXX","command":"start_playlist","value":"spotify:playlist:...","play":true}
-{"device_id":"spotifydj-XXXXXXXXXXXX","command":"set_play_mode","value":"shuffle"}
+{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"status"}
+{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"devices"}
+{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"queue"}
+{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"playlists"}
+{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"pause"}
+{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"play"}
+{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"next"}
+{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"previous"}
+{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"set_output","value":"iPhone","play":true}
+{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"set_volume","value":35}
+{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"start_liked_proxy","play":true}
+{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"start_playlist","value":"spotify:playlist:...","play":true}
+{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"set_play_mode","value":"shuffle"}
 ```
 
 Verwachte response shapes:
@@ -353,7 +353,7 @@ Geen Spotify credentials, device tokens of andere secrets via BLE.
 - Pairing stale mag duidelijk tonen: reset/re-pair nodig.
 - Soft reset/reboot moet local cue sound en felle witte LED-ring flash tonen vlak voor reboot.
 - Bonus game Pong mag in UI blijven.
-- Noem MQTT nergens.
+- Noem oude broker-gebaseerde routes nergens.
 
 ### 10. Tests
 
@@ -373,10 +373,9 @@ Voeg/update host tests waar mogelijk:
 - ESP pairt met HA en blijft paired na de eerste `/api/spotify_dj/command`.
 - ESP wist pairing niet door Spotify OAuth/backend failures.
 - ESP status houdt HA native entities actueel.
-- ESP gebruikt geen MQTT.
+- ESP gebruikt alleen de HA-native lokale API.
 - ESP bewaart geen Spotify credentials.
 - ESP stuurt generic playback commands naar HA.
 - ESP PTT uploadt raw WAV naar HA en speelt HA DJ response lokaal af.
 - OTA blijft werken met `spotifydj-device-vX.Y.Z.bin` en target `lilygo-t-embed-s3`.
 - Logs bevatten geen secrets.
-

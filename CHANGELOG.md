@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.30
+## 2.9.31
 
 - Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
 - Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.

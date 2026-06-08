@@ -1208,6 +1208,70 @@ class VoiceHttpHelperTest(unittest.TestCase):
             "http://spotifydj-90B70990A994.local",
         )
 
+    def test_status_view_accepts_lilygo_device_id_and_flattens_device_settings(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {"device_id": "spotifydj-981032"}
+            ota_in_progress = True
+            ota_last_error = None
+            config = {}
+            pairing_device_id = "spotifydj-981032"
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return headers.get("Authorization") == "Bearer device-token"
+
+            def get_current_spotify_credentials(self):
+                return {}
+
+            def device_language(self):
+                return "nl"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+
+        class Request:
+            headers = {
+                "Authorization": "Bearer device-token",
+                "X-SpotifyDJ-Device-ID": "spotifydj-lilygo-90B70990A994",
+            }
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
+
+            async def json(self):
+                return {
+                    "device_id": "spotifydj-lilygo-90B70990A994",
+                    "ota_state": "idle",
+                    "firmware": "2.9.25",
+                    "settings": {
+                        "screen_brightness_percent": 91,
+                        "screen_off_timeout_ms": 60000,
+                        "turn_off_after_ms": 300000,
+                        "speaker_volume_percent": 45,
+                        "language": "nl",
+                        "theme": "dark",
+                        "log_level": "info",
+                    },
+                    "screen": {"state": "on", "brightness_level": 88},
+                    "led": {"state": "off"},
+                }
+
+        response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertFalse(runtime.ota_in_progress)
+        self.assertEqual(runtime.device_status["device_id"], "spotifydj-lilygo-90B70990A994")
+        self.assertEqual(runtime.device_status["screen_brightness"], 91)
+        self.assertEqual(runtime.device_status["screen_timeout_ms"], 60000)
+        self.assertEqual(runtime.device_status["turn_off_after_ms"], 300000)
+        self.assertEqual(runtime.device_status["speaker_volume"], 45)
+        self.assertEqual(runtime.device_status["screen_state"], "on")
+        self.assertEqual(runtime.device_status["screen_brightness_level"], 88)
+        self.assertEqual(runtime.device_status["led_state"], "off")
+        self.assertNotIn("device_token", response["payload"])
+
     def test_status_view_prefers_current_spotify_credentials(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
 
@@ -1476,6 +1540,44 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["payload"]["error"], "backend_unavailable")
         self.assertFalse(response["payload"]["backend_available"])
         self.assertIn("Spotify OAuth", response["payload"]["message"])
+
+    def test_command_view_returns_200_for_generic_backend_failure(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            last_playback = {"has_playback": False}
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        async def command_handler(hass, runtime, command, value=None, *, play=None):
+            raise RuntimeError("Temporary backend timeout")
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": Runtime()}})}
+
+            async def json(self):
+                return {"device_id": "spotifydj-lilygo-90B70990A994", "command": "status"}
+
+        original = self.http.handle_spotify_command
+        self.http.handle_spotify_command = command_handler
+        try:
+            response = asyncio.run(self.http.SpotifyDJCommandView(None).post(Request()))
+        finally:
+            self.http.handle_spotify_command = original
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertFalse(response["payload"]["success"])
+        self.assertEqual(response["payload"]["error"], "backend_unavailable")
+        self.assertFalse(response["payload"]["backend_available"])
+        self.assertEqual(response["payload"]["playback"], {"has_playback": False})
 
     def test_store_rotated_spotify_refresh_token_persists_without_logging_secret(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")

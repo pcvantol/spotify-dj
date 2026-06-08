@@ -4,12 +4,12 @@
 
 - Repository: `pcvantol/spotify-dj`.
 - Integration domain: `spotify_dj`.
-- Current released integration version: `2.9.29`.
-- Next expected release after current pending fixes: `2.9.30`.
+- Current released integration version: `2.9.30`.
+- Next expected release after current pending fixes: `2.9.31`.
 - Home Assistant integration is HACS-distributed and MIT-licensed.
 - ESP firmware source remains proprietary in `pcvantol/spotify-dj-app`.
 - Public firmware release assets live in `pcvantol/spotify-dj-firmware`.
-- Firmware v2.9.12+ uses the local ESP API with bearer-token auth and no MQTT.
+- Firmware v2.9.25+ uses the local ESP API with bearer-token auth and generic playback commands.
 - ESP no longer stores Spotify OAuth/client_id/refresh_token or other playback-backend credentials.
 - HA integration is the trusted backend for pairing, Spotify OAuth/backend playback, Assist/STT/TTS, OTA and native entities.
 - Lightweight tests live in `tests/` and currently pass with `python3 -m unittest discover -s tests`.
@@ -62,7 +62,7 @@ SpotifyDJ ESP device
 All protected ESP -> HA routes use:
 
 - `Authorization: Bearer <device_token>`
-- `X-SpotifyDJ-Device-ID: spotifydj-XXXXXXXXXXXX`
+- `X-SpotifyDJ-Device-ID: spotifydj-lilygo-XXXXXXXXXXXX`
 
 ### HA -> ESP
 
@@ -83,7 +83,7 @@ Do not use `/api/device/provision_spotify`; it is removed/legacy and should not 
 
 ## Decisions Made
 
-- MQTT is fully removed and must not be reintroduced.
+- Legacy broker-based control is removed and must not be reintroduced.
 - ESP is not a Spotify Connect speaker/player.
 - HA `media_player.spotifydj_playback_proxy` represents backend playback, not ESP speaker audio.
 - ESP speaker is only for local cues and DJ/voice response audio.
@@ -94,7 +94,8 @@ Do not use `/api/device/provision_spotify`; it is removed/legacy and should not 
 - Repair flow must open Spotify OAuth and may only close as fixed after a new/missing refresh token is stored, not merely because an old token exists.
 - Options flow also has a “Spotify opnieuw autoriseren” action using the same callback storage path.
 - Token sent by HA to ESP in `POST /api/device/pair` must be exactly the token accepted by HA `/status`, `/command` and `/voice`.
-- Setup-code pairing can start with a temporary six-digit identity, but HA must learn and persist the real `spotifydj-XXXXXXXXXXXX` ID from the first authenticated ESP call.
+- Setup-code pairing can start with a temporary six-digit identity, but HA must learn and persist the real `spotifydj-lilygo-XXXXXXXXXXXX` ID from the first authenticated ESP call. Older `spotifydj-XXXXXXXXXXXX` IDs remain accepted for compatibility.
+- ESP status payloads can report device settings as top-level fields or nested `settings`, `screen` and `led` objects; HA flattens those aliases for native entities.
 - HA pairing status is `pending` until ESP confirms `ha_pairing_status=paired`; a locally stored token alone is not enough.
 - `POST /api/spotify_dj/command` should return JSON and avoid 503 loops for Spotify auth failures; report backend unavailable without causing ESP to clear pairing.
 - Physical PTT uses raw WAV upload to HA; ESP must not authenticate directly to HA Assist WebSocket.
@@ -124,7 +125,7 @@ Do not use `/api/device/provision_spotify`; it is removed/legacy and should not 
 - Confirm Nabu Casa/external URL is correctly detected or manually editable before OAuth.
 - Confirm ESP remains paired after first `/api/spotify_dj/command` following direct pairing.
 - Confirm ESP does not clear pairing when Spotify backend is temporarily unavailable.
-- Confirm ESP status payload includes device settings so HA brightness/theme/log-level/speaker-volume entities do not remain unknown/minimum.
+- Confirm ESP status payload includes top-level or nested device settings so HA brightness/theme/log-level/speaker-volume entities do not remain unknown/minimum.
 - Confirm physical PTT with selected HA STT provider returns recognized text.
 - Confirm HA TTS returns WAV/MP3 or falls back to text-only without crashing.
 - Confirm OTA clears updating state after post-boot status.
@@ -151,4 +152,3 @@ python3 -m json.tool custom_components/spotify_dj/translations/nl.json >/tmp/spo
 python3 -m py_compile custom_components/spotify_dj/*.py tests/*.py
 python3 -m unittest discover -s tests
 ```
-

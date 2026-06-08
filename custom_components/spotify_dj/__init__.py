@@ -520,13 +520,18 @@ def _runtime_device_id(runtime: SpotifyDJRuntime) -> str:
 def _device_id_mdns_fallback_url(device_id: Any) -> str | None:
     """Return a fallback URL only for real SpotifyDJ device IDs."""
     normalized = str(device_id or "").strip()
-    if re.fullmatch(r"spotifydj-[0-9A-Fa-f]{12}", normalized):
+    if _is_real_spotifydj_device_id(normalized):
         return f"http://{normalized}.local"
     return None
 
 
 def _is_real_spotifydj_device_id(device_id: str) -> bool:
-    return bool(re.fullmatch(r"spotifydj-[0-9A-Fa-f]{12}", str(device_id or "").strip()))
+    return bool(
+        re.fullmatch(
+            r"spotifydj-(?:lilygo-)?[0-9A-Fa-f]{12}",
+            str(device_id or "").strip(),
+        )
+    )
 
 
 def _is_setup_code_device_id(device_id: str) -> bool:

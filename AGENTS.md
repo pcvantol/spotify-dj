@@ -26,7 +26,7 @@ Architectuur beslissingen:
 - Spotify OAuth refresh tokens kunnen roteren; bewaar nieuwe refresh tokens direct persistent en gebruik credentials alleen HA-intern voor backend playback.
 - Als ESP `/api/spotify_dj/status` `spotify_configured=false` meldt, behandel dit alleen als compat/statushint voor backend playback; stuur geen Spotify OAuth credentials naar ESP.
 - BLE provisioning doet alleen WiFi SSID/password; geen Spotify credentials, device tokens of andere secrets via BLE.
-- Runtime discovery prefereert device-reported `local_url`, exacte `_spotifydj._tcp` mDNS matches en daarna alleen een enkele zichtbare SpotifyDJ mDNS service; genereer alleen `http://spotifydj-[device-suffix].local` voor echte 12-hex device suffixes, nooit voor 6-cijferige setupcodes.
+- Runtime discovery prefereert device-reported `local_url`, exacte `_spotifydj._tcp` mDNS matches en daarna alleen een enkele zichtbare SpotifyDJ mDNS service; genereer alleen `http://spotifydj-[device-suffix].local` voor echte device IDs met 12-hex suffix, inclusief `spotifydj-lilygo-XXXXXXXXXXXX`, nooit voor 6-cijferige setupcodes.
 - Normale config-flow blijft klein; operationele overrides zoals firmware repo/channel, Spotify source, max audio bytes en OTA battery settings blijven advanced.
 - Alle entities horen onder één HA device met één stabiele device identifier.
 - Firmware source blijft proprietary; HA integration blijft gratis MIT-licensed.
@@ -52,7 +52,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `spotify_dj`
 - HACS custom integration.
-- Actuele integratieversie: `2.9.30`.
+- Actuele integratieversie: `2.9.31`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -75,7 +75,7 @@ HA integration:
 - Voice velden moeten defaults hebben.
 - Options-flow mag `config_entry` niet assignen; gebruik een eigen attribuut omdat recente Home Assistant versies `config_entry` read-only maken.
 - Options-flow bevat aparte acties voor instellingen opslaan, pairing opnieuw proberen met de huidige code, en volledig opnieuw koppelen met een nieuwe koppelcode; re-pair maakt een nieuw device token, bewaart dat persistent en probeert `/api/device/pair` opnieuw.
-- Setup-code based pairing mag tijdelijk `spotifydj-[6-cijferige-code]` gebruiken, maar HA moet na de eerste ESP status/command/voice call met dezelfde bearer token de echte `spotifydj-XXXXXXXXXXXX` device-id accepteren, leren en persistent opslaan.
+- Setup-code based pairing mag tijdelijk `spotifydj-[6-cijferige-code]` gebruiken, maar HA moet na de eerste ESP status/command/voice call met dezelfde bearer token de echte `spotifydj-lilygo-XXXXXXXXXXXX` of compatibele `spotifydj-XXXXXXXXXXXX` device-id accepteren, leren en persistent opslaan.
 - Device UI language wordt tijdens pairing gekozen als `en`/`nl`, default op HA taal indien ondersteund, en meegestuurd als `device_language` en `language`; ESP slaat dit op als `provision.language`.
 - Koppelcode/device-suffix uit de HA config-flow moet worden opgeslagen en ESP pairing moet een afwijkende code weigeren.
 - HA pairingstatus mag pas `paired` tonen nadat ESP `ha_pairing_status=paired` bevestigt; een lokaal HA `device_token` is hooguit `pending`.
@@ -99,7 +99,7 @@ HA integration:
 - Verberg lokale/manual device URL in de normale flow; toon die alleen onder HA advanced options als mDNS/manual override nodig is.
 - Als manual device URL leeg is tijdens setup, sla alleen automatisch `http://spotifydj-[device-suffix].local` op als de pairingwaarde een echte 12-hex device suffix is; runtime blijft device-reported `local_url` en `_spotifydj._tcp` mDNS prefereren en negeert oude `spotifydj-[6-digit-code].local` fallbacks.
 - Alle SpotifyDJ entities moeten onder één HA device vallen met hetzelfde device identifier.
-- ESP status payloads naar HA moeten actuele device settings meesturen voor native entities, zoals brightness/screen_brightness, cue_volume/speaker_volume, screen_dim_timeout en turn_off_after_ms; HA accepteert aliases en converteert milliseconden naar seconden/minuten.
+- ESP status payloads naar HA moeten actuele device settings meesturen voor native entities, zoals screen_brightness_percent/screen_brightness, speaker_volume_percent/speaker_volume, screen_off_timeout_ms, turn_off_after/turn_off_after_ms, nested `settings`, `screen` en `led`; HA accepteert aliases en converteert milliseconden naar seconden/minuten.
 - `number.spotifydj_volume` mag onbekende devicewaarden zoals `-1` nooit publiceren; geef dan `None/unavailable` terug binnen HA range 0–60.
 - Config-flow foutpaden moeten heldere NL/EN gebruikersmeldingen hebben, bijvoorbeeld bij lege of foutieve koppelcode/device-suffix, ontbrekende Spotify Client ID, foutieve external URL en OAuth fouten.
 - Bestaande modules niet verwijderen, zoals `wav_util.py`, `pipeline.py`.
@@ -117,7 +117,7 @@ HA integration:
 ESP firmware:
 - Voeg pairing, mDNS, OTA en Spotify provisioning toe zonder bestaande Spotify/audio/UI code te herschrijven.
 - mDNS service: `_spotifydj._tcp`
-- Device ID: `spotifydj-XXXXXXXXXXXX`
+- Device ID: `spotifydj-lilygo-XXXXXXXXXXXX` voor actuele firmware; `spotifydj-XXXXXXXXXXXX` blijft compatibel.
 - NVS namespace: `spotifydj`
 - OTA endpoint: `POST /api/device/ota`
 - ESP device command endpoint voor device-instellingen: `POST /api/device/command`
