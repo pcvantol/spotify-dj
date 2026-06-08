@@ -102,6 +102,7 @@ class SpotifyOAuthRepairFlow(RepairsFlow):
         self.data = data
         self._state = ""
         self._authorize_url = ""
+        self._original_refresh_token = ""
 
     async def async_step_init(
         self,
@@ -111,8 +112,33 @@ class SpotifyOAuthRepairFlow(RepairsFlow):
         entry = _entry_from_issue(self.hass, self.issue_id, self.data)
         if entry is None:
             return self.async_abort(reason="entry_not_found")
+        if not self._authorize_url:
+            self._original_refresh_token = str(
+                entry.data.get(CONF_SPOTIFY_REFRESH_TOKEN) or ""
+            )
+            self._authorize_url = await _prepare_spotify_repair_oauth(self.hass, entry)
+            external_step = getattr(self, "async_external_step", None)
+            if callable(external_step):
+                return external_step(
+                    step_id="init",
+                    url=self._authorize_url,
+                    description_placeholders={"authorize_url": self._authorize_url},
+                )
+            return self.async_show_form(
+                step_id="init",
+                data_schema=vol.Schema({}),
+                description_placeholders={"authorize_url": self._authorize_url},
+            )
         if user_input is not None:
-            if entry.data.get(CONF_SPOTIFY_REFRESH_TOKEN):
+            current_refresh_token = str(
+                entry.data.get(CONF_SPOTIFY_REFRESH_TOKEN) or ""
+            )
+            token_changed = (
+                bool(current_refresh_token)
+                and current_refresh_token != self._original_refresh_token
+            )
+            token_was_missing = bool(current_refresh_token) and not self._original_refresh_token
+            if token_changed or token_was_missing:
                 _delete_spotify_reauth_issues(self.hass, entry.entry_id)
                 return self.async_create_entry(title="", data={})
             return self.async_show_form(
@@ -121,7 +147,6 @@ class SpotifyOAuthRepairFlow(RepairsFlow):
                 errors={"base": "oauth_not_completed"},
                 description_placeholders={"authorize_url": self._authorize_url},
             )
-        self._authorize_url = await _prepare_spotify_repair_oauth(self.hass, entry)
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({}),

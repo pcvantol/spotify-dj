@@ -58,6 +58,9 @@ def install_repairs_stubs() -> list[dict]:
         def async_abort(self, **kwargs):
             return {"type": "abort", **kwargs}
 
+        def async_external_step(self, **kwargs):
+            return {"type": "external", **kwargs}
+
     def async_create_issue(hass, domain, issue_id, **kwargs):
         issues.append({"domain": domain, "issue_id": issue_id, **kwargs})
 
@@ -186,14 +189,19 @@ class RepairsTest(unittest.TestCase):
         )
         result = asyncio.run(flow.async_step_init())
 
-        self.assertEqual(result["type"], "form")
+        self.assertEqual(result["type"], "external")
+        self.assertIn("https://accounts.spotify.com/authorize", result["url"])
         self.assertIn("authorize_url", result["description_placeholders"])
         self.assertEqual(len(hass.data["spotify_dj"]["spotify_oauth_pending"]), 1)
 
-    def test_spotify_reauth_fix_flow_deletes_issue_after_token_exists(self) -> None:
+    def test_spotify_reauth_fix_flow_requires_new_token(self) -> None:
         entry = types.SimpleNamespace(
             entry_id="entry-1",
-            data={"spotify_refresh_token": "new-token"},
+            data={
+                "ha_external_url": "https://example.ui.nabu.casa",
+                "spotify_client_id": "client-id",
+                "spotify_refresh_token": "old-token",
+            },
         )
 
         class ConfigEntries:
@@ -207,6 +215,15 @@ class RepairsTest(unittest.TestCase):
             {"entry_id": "entry-1"},
         )
 
+        start = asyncio.run(flow.async_step_init())
+        self.assertEqual(start["type"], "external")
+
+        result = asyncio.run(flow.async_step_init({}))
+
+        self.assertEqual(result["type"], "form")
+        self.assertEqual(result["errors"]["base"], "oauth_not_completed")
+
+        entry.data["spotify_refresh_token"] = "new-token"
         result = asyncio.run(flow.async_step_init({}))
 
         self.assertEqual(result["type"], "create_entry")
@@ -214,6 +231,38 @@ class RepairsTest(unittest.TestCase):
             {"domain": "spotify_dj", "issue_id": "entry-1_spotify_refresh_token_revoked"},
             install_repairs_stubs.deleted,
         )
+
+    def test_spotify_reauth_fix_flow_accepts_token_when_missing_before(self) -> None:
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={
+                "ha_external_url": "https://example.ui.nabu.casa",
+                "spotify_client_id": "client-id",
+            },
+        )
+
+        class ConfigEntries:
+            def async_get_entry(self, entry_id):
+                return entry
+
+        hass = types.SimpleNamespace(
+            data={},
+            config_entries=ConfigEntries(),
+            config=types.SimpleNamespace(external_url=""),
+        )
+        flow = self.repairs.SpotifyOAuthRepairFlow(
+            hass,
+            "entry-1_missing_spotify_refresh_token",
+            {"entry_id": "entry-1"},
+        )
+
+        start = asyncio.run(flow.async_step_init())
+        self.assertEqual(start["type"], "external")
+
+        entry.data["spotify_refresh_token"] = "new-token"
+        result = asyncio.run(flow.async_step_init({}))
+
+        self.assertEqual(result["type"], "create_entry")
 
 
 if __name__ == "__main__":

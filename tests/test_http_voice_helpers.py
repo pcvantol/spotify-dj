@@ -1511,6 +1511,78 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertIn("refresh_token=rotated", "\n".join(captured.output))
         self.assertNotIn("new-secret-token", "\n".join(captured.output))
 
+    def test_spotify_callback_succeeds_when_options_flow_is_closed(self) -> None:
+        const = importlib.import_module("custom_components.spotify_dj.const")
+
+        class ConfigFlow:
+            async def async_configure(self, flow_id, user_input):
+                raise RuntimeError()
+
+        class ConfigEntries:
+            flow = ConfigFlow()
+
+            def __init__(self, entry):
+                self.entry = entry
+                self.updated = None
+                self.reloaded = None
+
+            def async_get_entry(self, entry_id):
+                return self.entry
+
+            def async_update_entry(self, entry, *, data):
+                self.updated = data
+                entry.data = data
+
+            async def async_reload(self, entry_id):
+                self.reloaded = entry_id
+
+        class Query:
+            def get(self, key):
+                return {"state": "state-1", "code": "code-1"}.get(key)
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={
+                const.CONF_SPOTIFY_CLIENT_ID: "client-id",
+                const.CONF_HA_EXTERNAL_URL: "https://example.ui.nabu.casa",
+            },
+            options={},
+        )
+        config_entries = ConfigEntries(entry)
+        hass = types.SimpleNamespace(
+            data={
+                const.DOMAIN: {
+                    "spotify_oauth_pending": {
+                        "state-1": {
+                            "flow_id": "closed-flow",
+                            "entry_id": "entry-1",
+                            "client_id": "client-id",
+                            "code_verifier": "verifier",
+                            "redirect_uri": "https://example.ui.nabu.casa/api/spotify_dj/spotify/callback",
+                            "market": "NL",
+                            "scopes": "scope",
+                        }
+                    }
+                }
+            },
+            config_entries=config_entries,
+        )
+        request = types.SimpleNamespace(app={"hass": hass}, query=Query())
+
+        async def exchange(*args, **kwargs):
+            return {"refresh_token": "new-refresh-token"}
+
+        original_exchange = self.http.exchange_code_for_refresh_token
+        self.http.exchange_code_for_refresh_token = exchange
+        try:
+            response = asyncio.run(self.http.SpotifyDJSpotifyCallbackView(None).get(request))
+        finally:
+            self.http.exchange_code_for_refresh_token = original_exchange
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(entry.data[const.CONF_SPOTIFY_REFRESH_TOKEN], "new-refresh-token")
+        self.assertEqual(config_entries.reloaded, "entry-1")
+
     def test_tts_view_returns_audio_for_valid_token(self) -> None:
         const = importlib.import_module("custom_components.spotify_dj.const")
         dj_response = importlib.import_module("custom_components.spotify_dj.dj_response")

@@ -279,6 +279,29 @@ class TtsHelperTest(unittest.TestCase):
         self.assertEqual(runtime.device_status, {})
         self.assertIsNone(runtime.last_error)
 
+    def test_initial_pairing_logs_empty_exception_type(self) -> None:
+        class EmptyError(Exception):
+            def __str__(self):
+                return ""
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            last_error = None
+
+            async def pair_device(self, hass):
+                raise EmptyError()
+
+            def update(self, **kwargs):
+                for key, value in kwargs.items():
+                    setattr(self, key, value)
+
+        runtime = Runtime()
+
+        asyncio.run(self.integration._try_initial_device_provisioning(object(), runtime))
+
+        self.assertIn("EmptyError", runtime.last_error)
+
     def test_persist_paired_device_updates_config_entry_data(self) -> None:
         class ConfigEntries:
             def __init__(self):

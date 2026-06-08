@@ -704,11 +704,12 @@ async def _try_initial_device_provisioning(
         if _is_deferred_provisioning_error(exc):
             _LOGGER.info(
                 "SpotifyDJ device pairing deferred until device is reachable: %s",
-                exc,
+                _format_exception(exc),
             )
             return
-        runtime.update(last_error=f"SpotifyDJ device pairing failed: {exc}")
-        _LOGGER.warning("SpotifyDJ device pairing deferred/failed: %s", exc)
+        message = _format_exception(exc)
+        runtime.update(last_error=f"SpotifyDJ device pairing failed: {message}")
+        _LOGGER.warning("SpotifyDJ device pairing deferred/failed: %s", message)
 
 
 def _is_deferred_provisioning_error(exc: Exception) -> bool:
@@ -723,6 +724,14 @@ def _is_deferred_provisioning_error(exc: Exception) -> bool:
             "Timeout while contacting DNS servers",
         )
     )
+
+
+def _format_exception(exc: Exception) -> str:
+    """Return useful text even when Home Assistant exceptions stringify empty."""
+    text = str(exc).strip()
+    if text:
+        return text
+    return f"{type(exc).__name__}: {exc!r}"
 
 
 def _register_developer_services(

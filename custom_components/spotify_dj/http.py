@@ -866,7 +866,16 @@ class SpotifyDJSpotifyCallbackView(HomeAssistantView):
             await hass.config_entries.async_reload(entry.entry_id)
             flow_id = ctx.get("flow_id")
             if flow_id:
-                await hass.config_entries.flow.async_configure(flow_id, {"state": state})
+                try:
+                    await hass.config_entries.flow.async_configure(
+                        flow_id,
+                        {"state": state},
+                    )
+                except Exception:  # noqa: BLE001
+                    _LOGGER.debug(
+                        "SpotifyDJ OAuth options flow was already closed before callback completion",
+                        exc_info=True,
+                    )
             return web.Response(
                 text=(
                     "SpotifyDJ Spotify OAuth is gelukt. De refresh token is opgeslagen in Home Assistant. "
