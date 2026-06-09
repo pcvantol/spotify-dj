@@ -125,6 +125,30 @@ class AssistPipelineTest(unittest.TestCase):
                 "Speel iets",
             )
 
+    def test_assist_prompt_device_lookup_error_falls_back_to_search_intent(self) -> None:
+        intent = self.pipeline._intent_from_assist_response(
+            {
+                "response": {
+                    "response_type": "error",
+                    "speech": {
+                        "plain": {
+                            "speech": (
+                                "Sorry, ik kan geen apparaat vinden met de naam "
+                                "Verwerk deze DJConnect muziekopdracht en maak waar mogelijk "
+                                "djconnect intentdata"
+                            )
+                        }
+                    },
+                }
+            },
+            "Speel Black van Pearl Jam",
+        )
+
+        self.assertEqual(intent["intent"], "play_music")
+        self.assertEqual(intent["type"], "search")
+        self.assertEqual(intent["spotify_search_query"], "Speel Black van Pearl Jam")
+        self.assertEqual(intent["dj_announcement"], "Daar gaan we. Ik zet hem voor je klaar.")
+
 
 if __name__ == "__main__":
     unittest.main()

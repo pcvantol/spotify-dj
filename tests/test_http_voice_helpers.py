@@ -1333,6 +1333,73 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(runtime.device_status["led_state"], "off")
         self.assertNotIn("device_token", response["payload"])
 
+    def test_status_view_sparse_heartbeat_does_not_clear_existing_sensor_values(self) -> None:
+        const = importlib.import_module("custom_components.djconnect.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {
+                "device_id": "djconnect-lilygo-90B70990A994",
+                "client_type": "esp32",
+                "battery_percent": 85,
+                "wifi_rssi": -55,
+                "firmware": "3.0.11",
+                "screen_state": "on",
+                "led_state": "idle",
+                "sound_output": "Living room",
+                "available_outputs": [{"id": "dev-1", "name": "Living room"}],
+            }
+            ota_in_progress = False
+            ota_last_error = None
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def get_current_spotify_credentials(self):
+                return {}
+
+            def device_language(self):
+                return "nl"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
+
+            async def json(self):
+                return {
+                    "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
+                    "battery_percent": None,
+                    "wifi_rssi": None,
+                    "firmware": "",
+                    "screen": {"state": None},
+                    "led": {"state": None},
+                    "sound_output": "",
+                    "available_outputs": [],
+                    "ha_pairing_status": "paired",
+                }
+
+        response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertEqual(runtime.device_status["battery_percent"], 85)
+        self.assertEqual(runtime.device_status["wifi_rssi"], -55)
+        self.assertEqual(runtime.device_status["firmware"], "3.0.11")
+        self.assertEqual(runtime.device_status["screen_state"], "on")
+        self.assertEqual(runtime.device_status["led_state"], "idle")
+        self.assertEqual(runtime.device_status["sound_output"], "Living room")
+        self.assertEqual(
+            runtime.device_status["available_outputs"],
+            [{"id": "dev-1", "name": "Living room"}],
+        )
+        self.assertEqual(runtime.device_status["ha_pairing_status"], "paired")
+
     def test_status_view_accepts_same_major_minor_firmware(self) -> None:
         const = importlib.import_module("custom_components.djconnect.const")
 

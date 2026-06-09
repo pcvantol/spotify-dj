@@ -490,6 +490,18 @@ def _validate_required_client_type(data: dict[str, Any]) -> str | None:
     return client_type
 
 
+def _merge_status_update(status: dict[str, Any], update: dict[str, Any]) -> None:
+    """Merge ESP status without letting sparse heartbeats erase known values."""
+    for key, value in update.items():
+        if _is_empty_status_value(value) and key in status:
+            continue
+        status[key] = value
+
+
+def _is_empty_status_value(value: Any) -> bool:
+    return value is None or value == "" or value == [] or value == {}
+
+
 def _runtime_client_type(runtime: Any) -> str:
     getter = getattr(runtime, "client_type", None)
     if callable(getter):
@@ -734,7 +746,7 @@ class DJConnectStatusView(HomeAssistantView):
             )
             return _json_error(self, "invalid_client_type", 400)
         status_update[CONF_CLIENT_TYPE] = client_type
-        runtime.device_status.update(status_update)
+        _merge_status_update(runtime.device_status, status_update)
         if not _runtime_versions_compatible(runtime):
             runtime.update(
                 last_error=(

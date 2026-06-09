@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.0.11`
+- Home Assistant integration: `3.0.12`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -234,7 +234,7 @@ Spotify OAuth credentials stay in Home Assistant. They are never provisioned to 
 text -> HA Assist conversation pipeline -> DJConnect intent -> Spotify -> ESP DJ response
 ```
 
-`djconnect.test_command` accepts `text` and optional `play`. With `play: false`, it uses the same command parser path without starting Spotify playback.
+`djconnect.test_command` accepts `command_text` and optional `play`. The legacy `text` key is still accepted for existing YAML/scripts. With `play: false`, it uses the same command parser path without starting Spotify playback.
 
 If command processing or Spotify playback fails, DJConnect still sends a
 friendly DJ response to the ESP device when possible, so the user hears or sees
@@ -253,7 +253,7 @@ Developer action overview:
 
 - `djconnect.test_parse`: test only the HA Assist conversation parser and return the DJConnect intent; no playback and no DJ response delivery.
 - `djconnect.test_tts`: send a DJ response text to the DJConnect device; Home Assistant tries to generate a temporary WAV or MP3 URL, otherwise the ESP shows text only.
-- `djconnect.test_command`: test the complete ESP text-command route with `text` and `play`; set `play: false` to avoid starting Spotify playback while still sending the DJ response.
+- `djconnect.test_command`: test the complete ESP text-command route with `command_text` and `play`; set `play: false` to avoid starting Spotify playback while still sending the DJ response.
 - `djconnect.start_spotify_oauth`: generate a Spotify PKCE authorization URL for manual reauthorization/debugging.
 
 Developer actions return response data where Home Assistant supports it. Enable
@@ -267,7 +267,7 @@ Example developer action data:
 ```yaml
 action: djconnect.test_command
 data:
-  text: "Play Pearl Jam"
+  command_text: "Play Pearl Jam"
   play: false
 ```
 
@@ -276,7 +276,7 @@ Example DJ response test:
 ```yaml
 action: djconnect.test_tts
 data:
-  text: "Here we go. DJConnect is paired, the voice works, and I am ready for your next track."
+  dj_response_text: "Here we go. DJConnect is paired, the voice works, and I am ready for your next track."
 ```
 
 DJ response audio flow:
@@ -490,12 +490,12 @@ Example manifest:
 
 ```json
 {
-  "version": "3.0.11",
+  "version": "3.0.12",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.11.bin",
+  "asset": "djconnect-device-v3.0.12.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "3.0.11"
+  "min_ha_integration": "3.0.12"
 }
 ```
 
@@ -510,7 +510,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.0.11
+./release.sh 3.0.12
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -521,7 +521,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.0.11 --dry-run
+./release.sh 3.0.12 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -579,11 +579,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.0.11"
-git tag v3.0.11
+git commit -m "Release DJConnect v3.0.12"
+git tag v3.0.12
 git push origin main
-git push origin v3.0.11
-gh release create v3.0.11 --title "DJConnect v3.0.11" --notes-file CHANGELOG.md
+git push origin v3.0.12
+gh release create v3.0.12 --title "DJConnect v3.0.12" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

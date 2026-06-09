@@ -34,6 +34,9 @@ class ServicesYamlTest(unittest.TestCase):
     def test_test_command_documents_play_flag(self) -> None:
         text = SERVICES.read_text()
 
+        self.assertIn("command_text:", text)
+        self.assertIn("dj_response_text:", text)
+        self.assertNotIn("\n    text:\n      name:", text)
         self.assertIn("play:", text)
         self.assertIn("Start playback", text)
         self.assertIn("without starting Spotify playback", text)

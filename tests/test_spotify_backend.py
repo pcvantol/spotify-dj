@@ -59,8 +59,10 @@ class SpotifyBackendTest(unittest.TestCase):
         playback = self.backend._normalize_playback(
             {
                 "is_playing": True,
+                "context": {"uri": "spotify:playlist:abc"},
                 "item": {
                     "name": "Song",
+                    "uri": "spotify:track:123",
                     "artists": [{"name": "Artist"}],
                     "album": {
                         "name": "Album",
@@ -76,6 +78,14 @@ class SpotifyBackendTest(unittest.TestCase):
 
         self.assertEqual(playback["album_image_url"], "https://example.test/large.jpg")
         self.assertEqual(playback["media_image_url"], "https://example.test/large.jpg")
+        self.assertEqual(playback["uri"], "spotify:track:123")
+        self.assertEqual(playback["current_uri"], "spotify:track:123")
+        self.assertEqual(playback["context_uri"], "spotify:playlist:abc")
+        self.assertEqual(playback["queue_context"], "spotify:playlist:abc")
+        self.assertEqual(
+            playback["context"],
+            {"type": "", "uri": "spotify:playlist:abc", "href": ""},
+        )
 
     def test_invalid_grant_creates_reauth_issue_and_friendly_error(self) -> None:
         async def revoked(*args, **kwargs):

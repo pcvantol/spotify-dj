@@ -5,7 +5,7 @@ test_parse:
     conversation pipeline and return the DJConnect intent. This action does not
     start Spotify playback or send a DJ response.
   fields:
-    text:
+    command_text:
       name: Command text
       description: Text as the DJConnect device would send it after HA Assist STT.
       example: "Ik wil het nieuwste album van Pearl Jam horen"
@@ -22,7 +22,7 @@ test_tts:
     the configured TTS engine; if that fails, DJConnect sends text only so the
     device can display the response.
   fields:
-    text:
+    dj_response_text:
       name: DJ response text
       description: Text the DJConnect device should display and speak when possible.
       example: "Daar gaan we. DJConnect is gekoppeld, de stem werkt, en ik sta klaar voor je volgende plaat."
@@ -38,7 +38,7 @@ test_command:
     Text goes through HA Assist to a DJConnect intent, can optionally start
     Spotify playback, and then sends the DJ response to the ESP device.
   fields:
-    text:
+    command_text:
       name: Command text
       description: Music request or command text.
       example: "Speel mijn favoriete nummers"

@@ -295,8 +295,10 @@ class SpotifyBackend:
         if not offset_uri:
             raise ValueError("Provide offset_uri")
         if not context_uri:
-            await self.play(offset_uri)
-            return
+            playback = self.runtime.last_playback or {}
+            context_uri = str(playback.get("context_uri") or "").strip()
+        if not context_uri:
+            raise ValueError("Cannot start queue item without playback context")
         await self._request(
             "PUT",
             "/me/player/play",
@@ -371,6 +373,8 @@ class SpotifyBackend:
 
 def _normalize_playback(data: dict[str, Any]) -> dict[str, Any]:
     item = data.get("item") or {}
+    context = data.get("context") or {}
+    context_uri = context.get("uri") or ""
     artists = item.get("artists") or []
     album = item.get("album") or {}
     images = album.get("images") or item.get("images") or []
@@ -380,6 +384,11 @@ def _normalize_playback(data: dict[str, Any]) -> dict[str, Any]:
         "is_playing": bool(data.get("is_playing")),
         "title": item.get("name") or "",
         "track_name": item.get("name") or "",
+        "uri": item.get("uri") or "",
+        "current_uri": item.get("uri") or "",
+        "context": _normalize_context(context),
+        "context_uri": context_uri,
+        "queue_context": context_uri,
         "artist": ", ".join(artist.get("name", "") for artist in artists if artist.get("name")),
         "artist_name": ", ".join(artist.get("name", "") for artist in artists if artist.get("name")),
         "album_name": album.get("name") or "",
@@ -391,6 +400,14 @@ def _normalize_playback(data: dict[str, Any]) -> dict[str, Any]:
         "shuffle": bool(data.get("shuffle_state")),
         "repeat_state": data.get("repeat_state") or "off",
         "device": _normalize_device(data.get("device") or {}),
+    }
+
+
+def _normalize_context(context: dict[str, Any]) -> dict[str, str]:
+    return {
+        "type": context.get("type") or "",
+        "uri": context.get("uri") or "",
+        "href": context.get("href") or "",
     }
 
 

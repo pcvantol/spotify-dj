@@ -151,6 +151,32 @@ class TtsHelperTest(unittest.TestCase):
         )
         self.assertEqual(runtime.device_status["volume"], 35)
 
+    def test_service_text_accepts_ui_specific_aliases_and_legacy_text(self) -> None:
+        self.assertEqual(
+            self.integration._service_text(
+                types.SimpleNamespace(data={"command_text": "Speel Pearl Jam"}),
+                "default",
+                "command_text",
+            ),
+            "Speel Pearl Jam",
+        )
+        self.assertEqual(
+            self.integration._service_text(
+                types.SimpleNamespace(data={"text": "Legacy Pearl Jam"}),
+                "default",
+                "command_text",
+            ),
+            "Legacy Pearl Jam",
+        )
+        self.assertEqual(
+            self.integration._service_text(
+                types.SimpleNamespace(data={"dj_response_text": "Daar gaan we"}),
+                "default",
+                "dj_response_text",
+            ),
+            "Daar gaan we",
+        )
+
     def test_spotify_payload_contains_refresh_token_aliases(self) -> None:
         entry = types.SimpleNamespace(
             data={

@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.0.11
+## 3.0.12
 
 - Fix Home Assistant playback proxy play/pause toggle support.
 - Fix sound output select state by reading playback device, `output` aliases and active output entries.

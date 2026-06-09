@@ -83,6 +83,71 @@ class DJConnectSensorTest(unittest.TestCase):
         self.assertEqual(screen.native_value, "on")
         self.assertEqual(led.native_value, "off")
 
+    def test_last_track_sensor_reads_backend_and_device_aliases(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            device_status={"last_track": "Device Track"},
+            last_playback={"track_name": "Backend Track"},
+            listeners=[],
+        )
+        entity = self.sensor.DJConnectLastTrackSensor(runtime)
+
+        self.assertEqual(entity.native_value, "Backend Track")
+        runtime.last_playback = {}
+        self.assertEqual(entity.native_value, "Device Track")
+        runtime.device_status = {"track": "Firmware Track"}
+        self.assertEqual(entity.native_value, "Firmware Track")
+
+    def test_last_command_sensor_reads_runtime_last_text(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            last_text="Speel Pearl Jam",
+            last_intent={"action": "play"},
+            listeners=[],
+        )
+        entity = self.sensor.DJConnectLastTextSensor(runtime)
+
+        self.assertEqual(entity.native_value, "Speel Pearl Jam")
+        self.assertEqual(entity.extra_state_attributes["last_intent"], {"action": "play"})
+
+    def test_queue_sensor_reads_dict_items_and_context(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            device_status={
+                "queue": {
+                    "items": [{"title": "Song"}],
+                    "context": {"uri": "spotify:playlist:abc"},
+                    "currently_playing": {"title": "Current"},
+                }
+            },
+            last_playback={},
+            listeners=[],
+        )
+        entity = self.sensor.DJConnectQueueSensor(runtime)
+
+        self.assertEqual(entity.native_value, 1)
+        self.assertEqual(entity.extra_state_attributes["items"], [{"title": "Song"}])
+        self.assertEqual(
+            entity.extra_state_attributes["context"],
+            {"uri": "spotify:playlist:abc"},
+        )
+        self.assertEqual(
+            entity.extra_state_attributes["currently_playing"],
+            {"title": "Current"},
+        )
+
+    def test_queue_sensor_falls_back_to_playback_context(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            device_status={},
+            last_playback={"queue_context": "spotify:playlist:def"},
+            listeners=[],
+        )
+        entity = self.sensor.DJConnectQueueSensor(runtime)
+
+        self.assertEqual(entity.native_value, 0)
+        self.assertEqual(entity.extra_state_attributes["context"], "spotify:playlist:def")
+
 
 if __name__ == "__main__":
     unittest.main()

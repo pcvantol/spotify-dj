@@ -132,7 +132,15 @@ class DJConnectLastTrackSensor(DJConnectBaseSensor):
     @property
     def native_value(self):
         playback = self.runtime.last_playback or {}
-        return playback.get("title") or self.runtime.device_status.get("last_track")
+        for key in ("track_name", "title", "name", "track"):
+            value = playback.get(key)
+            if value not in (None, ""):
+                return value
+        for key in ("last_track", "track_name", "track"):
+            value = self.runtime.device_status.get(key)
+            if value not in (None, ""):
+                return value
+        return None
 
     @property
     def extra_state_attributes(self):
@@ -191,12 +199,19 @@ class DJConnectQueueSensor(DJConnectBaseSensor):
 
     @property
     def native_value(self):
-        queue = self.runtime.device_status.get("queue") or []
-        return len(queue) if isinstance(queue, list) else None
+        return len(_collection_items(self.runtime.device_status.get("queue")))
 
     @property
     def extra_state_attributes(self):
-        return {"items": self.runtime.device_status.get("queue") or []}
+        queue = self.runtime.device_status.get("queue")
+        attrs = {
+            "items": _collection_items(queue),
+            "context": _queue_context(self.runtime, queue),
+        }
+        current = _queue_currently_playing(queue)
+        if current:
+            attrs["currently_playing"] = current
+        return attrs
 
 
 class DJConnectPlaylistsSensor(DJConnectBaseSensor):
@@ -243,3 +258,40 @@ class DJConnectLedStateSensor(DJConnectBaseSensor):
     @property
     def native_value(self):
         return self.runtime.device_status.get("led_state")
+
+
+def _collection_items(value):
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        for key in ("items", "queue", "playlists", "outputs", "devices"):
+            items = value.get(key)
+            if isinstance(items, list):
+                return items
+    return []
+
+
+def _queue_context(runtime, queue):
+    if isinstance(queue, dict):
+        for key in ("context", "queue_context", "context_uri"):
+            value = queue.get(key)
+            if value not in (None, "", {}, []):
+                return value
+    playback = runtime.last_playback or {}
+    for key in ("context", "queue_context", "context_uri"):
+        value = playback.get(key)
+        if value not in (None, "", {}, []):
+            return value
+    for key in ("queue_context", "context_uri"):
+        value = runtime.device_status.get(key)
+        if value not in (None, "", {}, []):
+            return value
+    return None
+
+
+def _queue_currently_playing(queue):
+    if isinstance(queue, dict):
+        value = queue.get("currently_playing") or queue.get("current")
+        if isinstance(value, dict):
+            return value
+    return None

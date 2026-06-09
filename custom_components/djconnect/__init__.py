@@ -639,9 +639,13 @@ def _mdns_name_matches_device(name: str, device_id: str) -> bool:
     return False
 
 
-def _service_text(call: ServiceCall, default: str) -> str:
+def _service_text(call: ServiceCall, default: str, *aliases: str) -> str:
     """Return normalized service text while keeping developer actions forgiving."""
-    return str(call.data.get("text") or default).strip()
+    for key in ("text", *aliases):
+        value = call.data.get(key)
+        if value not in (None, ""):
+            return str(value).strip()
+    return str(default).strip()
 
 
 async def async_speak_dj_test(
@@ -795,21 +799,21 @@ def _register_developer_services(
     """Register Home Assistant developer actions for parser, TTS and provisioning."""
 
     async def handle_test_parse(call: ServiceCall) -> dict[str, Any] | None:
-        text = _service_text(call, DEFAULT_TEST_COMMAND)
+        text = _service_text(call, DEFAULT_TEST_COMMAND, "command_text")
         _LOGGER.debug("DJConnect developer action test_parse: %s", text)
         result = await process_text_command(hass, runtime, text, play=False)
         _LOGGER.debug("DJConnect test_parse: %s", result)
         return result
 
     async def handle_test_tts(call: ServiceCall) -> dict[str, Any]:
-        text = _service_text(call, DEFAULT_TEST_TTS_TEXT)
+        text = _service_text(call, DEFAULT_TEST_TTS_TEXT, "dj_response_text")
         _LOGGER.debug("DJConnect developer action test_tts: %s", text)
         result = await async_speak_dj_test(hass, runtime, text)
         _LOGGER.debug("DJConnect test_tts sent DJ response to device: %s", text)
         return result
 
     async def handle_test_command(call: ServiceCall) -> dict[str, Any] | None:
-        text = _service_text(call, DEFAULT_TEST_COMMAND)
+        text = _service_text(call, DEFAULT_TEST_COMMAND, "command_text")
         play = bool(call.data.get("play", True))
         _LOGGER.debug(
             "DJConnect developer action test_command play=%s: %s",

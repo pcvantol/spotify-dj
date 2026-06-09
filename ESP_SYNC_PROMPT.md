@@ -481,7 +481,9 @@ Huidige states:
 - Backend unavailable mag niet terug naar pairing-code scherm forceren.
 - Pairing stale mag duidelijk tonen: reset/re-pair nodig.
 - Soft reset/reboot moet local cue sound en felle witte LED-ring flash tonen vlak voor reboot.
+- Als een menu geopend wordt, zet de LED-ring uit/clear de volume-indicatie; toon niet de laatst gebruikte volume-ring terwijl menu UI actief is.
 - Bonus games Pong, Asteroids en Fly mogen in UI blijven.
+- Gebruik bij Asteroids een blauwe LED-ring/game accentkleur in plaats van paars.
 - Noem oude broker-gebaseerde routes nergens.
 
 ### 10. Tests

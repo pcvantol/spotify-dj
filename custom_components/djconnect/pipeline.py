@@ -161,6 +161,8 @@ def _intent_from_assist_response(response: dict[str, Any], user_text: str) -> di
     response_type = conversation_response.get("response_type")
     if response_type == "error":
         speech = _speech_from_response(conversation_response)
+        if _assist_treated_prompt_as_ha_command(speech):
+            return _fallback_search_intent(user_text)
         raise RuntimeError(speech or "HA Assist could not process the command")
 
     data = _djconnect_data(conversation_response)
@@ -180,6 +182,32 @@ def _intent_from_assist_response(response: dict[str, Any], user_text: str) -> di
     if not intent["dj_announcement"]:
         intent["dj_announcement"] = "Daar gaan we. Ik zet hem voor je klaar."
     return intent
+
+
+def _fallback_search_intent(user_text: str) -> dict[str, Any]:
+    return {
+        "intent": "play_music",
+        "type": "search",
+        "artist": None,
+        "title": None,
+        "playlist": None,
+        "query": user_text,
+        "spotify_search_query": user_text,
+        "dj_announcement": "Daar gaan we. Ik zet hem voor je klaar.",
+    }
+
+
+def _assist_treated_prompt_as_ha_command(speech: str) -> bool:
+    normalized = " ".join(str(speech or "").lower().split())
+    return (
+        "djconnect muziekopdracht" in normalized
+        or "djconnect music request" in normalized
+    ) and (
+        "geen apparaat vinden" in normalized
+        or "can't find" in normalized
+        or "cannot find" in normalized
+        or "no device" in normalized
+    )
 
 
 def _has_djconnect_data(conversation_response: dict[str, Any]) -> bool:

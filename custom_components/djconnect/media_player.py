@@ -99,7 +99,13 @@ class DJConnectPlaybackProxyMediaPlayer(MediaPlayerEntity):
 
     @property
     def entity_picture(self) -> str | None:
-        return _playback_value(self.runtime, "album_image_url", "entity_picture")
+        return _playback_value(
+            self.runtime,
+            "album_image_url",
+            "media_image_url",
+            "image_url",
+            "entity_picture",
+        )
 
     @property
     def media_image_url(self) -> str | None:
@@ -165,12 +171,10 @@ class DJConnectPlaybackProxyMediaPlayer(MediaPlayerEntity):
         await self._backend_command(command)
 
     async def async_media_next_track(self) -> None:
-        await self._backend_command("next")
-        await self._refresh_device_display()
+        await self.runtime.async_device_command(self.hass, "next")
 
     async def async_media_previous_track(self) -> None:
-        await self._backend_command("previous")
-        await self._refresh_device_display()
+        await self.runtime.async_device_command(self.hass, "previous")
 
     async def async_set_volume_level(self, volume: float) -> None:
         await self._backend_command("set_volume", int(max(0.0, min(1.0, volume)) * 60))

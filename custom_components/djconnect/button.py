@@ -85,11 +85,11 @@ class DJConnectCommandButton(DJConnectBaseButton):
 
     async def async_press(self) -> None:
         try:
-            if self.command in {"next", "previous", "play_pause"}:
-                backend_command = self.command
-                if self.command == "play_pause":
-                    playback = self.runtime.last_playback or {}
-                    backend_command = "pause" if playback.get("is_playing") else "play"
+            if self.command in {"next", "previous"}:
+                await self.runtime.async_device_command(self.hass, self.command)
+            elif self.command == "play_pause":
+                playback = self.runtime.last_playback or {}
+                backend_command = "pause" if playback.get("is_playing") else "play"
                 await handle_spotify_command(self.hass, self.runtime, backend_command)
             else:
                 await self.runtime.async_device_command(self.hass, self.command)

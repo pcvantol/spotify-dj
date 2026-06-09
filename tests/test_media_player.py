@@ -5,6 +5,10 @@ import importlib
 import sys
 import types
 import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def install_media_player_stubs() -> None:
@@ -14,6 +18,7 @@ def install_media_player_stubs() -> None:
         types.ModuleType("homeassistant.components"),
     )
     http_component = types.ModuleType("homeassistant.components.http")
+    button = types.ModuleType("homeassistant.components.button")
     media_player = types.ModuleType("homeassistant.components.media_player")
     media_player_const = types.ModuleType("homeassistant.components.media_player.const")
     config_entries = types.ModuleType("homeassistant.config_entries")
@@ -27,6 +32,10 @@ def install_media_player_stubs() -> None:
     helpers_typing = types.ModuleType("homeassistant.helpers.typing")
 
     class MediaPlayerEntity:
+        def async_write_ha_state(self):
+            self.wrote_state = True
+
+    class ButtonEntity:
         def async_write_ha_state(self):
             self.wrote_state = True
 
@@ -58,6 +67,7 @@ def install_media_player_stubs() -> None:
     aiohttp.ClientTimeout = ClientTimeout
     aiohttp.web = types.SimpleNamespace(Response=object)
     http_component.HomeAssistantView = HomeAssistantView
+    button.ButtonEntity = ButtonEntity
     media_player.MediaPlayerEntity = MediaPlayerEntity
     media_player.MediaPlayerEntityFeature = Feature
     media_player_const.MediaPlayerState = State
@@ -71,6 +81,7 @@ def install_media_player_stubs() -> None:
     entity_platform.AddEntitiesCallback = object
     helpers_typing.ConfigType = dict
     components.media_player = media_player
+    components.button = button
     components.http = http_component
     helpers.aiohttp_client = aiohttp_client
     helpers.device_registry = device_registry
@@ -78,7 +89,18 @@ def install_media_player_stubs() -> None:
     helpers.typing = helpers_typing
     ha.components = components
 
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
+    package.DEFAULT_TEST_TTS_TEXT = "Test de DJConnect response flow"
+
+    async def async_speak_dj_test(hass, runtime, text):
+        return {"success": True, "text": text}
+
+    package.async_speak_dj_test = async_speak_dj_test
+    sys.modules["custom_components.djconnect"] = package
+
     sys.modules["homeassistant.components.http"] = http_component
+    sys.modules["homeassistant.components.button"] = button
     sys.modules["homeassistant.components.media_player"] = media_player
     sys.modules["homeassistant.components.media_player.const"] = media_player_const
     sys.modules["homeassistant.config_entries"] = config_entries
@@ -95,6 +117,7 @@ class DJConnectMediaPlayerTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         install_media_player_stubs()
         cls.media_player = importlib.import_module("custom_components.djconnect.media_player")
+        cls.button = importlib.import_module("custom_components.djconnect.button")
 
     def test_media_player_represents_backend_playback(self) -> None:
         runtime = types.SimpleNamespace(
@@ -130,6 +153,30 @@ class DJConnectMediaPlayerTest(unittest.TestCase):
         self.assertEqual(entity.source, "Living room")
         self.assertEqual(entity.source_list, ["Living room"])
         self.assertEqual(entity.extra_state_attributes["represents"], "backend_playback_session")
+
+    def test_media_player_entity_picture_uses_image_aliases(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            device_token="device-token",
+            device_status={},
+            last_error=None,
+            last_playback={
+                "has_playback": True,
+                "is_playing": True,
+                "media_image_url": "https://example.test/media.jpg",
+            },
+            listeners=[],
+        )
+        entity = self.media_player.DJConnectPlaybackProxyMediaPlayer(runtime, object())
+
+        self.assertEqual(entity.entity_picture, "https://example.test/media.jpg")
+
+        runtime.last_playback = {
+            "has_playback": True,
+            "is_playing": True,
+            "image_url": "https://example.test/image.jpg",
+        }
+        self.assertEqual(entity.entity_picture, "https://example.test/image.jpg")
 
     def test_media_player_commands_use_backend_handler(self) -> None:
         calls = []
@@ -174,6 +221,49 @@ class DJConnectMediaPlayerTest(unittest.TestCase):
         self.assertIn(("set_shuffle", True, None), calls)
         self.assertIn(("set_repeat", "context", None), calls)
         self.assertIn(("start_playlist", "spotify:playlist:abc", None), calls)
+
+    def test_next_previous_media_player_commands_go_through_device(self) -> None:
+        commands = []
+
+        async def async_device_command(hass, command, **kwargs):
+            commands.append((command, kwargs))
+            return {"success": True}
+
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            device_token="device-token",
+            device_status={},
+            last_error=None,
+            last_playback={"has_playback": True, "is_playing": True},
+            listeners=[],
+            update=lambda **kwargs: None,
+            async_device_command=async_device_command,
+        )
+        entity = self.media_player.DJConnectPlaybackProxyMediaPlayer(runtime, object())
+
+        asyncio.run(entity.async_media_next_track())
+        asyncio.run(entity.async_media_previous_track())
+
+        self.assertEqual(commands, [("next", {}), ("previous", {})])
+
+    def test_next_previous_buttons_go_through_device(self) -> None:
+        commands = []
+
+        async def async_device_command(hass, command, **kwargs):
+            commands.append((command, kwargs))
+            return {"success": True}
+
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            device_status={},
+            last_playback={},
+            async_device_command=async_device_command,
+        )
+
+        asyncio.run(self.button.DJConnectCommandButton(runtime, object(), "next", "next_track").async_press())
+        asyncio.run(self.button.DJConnectCommandButton(runtime, object(), "previous", "previous_track").async_press())
+
+        self.assertEqual(commands, [("next", {}), ("previous", {})])
 
     def test_media_player_update_handles_backend_auth_failure(self) -> None:
         updates = []
