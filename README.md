@@ -146,7 +146,10 @@ The redirect URI in Spotify must exactly match the Home Assistant external URL p
 The setup flow no longer shows a manual `oauth_result` field.
 
 BLE WiFi provisioning only writes WiFi credentials to the setup-mode device. It
-does not send Spotify credentials, device tokens or other secrets over BLE.
+writes JSON with `ssid` and `password` keys only; `ssid` is required and
+`password` may be empty for open networks. The JSON may be fragmented across
+multiple BLE writes and does not send Spotify credentials, device tokens or
+other secrets over BLE.
 
 ## Voice And DJ Settings
 
@@ -365,7 +368,9 @@ BLE setup-mode devices are matched by service UUID:
 
 WiFi credentials are written as UTF-8 JSON to characteristic
 `7f705001-9f8f-4f1a-9b5f-570071fd0001`; status is read from
-`7f705002-9f8f-4f1a-9b5f-570071fd0001`.
+`7f705002-9f8f-4f1a-9b5f-570071fd0001`. The write payload is
+`{"ssid":"MyWiFi","password":"wifi-password"}` and may be split over multiple
+BLE writes for firmware-side reassembly.
 
 The voice endpoint accepts raw WAV audio from the paired ESP device:
 

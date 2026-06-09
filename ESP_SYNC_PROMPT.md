@@ -434,6 +434,37 @@ Service/characteristics:
 
 Geen Spotify credentials, device tokens of andere secrets via BLE.
 
+WiFi write payload is JSON only. HA schrijft alleen deze keys:
+
+```json
+{"ssid":"Netwerk","password":"wachtwoord"}
+```
+
+Regels:
+
+- `ssid` is verplicht.
+- `password` mag leeg zijn voor open netwerken.
+- Payload mag over meerdere BLE writes gefragmenteerd worden; firmware buffert chunks tot een compleet JSON object ontvangen is.
+- Write alleen toestaan tijdens setup/AP mode of HA pairing mode.
+- Playback credentials mogen nooit over BLE.
+- Als parsing of validatie faalt, zet de status characteristic op JSON met `state:"error"` en een korte `message`.
+
+Status characteristic geeft JSON terug, bijvoorbeeld:
+
+```json
+{"state":"ready","message":"Write WiFi JSON"}
+```
+
+Huidige states:
+
+- `ready`
+- `received`
+- `receiving`
+- `testing`
+- `success`
+- `error`
+- `pairing`
+
 ### 9. UI/UX
 
 - Device blijft koppelcode tonen tot HA pairing echt bevestigd is.

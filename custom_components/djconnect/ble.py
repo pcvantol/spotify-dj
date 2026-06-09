@@ -16,6 +16,7 @@ BLE_NAME_PREFIX = "DJConnect"
 BLE_CONNECT_TIMEOUT = 12
 BLE_WRITE_TIMEOUT = 10
 BLE_STATUS_TIMEOUT = 8
+BLE_WRITE_CHUNK_SIZE = 20
 
 
 def wifi_payload(ssid: str, password: str) -> bytes:
@@ -27,6 +28,15 @@ def wifi_payload(ssid: str, password: str) -> bytes:
         },
         separators=(",", ":"),
     ).encode("utf-8")
+
+
+def wifi_payload_chunks(ssid: str, password: str) -> list[bytes]:
+    """Build BLE WiFi JSON chunks for firmware-side reassembly."""
+    payload = wifi_payload(ssid, password)
+    return [
+        payload[index : index + BLE_WRITE_CHUNK_SIZE]
+        for index in range(0, len(payload), BLE_WRITE_CHUNK_SIZE)
+    ] or [b""]
 
 
 def parse_status(raw: bytes | bytearray | str | None) -> dict[str, Any]:
@@ -78,14 +88,21 @@ async def async_provision_wifi(
     _LOGGER.debug("DJConnect BLE WiFi provisioning started for %s", address)
     client = await _connect_client(hass, address)
     try:
-        await asyncio.wait_for(
-            client.write_gatt_char(
-                BLE_WIFI_CHAR_UUID,
-                wifi_payload(ssid, password),
-                response=True,
-            ),
-            timeout=BLE_WRITE_TIMEOUT,
+        chunks = wifi_payload_chunks(ssid, password)
+        _LOGGER.debug(
+            "DJConnect BLE WiFi provisioning payload chunks for %s: %s",
+            address,
+            len(chunks),
         )
+        for chunk in chunks:
+            await asyncio.wait_for(
+                client.write_gatt_char(
+                    BLE_WIFI_CHAR_UUID,
+                    chunk,
+                    response=True,
+                ),
+                timeout=BLE_WRITE_TIMEOUT,
+            )
         try:
             raw_status = await asyncio.wait_for(
                 client.read_gatt_char(BLE_STATUS_CHAR_UUID),
