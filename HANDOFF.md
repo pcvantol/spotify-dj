@@ -4,8 +4,8 @@
 
 - Repository: `pcvantol/djconnect`.
 - Integration domain: `djconnect`.
-- Current integration release: `3.0.20`.
-- Release status: DJConnect `3.0.20` is the current release target.
+- Current integration release: `3.0.21`.
+- Release status: DJConnect `3.0.21` is the current release target.
 - Home Assistant integration is HACS-distributed and MIT-licensed.
 - ESP firmware source remains proprietary in `pcvantol/djconnect-app`.
 - Public firmware release assets live in `pcvantol/djconnect-firmware`.
@@ -104,6 +104,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - Token sent by HA to ESP in `POST /api/device/pair` must be exactly the token accepted by HA `/status`, `/command` and `/voice`.
 - HA -> ESP pairing payload uses `ha_local_url` and `ha_remote_url`; legacy `ha_url` must not be sent or expected.
 - At least one of `ha_local_url` or `ha_remote_url` must be present. ESP should try `ha_local_url` first and use `ha_remote_url` as cloud fallback.
+- `ha_local_url` must never be a `*.ui.nabu.casa` cloud URL; resolve HA Network/internal/source-IP local URL first, then use `http://homeassistant.local:8123` as final local fallback and send cloud only as `ha_remote_url`.
 - HA may call `POST /api/device/pair` only for initial pairing, explicit re-pair/token rotation or stale-pairing recovery. Startup with a stored token, normal status sync, playback commands and settings sync must not call it.
 - Setup-code pairing can start with a temporary six-digit identity, but HA must learn and persist only the real `djconnect-lilygo-XXXXXXXXXXXX` ID from the first authenticated ESP call. Legacy `djconnect-XXXXXXXXXXXX` IDs are not accepted.
 - HA and ESP firmware compatibility is strict on `major.minor`: patch versions may differ, but `3.0.z` must not talk to `3.1.z`. HA returns HTTP `426` `version_mismatch` with HA/firmware metadata and keeps pairing intact.
@@ -126,6 +127,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 ## Current Release Notes
 
 - Current release line is `3.0.x`; only the latest GitHub release/tag should be kept after release cleanup.
+- `3.0.21` prevents Nabu Casa/cloud URLs from being sent as `ha_local_url` during pairing and falls back to HA network/source-IP local URL discovery, then `http://homeassistant.local:8123`.
 - `3.0.20` keeps the options-flow “re-pair with new pairing code” field empty instead of pre-filling the old stored pairing code.
 - `3.0.19` sets the Spotify repair OAuth popup title and description directly on the Repairs external-step result, so Home Assistant no longer shows a blank dialog when translation lookup misses a dynamic repair issue id.
 - `3.0.18` adds explicit Spotify repair-flow popup text for the initial external-website repair step, so the repair dialog does not open blank.

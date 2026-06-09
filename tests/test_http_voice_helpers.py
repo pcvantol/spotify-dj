@@ -1142,7 +1142,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["status_code"], 200)
         self.assertEqual(
             response["payload"]["ha_local_url"],
-            "https://example.ui.nabu.casa",
+            "http://homeassistant.local:8123",
         )
         self.assertEqual(
             response["payload"]["ha_remote_url"],
@@ -1206,7 +1206,10 @@ class VoiceHttpHelperTest(unittest.TestCase):
         response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
-        self.assertEqual(response["payload"]["ha_local_url"], "https://ha.example")
+        self.assertEqual(
+            response["payload"]["ha_local_url"],
+            "http://homeassistant.local:8123",
+        )
         self.assertEqual(response["payload"]["ha_remote_url"], "https://ha.example")
         self.assertNotIn("ha_url", response["payload"])
         self.assertTrue(response["payload"]["backend_available"])

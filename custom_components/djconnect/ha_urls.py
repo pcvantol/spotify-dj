@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+import inspect
+import logging
+from urllib.parse import urlparse
 from typing import Any
 
 from .const import CONF_HA_EXTERNAL_URL
+
+_LOGGER = logging.getLogger(__name__)
+HOMEASSISTANT_LOCAL_FALLBACK = "http://homeassistant.local:8123"
 
 
 async def async_ha_url_payload(hass: Any, conf: dict[str, Any]) -> dict[str, str]:
@@ -23,23 +29,70 @@ async def async_ha_local_url(hass: Any, conf: dict[str, Any]) -> str:
         from homeassistant.helpers import network
 
         url = await network.async_get_url(hass, prefer_external=False)
-        cleaned = _clean_url(url)
+        cleaned = _clean_local_url(url)
         if cleaned:
             return cleaned
+        source_ip = await _maybe_await(network.async_get_source_ip(hass))
+        fallback = _local_url_from_source_ip(source_ip)
+        if fallback:
+            return fallback
     except Exception:  # noqa: BLE001
-        pass
+        _LOGGER.debug("DJConnect could not determine HA local URL from network helper", exc_info=True)
 
     config = getattr(hass, "config", None)
     for value in (
         getattr(config, "internal_url", None),
-        getattr(config, "external_url", None),
-        conf.get(CONF_HA_EXTERNAL_URL),
+        getattr(getattr(config, "api", None), "internal_url", None),
+        _call_config_url_getter(config, "get_internal_url"),
+        _call_config_url_getter(config, "async_get_internal_url"),
     ):
-        cleaned = _clean_url(value)
+        cleaned = _clean_local_url(value)
         if cleaned:
             return cleaned
-    return ""
+    _LOGGER.info(
+        "DJConnect pairing local HA URL is unknown; using %s fallback",
+        HOMEASSISTANT_LOCAL_FALLBACK,
+    )
+    return HOMEASSISTANT_LOCAL_FALLBACK
 
 
 def _clean_url(value: Any) -> str:
     return str(value or "").strip().rstrip("/")
+
+
+def _clean_local_url(value: Any) -> str:
+    url = _clean_url(value)
+    if not url or _is_nabu_casa_url(url):
+        return ""
+    return url
+
+
+def _is_nabu_casa_url(value: str) -> bool:
+    host = (urlparse(value).hostname or "").lower()
+    return host.endswith(".ui.nabu.casa")
+
+
+def _local_url_from_source_ip(value: Any) -> str:
+    ip = str(value or "").strip()
+    if not ip:
+        return ""
+    return f"http://{ip}:8123"
+
+
+def _call_config_url_getter(config: Any, name: str) -> Any:
+    getter = getattr(config, name, None)
+    if not callable(getter):
+        return None
+    try:
+        value = getter()
+    except TypeError:
+        return None
+    if inspect.isawaitable(value):
+        return None
+    return value
+
+
+async def _maybe_await(value: Any) -> Any:
+    if inspect.isawaitable(value):
+        return await value
+    return value

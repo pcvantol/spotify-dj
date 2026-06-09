@@ -570,6 +570,53 @@ class TtsHelperTest(unittest.TestCase):
         self.assertNotIn("client_id", payload)
         self.assertNotIn("spotify_client_id", payload)
 
+    def test_ha_url_payload_falls_back_to_homeassistant_local_not_nabu_casa(self) -> None:
+        ha_urls = importlib.import_module("custom_components.djconnect.ha_urls")
+        hass = types.SimpleNamespace(
+            config=types.SimpleNamespace(external_url="https://fallback.ui.nabu.casa")
+        )
+
+        payload = asyncio.run(
+            ha_urls.async_ha_url_payload(
+                hass,
+                {self.const.CONF_HA_EXTERNAL_URL: "https://example.ui.nabu.casa"},
+            )
+        )
+
+        self.assertEqual(payload["ha_local_url"], "http://homeassistant.local:8123")
+        self.assertEqual(payload["ha_remote_url"], "https://example.ui.nabu.casa")
+
+    def test_ha_local_url_uses_source_ip_fallback(self) -> None:
+        helpers = sys.modules["homeassistant.helpers"]
+        network = types.ModuleType("homeassistant.helpers.network")
+
+        async def async_get_url(hass, prefer_external=False):
+            return "https://example.ui.nabu.casa"
+
+        async def async_get_source_ip(hass):
+            return "192.168.1.23"
+
+        network.async_get_url = async_get_url
+        network.async_get_source_ip = async_get_source_ip
+        previous_attr = getattr(helpers, "network", None)
+        previous_module = sys.modules.get("homeassistant.helpers.network")
+        helpers.network = network
+        sys.modules["homeassistant.helpers.network"] = network
+        try:
+            ha_urls = importlib.import_module("custom_components.djconnect.ha_urls")
+            local_url = asyncio.run(ha_urls.async_ha_local_url(object(), {}))
+        finally:
+            if previous_attr is None:
+                delattr(helpers, "network")
+            else:
+                helpers.network = previous_attr
+            if previous_module is None:
+                sys.modules.pop("homeassistant.helpers.network", None)
+            else:
+                sys.modules["homeassistant.helpers.network"] = previous_module
+
+        self.assertEqual(local_url, "http://192.168.1.23:8123")
+
     def test_setup_code_pairing_accepts_real_device_id_after_token_sync(self) -> None:
         entry = types.SimpleNamespace(
             entry_id="entry-1",

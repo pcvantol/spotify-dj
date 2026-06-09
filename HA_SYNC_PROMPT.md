@@ -48,8 +48,10 @@ Belangrijk:
 - Gebruik de echte `device_id` uit `/api/device/pairing-info` in de daaropvolgende `POST /api/device/pair`. Stuur nooit een tijdelijke `djconnect-<6-cijferige-code>` als `device_id` naar de ESP.
 - Als `/api/device/pairing-info` niet bereikbaar is of de code niet matcht, rond de config flow niet af als succesvol gepaired; toon/retry als pending/recoverable pairing failure.
 - `POST /api/device/pair` naar ESP moet `device_token` plus `ha_local_url` en/of `ha_remote_url` sturen.
-- `ha_local_url` is de LAN URL die ESP eerst probeert, bijvoorbeeld `http://homeassistant.local:8123`.
+- `ha_local_url` is de LAN URL die ESP eerst probeert, bijvoorbeeld `http://192.168.1.x:8123` of als laatste fallback `http://homeassistant.local:8123`.
+- `ha_local_url` mag nooit een `*.ui.nabu.casa` cloud URL zijn.
 - `ha_remote_url` is de optionele Nabu Casa/cloud URL die ESP gebruikt als local niet bereikbaar is.
+- `ha_remote_url` mag wel een Nabu Casa/cloud URL zijn en mag niet als primair local pad gebruikt worden.
 - Pairing zonder `ha_local_url` en zonder `ha_remote_url` moet als configuratiefout worden behandeld.
 - Stuur geen legacy `ha_url` pairingveld.
 - Treat ESP pairing as `pending` totdat een authenticated ESP status/command/voice post naar HA succesvol verwerkt is met dezelfde bearer token.

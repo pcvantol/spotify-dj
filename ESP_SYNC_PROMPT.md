@@ -4,7 +4,7 @@ Werk in de bestaande proprietary ESP firmware repo `pcvantol/djconnect-app`.
 
 ## Doel
 
-Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.20`.
+Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.21`.
 
 De HA integration is de trusted backend voor:
 
@@ -132,6 +132,10 @@ Controleer en fix:
 - ESP ontvangt `client_type` via `POST /api/device/pair`; verwacht voor deze firmware `esp32`.
 - ESP ontvangt `ha_local_url` en/of `ha_remote_url` via `POST /api/device/pair`.
 - ESP gebruikt `ha_local_url` LAN-first en `ha_remote_url` als cloud fallback.
+- `ha_local_url` moet een echte lokale HA URL zijn en mag nooit een `*.ui.nabu.casa` URL zijn.
+- `ha_remote_url` mag wel een Nabu Casa/cloud URL zijn.
+- Als HA geen betere lokale URL of LAN source-IP vindt, gebruikt HA `http://homeassistant.local:8123` als laatste `ha_local_url` fallback.
+- Gebruik `ha_remote_url` alleen als cloud/remote fallback, niet als primair local pad.
 - ESP accepteert en verwacht geen legacy `ha_url` pairingveld meer.
 - Als HA alleen met een 6-cijferige setupcode begint, moet HA eerst `GET /api/device/pairing-info` kunnen gebruiken om `pair_code` te verifiëren en de echte `djconnect-lilygo-XXXXXXXXXXXX` device-id te leren.
 - ESP moet in `/api/device/pairing-info` de echte device-id, `pair_code`, `client_type:"esp32"` en bereikbare local info teruggeven zolang het pairing/setup scherm actief is.

@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.0.20`
+- Home Assistant integration: `3.0.21`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -332,6 +332,10 @@ with `esp32` as the default for LilyGO/ESP firmware. The ESP should try
 credentials stay in Home Assistant and are used only by the HA playback backend.
 Pair/status payloads must not contain `ha_url`, `refresh_token`,
 `spotify_refresh_token`, `client_id` or a `spotify` OAuth object.
+`ha_local_url` is resolved from Home Assistant's internal/network URL or LAN
+source IP and must never be a `*.ui.nabu.casa` URL. If Home Assistant cannot
+discover a better local URL, DJConnect uses `http://homeassistant.local:8123` as
+the final local fallback and sends the cloud URL only as `ha_remote_url`.
 
 Spotify refresh tokens can rotate after OAuth. DJConnect stores newly returned refresh tokens immediately and treats that latest stored value as canonical for HA backend playback. If the ESP later reports `spotify_configured=false`, Home Assistant treats this as a compatibility/status hint, not as a request to send OAuth credentials to the ESP.
 
@@ -503,12 +507,12 @@ Example manifest:
 
 ```json
 {
-  "version": "3.0.20",
+  "version": "3.0.21",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.20.bin",
+  "asset": "djconnect-device-v3.0.21.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "3.0.20"
+  "min_ha_integration": "3.0.21"
 }
 ```
 
@@ -523,7 +527,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.0.20
+./release.sh 3.0.21
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -534,7 +538,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.0.20 --dry-run
+./release.sh 3.0.21 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -592,11 +596,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.0.20"
-git tag v3.0.20
+git commit -m "Release DJConnect v3.0.21"
+git tag v3.0.21
 git push origin main
-git push origin v3.0.20
-gh release create v3.0.20 --title "DJConnect v3.0.20" --notes-file CHANGELOG.md
+git push origin v3.0.21
+gh release create v3.0.21 --title "DJConnect v3.0.21" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:
