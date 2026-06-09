@@ -1,7 +1,8 @@
 # Changelog
 
-## 3.0.19
+## 3.0.20
 
+- Keep the options-flow “re-pair with new pairing code” field empty instead of pre-filling the old stored pairing code.
 - Set the Spotify repair OAuth popup title and description directly on the Repairs external-step result, so Home Assistant no longer shows a blank dialog when translation lookup misses the dynamic repair issue id.
 - Add explicit Spotify repair-flow popup text for the initial repair action, so the Home Assistant repair dialog no longer opens as a blank external-website step.
 - Harden device sensor caching: local ESP command responses, device-info refreshes, empty Spotify playback snapshots and accidental command/voice payloads can no longer replace the cached ESP status with empty/unknown values.

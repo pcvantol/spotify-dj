@@ -1325,10 +1325,7 @@ class DJConnectOptionsFlow(config_entries.OptionsFlow):
             step_id="repair_pairing",
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        CONF_PAIR_CODE,
-                        default=str(self._config_entry.data.get(CONF_PAIR_CODE, "")),
-                    ): str,
+                    vol.Required(CONF_PAIR_CODE): str,
                 }
             ),
             errors=errors,

@@ -752,6 +752,22 @@ class ConfigFlowHelperTest(unittest.TestCase):
         submit = asyncio.run(flow.async_step_spotify_reauth_done({}))
         self.assertEqual(submit["type"], "create_entry")
 
+    def test_options_repair_pairing_does_not_prefill_old_pair_code(self) -> None:
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={self.const.CONF_PAIR_CODE: "253940"},
+            options={},
+        )
+        flow = self.config_flow.DJConnectOptionsFlow(entry)
+
+        form = asyncio.run(flow.async_step_repair_pairing())
+
+        self.assertEqual(form["type"], "form")
+        self.assertEqual(form["step_id"], "repair_pairing")
+        markers = list(form["data_schema"].schema)
+        self.assertEqual(markers[0].key, self.const.CONF_PAIR_CODE)
+        self.assertIsNone(markers[0].default)
+
 
 if __name__ == "__main__":
     unittest.main()
