@@ -133,6 +133,7 @@ class DJConnectSensorTest(unittest.TestCase):
             entry=types.SimpleNamespace(entry_id="entry-1"),
             last_text="Speel Pearl Jam",
             last_stt_text="ik wil pearl jam starten",
+            last_dj_text="Daar is Pearl Jam",
             last_intent={"action": "play"},
             last_spotify_search={
                 "query": "ik wil pearl jam starten",
@@ -143,7 +144,9 @@ class DJConnectSensorTest(unittest.TestCase):
         )
         entity = self.sensor.DJConnectLastTextSensor(runtime)
 
-        self.assertEqual(entity.native_value, "Speel Pearl Jam")
+        self.assertEqual(entity.native_value, "Daar is Pearl Jam")
+        self.assertEqual(entity.extra_state_attributes["last_text"], "Speel Pearl Jam")
+        self.assertEqual(entity.extra_state_attributes["last_dj_text"], "Daar is Pearl Jam")
         self.assertEqual(entity.extra_state_attributes["last_stt_text"], "ik wil pearl jam starten")
         self.assertEqual(entity.extra_state_attributes["last_intent"], {"action": "play"})
         self.assertEqual(
@@ -160,6 +163,7 @@ class DJConnectSensorTest(unittest.TestCase):
             entry=types.SimpleNamespace(entry_id="entry-1"),
             last_text="ik wil pearl jam starten",
             last_stt_text="ik wil pearl jam starten",
+            last_dj_text="Daar is Pearl Jam",
             last_intent=None,
             last_spotify_search=None,
             last_resolved_media=None,
@@ -168,14 +172,35 @@ class DJConnectSensorTest(unittest.TestCase):
         )
         entity = self.sensor.DJConnectLastTextSensor(runtime)
 
-        self.assertEqual(entity.native_value, "ik wil pearl jam starten")
+        self.assertEqual(entity.native_value, "Daar is Pearl Jam")
         runtime.last_text = None
         runtime.last_stt_text = None
-        self.assertEqual(entity.native_value, "ik wil pearl jam starten")
+        runtime.last_dj_text = None
+        self.assertEqual(entity.native_value, "Daar is Pearl Jam")
         self.assertEqual(
             entity.extra_state_attributes["last_stt_text"],
-            "ik wil pearl jam starten",
+            "Daar is Pearl Jam",
         )
+
+    def test_last_command_sensor_restores_persisted_dj_response_text(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            last_text=None,
+            last_stt_text=None,
+            last_dj_text=None,
+            last_intent=None,
+            last_spotify_search=None,
+            last_resolved_media=None,
+            device_status={
+                "last_command": "ik wil pearl jam starten",
+                "last_dj_text": "Daar is Pearl Jam",
+            },
+            listeners=[],
+        )
+        entity = self.sensor.DJConnectLastTextSensor(runtime)
+
+        self.assertEqual(entity.native_value, "Daar is Pearl Jam")
+        self.assertEqual(entity.extra_state_attributes["last_dj_text"], "Daar is Pearl Jam")
 
     def test_status_sensor_exposes_voice_and_spotify_debug_attributes(self) -> None:
         runtime = types.SimpleNamespace(

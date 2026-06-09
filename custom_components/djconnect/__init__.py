@@ -104,6 +104,54 @@ def _merge_cached_device_status(
         device_status[key] = value
 
 
+def _runtime_last_command_value(runtime: Any) -> str | None:
+    for key in ("last_dj_text", "last_text", "last_stt_text"):
+        value = getattr(runtime, key, None)
+        if value not in (None, ""):
+            return str(value)
+    return None
+
+
+def _runtime_last_track_value(runtime: Any) -> str | None:
+    playback = getattr(runtime, "last_playback", None) or {}
+    if isinstance(playback, dict):
+        for key in ("track_name", "title", "name", "track"):
+            value = playback.get(key)
+            if value not in (None, ""):
+                return str(value)
+        response = playback.get("device_response") or {}
+        if isinstance(response, dict):
+            current = response.get("playback") or response
+            if isinstance(current, dict):
+                for key in ("track_name", "title", "name", "track"):
+                    value = current.get(key)
+                    if value not in (None, ""):
+                        return str(value)
+    resolved = getattr(runtime, "last_resolved_media", None) or {}
+    if isinstance(resolved, dict):
+        for key in ("track_name", "title", "name", "artist", "artist_name"):
+            value = resolved.get(key)
+            if value not in (None, ""):
+                return str(value)
+    return None
+
+
+def _cache_runtime_last_values(runtime: Any) -> None:
+    """Mirror non-empty runtime command/playback values into cached device status."""
+    status = getattr(runtime, "device_status", None)
+    if not isinstance(status, dict):
+        return
+    last_command = _runtime_last_command_value(runtime)
+    if last_command:
+        status["last_command"] = last_command
+    last_dj_text = getattr(runtime, "last_dj_text", None)
+    if last_dj_text not in (None, ""):
+        status["last_dj_text"] = str(last_dj_text)
+    last_track = _runtime_last_track_value(runtime)
+    if last_track:
+        status["last_track"] = last_track
+
+
 @dataclass
 class DJConnectRuntime:
     entry: ConfigEntry
@@ -133,6 +181,7 @@ class DJConnectRuntime:
     def update(self, **kwargs: Any) -> None:
         for key, value in kwargs.items():
             setattr(self, key, value)
+        _cache_runtime_last_values(self)
         for listener in list(self.listeners):
             listener()
 

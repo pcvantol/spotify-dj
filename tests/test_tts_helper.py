@@ -328,6 +328,8 @@ class TtsHelperTest(unittest.TestCase):
                     "sound_output": "Living room",
                     "screen_state": "on",
                     "led_state": "idle",
+                    "last_command": "ik wil pearl jam starten",
+                    "last_track": "Pearl Jam",
                 },
             },
             options={},
@@ -344,10 +346,33 @@ class TtsHelperTest(unittest.TestCase):
         self.assertEqual(runtime.device_status["battery_percent"], 85)
         self.assertEqual(runtime.device_status["firmware"], "3.0.23")
         self.assertEqual(runtime.device_status["sound_output"], "Living room")
+        self.assertEqual(runtime.device_status["last_command"], "ik wil pearl jam starten")
+        self.assertEqual(runtime.device_status["last_track"], "Pearl Jam")
         self.assertEqual(
             runtime.device_status["local_url"],
             "http://djconnect-lilygo-90B70990A994.local",
         )
+
+    def test_runtime_update_caches_last_command_and_track_in_device_status(self) -> None:
+        entry = types.SimpleNamespace(entry_id="entry-1", data={}, options={})
+        runtime = self.integration.DJConnectRuntime(entry=entry)
+
+        runtime.update(
+            last_text="ik wil pearl jam starten",
+            last_dj_text="Daar is Pearl Jam",
+            last_playback={"resolved_media": {"artist": "unused"}},
+            last_resolved_media={"artist": "Pearl Jam"},
+        )
+
+        self.assertEqual(runtime.device_status["last_command"], "Daar is Pearl Jam")
+        self.assertEqual(runtime.device_status["last_dj_text"], "Daar is Pearl Jam")
+        self.assertEqual(runtime.device_status["last_track"], "Pearl Jam")
+
+        runtime.update(last_text=None, last_dj_text=None, last_playback={}, last_resolved_media={})
+
+        self.assertEqual(runtime.device_status["last_command"], "Daar is Pearl Jam")
+        self.assertEqual(runtime.device_status["last_dj_text"], "Daar is Pearl Jam")
+        self.assertEqual(runtime.device_status["last_track"], "Pearl Jam")
 
     def test_restore_runtime_ignores_obsolete_pair_code_local_url(self) -> None:
         entry = types.SimpleNamespace(

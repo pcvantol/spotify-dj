@@ -105,6 +105,8 @@ class DJConnectLastTextSensor(DJConnectBaseSensor):
     def extra_state_attributes(self):
         return {
             "last_stt_text": getattr(self.runtime, "last_stt_text", None) or self._last_value,
+            "last_text": getattr(self.runtime, "last_text", None),
+            "last_dj_text": getattr(self.runtime, "last_dj_text", None) or self._last_value,
             "last_intent": getattr(self.runtime, "last_intent", None),
             "last_spotify_search": getattr(self.runtime, "last_spotify_search", None),
             "last_resolved_media": getattr(self.runtime, "last_resolved_media", None),
@@ -311,12 +313,12 @@ def _queue_currently_playing(queue):
 
 
 def _last_command_value(runtime):
-    for key in ("last_text", "last_stt_text"):
+    for key in ("last_dj_text", "last_text", "last_stt_text"):
         value = getattr(runtime, key, None)
         if value not in (None, ""):
             return value
     status = getattr(runtime, "device_status", {}) or {}
-    for key in ("last_command", "last_text", "last_stt_text"):
+    for key in ("last_dj_text", "last_command", "last_text", "last_stt_text"):
         value = status.get(key)
         if value not in (None, ""):
             return value

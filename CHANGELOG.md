@@ -1,7 +1,11 @@
 # Changelog
 
-## 3.0.28
+## 3.0.29
 
+- Make `sensor.djconnect_last_command` show the actual DJ response text that is spoken/displayed on the device, while keeping the original STT/user command available as attributes.
+- Persist the latest DJ response text in the existing device-status cache so `Laatste opdracht` survives Home Assistant reloads/restarts instead of returning to unknown.
+- Mirror non-empty runtime last command, DJ response and last track values into cached device status so sparse updates cannot erase them.
+- Add tests for restored DJ response text and runtime caching of last command/track values.
 - Filter unusable HA Assist DJ-response output before sending text to the ESP device, so Home Assistant device-lookup errors, Spotify URI dictionaries and prompt fragments are no longer spoken or displayed as DJ responses.
 - Fall back to clean local DJ response text when HA Assist cannot generate a usable response, including explicit radio-DJ style prompts such as Robert Jensen-style announcements.
 - Add tests for malformed Assist DJ-response output and radio-prompt fallback behavior.
