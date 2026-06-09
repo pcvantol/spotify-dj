@@ -35,6 +35,9 @@ def install_homeassistant_stubs() -> None:
         def __init_subclass__(cls, **kwargs):
             super().__init_subclass__()
 
+        def async_show_form(self, **kwargs):
+            return {"type": "form", **kwargs}
+
     class OptionsFlow:
         @property
         def config_entry(self):
@@ -471,6 +474,45 @@ class ConfigFlowHelperTest(unittest.TestCase):
             asyncio.run(self.config_flow._async_default_external_url(hass)),
             "https://example.ui.nabu.casa",
         )
+
+    def test_default_external_url_uses_hass_config_api_fallback(self) -> None:
+        hass = types.SimpleNamespace(
+            config=types.SimpleNamespace(
+                api=types.SimpleNamespace(external_url="https://api.ui.nabu.casa/")
+            )
+        )
+
+        self.assertEqual(
+            asyncio.run(self.config_flow._async_default_external_url(hass)),
+            "https://api.ui.nabu.casa",
+        )
+
+    def test_default_external_url_uses_hass_data_fallback(self) -> None:
+        hass = types.SimpleNamespace(
+            config=types.SimpleNamespace(),
+            data={"external_url": "https://data.ui.nabu.casa/"},
+        )
+
+        self.assertEqual(
+            asyncio.run(self.config_flow._async_default_external_url(hass)),
+            "https://data.ui.nabu.casa",
+        )
+
+    def test_spotify_step_prefills_external_url_from_hass(self) -> None:
+        flow = self.config_flow.DJConnectConfigFlow()
+        flow.hass = types.SimpleNamespace(
+            config=types.SimpleNamespace(
+                api=types.SimpleNamespace(external_url="https://api.ui.nabu.casa/")
+            )
+        )
+
+        result = asyncio.run(flow.async_step_spotify())
+        schema = result["data_schema"].schema
+        marker = next(
+            marker for marker in schema if marker.key == self.const.CONF_HA_EXTERNAL_URL
+        )
+
+        self.assertEqual(marker.default, "https://api.ui.nabu.casa")
 
     def test_default_external_url_prefers_network_helper(self) -> None:
         from homeassistant.helpers import network

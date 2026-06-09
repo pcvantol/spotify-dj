@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import re
 import secrets
@@ -369,7 +370,7 @@ async def _async_default_external_url(hass: Any) -> str:
     if not url:
         url = await _async_cloud_external_url(hass)
     if not url:
-        url = str(getattr(getattr(hass, "config", None), "external_url", "") or "")
+        url = await _async_configured_external_url(hass)
     return url.strip().rstrip("/")
 
 
@@ -391,6 +392,33 @@ async def _async_cloud_external_url(hass: Any) -> str:
                 value = value()
             except Exception:  # noqa: BLE001
                 value = ""
+        if value:
+            return str(value)
+    return ""
+
+
+async def _async_configured_external_url(hass: Any) -> str:
+    """Return external URL from HA config objects across supported versions."""
+    config = getattr(hass, "config", None)
+    candidates = [
+        getattr(config, "external_url", ""),
+        getattr(getattr(config, "api", None), "external_url", ""),
+    ]
+    for getter_name in ("get_external_url", "async_get_external_url"):
+        getter = getattr(config, getter_name, None)
+        if callable(getter):
+            try:
+                value = getter()
+                if inspect.isawaitable(value):
+                    value = await value
+                candidates.append(value)
+            except Exception:  # noqa: BLE001
+                _LOGGER.debug("DJConnect could not read %s", getter_name, exc_info=True)
+    data = getattr(hass, "data", {}) if hass is not None else {}
+    if isinstance(data, dict):
+        for key in ("external_url", "ha_external_url"):
+            candidates.append(data.get(key, ""))
+    for value in candidates:
         if value:
             return str(value)
     return ""
