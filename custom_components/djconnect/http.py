@@ -19,6 +19,7 @@ from .const import (
     API_TTS,
     API_VOICE,
     CONF_ASSIST_PIPELINE_ID,
+    CONF_CLIENT_TYPE,
     CONF_DEVICE_ID,
     CONF_DEVICE_TOKEN,
     CONF_HA_EXTERNAL_URL,
@@ -26,6 +27,8 @@ from .const import (
     CONF_MAX_AUDIO_BYTES,
     CONF_PAIR_CODE,
     DOMAIN,
+    CLIENT_TYPES,
+    DEFAULT_CLIENT_TYPE,
     DEFAULT_MAX_AUDIO_BYTES,
     CONF_SPOTIFY_CLIENT_ID,
     CONF_SPOTIFY_MARKET,
@@ -274,6 +277,7 @@ ERROR_MESSAGES = {
     "audio_too_large": "The uploaded audio is too large.",
     "unsupported_media_type": "Send audio/wav, audio/x-wav, application/octet-stream or JSON text.",
     "invalid_command": "Send a valid DJConnect command.",
+    "invalid_client_type": "Send a valid DJConnect client_type.",
     "backend_unavailable": "The configured playback backend is unavailable.",
     "stale_pairing": "DJConnect pairing is stale. Pair the device again.",
     "version_mismatch": "DJConnect Home Assistant integration and device firmware major.minor versions must match.",
@@ -340,6 +344,9 @@ def _major_minor(version: Any) -> str | None:
 
 
 def _versions_compatible(ha_version: Any, firmware_version: Any) -> bool:
+    if str(firmware_version or "").strip() == "0.0.0":
+        return True
+
     ha_major_minor = _major_minor(ha_version)
     firmware_major_minor = _major_minor(firmware_version)
     return bool(
@@ -472,6 +479,30 @@ def _normalized_status_payload(data: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def _payload_client_type(data: dict[str, Any]) -> str:
+    return str(data.get(CONF_CLIENT_TYPE) or "").strip().lower()
+
+
+def _validate_required_client_type(data: dict[str, Any]) -> str | None:
+    client_type = _payload_client_type(data)
+    if not client_type or client_type not in CLIENT_TYPES:
+        return None
+    return client_type
+
+
+def _runtime_client_type(runtime: Any) -> str:
+    getter = getattr(runtime, "client_type", None)
+    if callable(getter):
+        return str(getter() or DEFAULT_CLIENT_TYPE)
+    status = getattr(runtime, "device_status", {}) or {}
+    conf = getattr(runtime, "config", {}) or {}
+    return str(
+        status.get(CONF_CLIENT_TYPE)
+        or conf.get(CONF_CLIENT_TYPE)
+        or DEFAULT_CLIENT_TYPE
+    )
+
+
 def _current_spotify_credentials(runtime: Any) -> dict[str, Any]:
     getter = getattr(runtime, "get_current_spotify_credentials", None)
     if callable(getter):
@@ -536,6 +567,7 @@ def _persist_paired_device(
     device_id: str,
     local_url: str | None,
     device_token: str,
+    client_type: str | None = None,
 ) -> None:
     """Persist ESP pairing details so HA restarts keep the real device identity."""
     entry = getattr(runtime, "entry", None)
@@ -546,6 +578,7 @@ def _persist_paired_device(
     new_data = dict(getattr(entry, "data", {}) or {})
     new_data[CONF_DEVICE_ID] = device_id
     new_data[CONF_DEVICE_TOKEN] = device_token
+    new_data[CONF_CLIENT_TYPE] = str(client_type or _runtime_client_type(runtime))
     cleaned_url = str(local_url or "").strip()
     if cleaned_url:
         new_data[CONF_LOCAL_URL] = cleaned_url
@@ -618,6 +651,9 @@ class DJConnectPairView(HomeAssistantView):
         pair_code = str(data.get("pair_code") or "")
         if not device_id or not pair_code:
             return _json_error(self, "missing_pair_data", 400)
+        client_type = _validate_required_client_type(data)
+        if client_type is None:
+            return _json_error(self, "invalid_client_type", 400)
         conf = runtime.config
         expected_pair_code = str(conf.get(CONF_PAIR_CODE) or "").strip()
         if expected_pair_code and pair_code != expected_pair_code:
@@ -632,16 +668,25 @@ class DJConnectPairView(HomeAssistantView):
             {
                 "device_id": device_id,
                 "device_name": data.get("device_name") or "DJConnect",
+                CONF_CLIENT_TYPE: client_type,
                 "firmware": data.get("firmware"),
                 "local_url": data.get("local_url"),
                 "ha_pairing_status": "pending",
             }
         )
         runtime.update(last_error=None)
-        _persist_paired_device(hass, runtime, device_id, data.get("local_url"), token)
+        _persist_paired_device(
+            hass,
+            runtime,
+            device_id,
+            data.get("local_url"),
+            token,
+            runtime.device_status.get(CONF_CLIENT_TYPE),
+        )
         _LOGGER.info("DJConnect paired device %s", device_id)
         response = {
             "success": True,
+            "client_type": _runtime_client_type(runtime),
             "device_token": token,
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
             "device_language": runtime.device_language(),
@@ -679,6 +724,10 @@ class DJConnectStatusView(HomeAssistantView):
         if not runtime.authorize_device_request(request.headers, data.get("device_id")):
             return _json_error(self, "unauthorized", 401)
         status_update = _normalized_status_payload(data)
+        client_type = _validate_required_client_type(status_update)
+        if client_type is None:
+            return _json_error(self, "invalid_client_type", 400)
+        status_update[CONF_CLIENT_TYPE] = client_type
         runtime.device_status.update(status_update)
         if not _runtime_versions_compatible(runtime):
             runtime.update(
@@ -695,6 +744,7 @@ class DJConnectStatusView(HomeAssistantView):
                 data["device_id"],
                 data.get("local_url") or data.get("ota_url"),
                 runtime.device_token,
+                runtime.device_status.get(CONF_CLIENT_TYPE),
             )
         spotify_configured = data.get("spotify_configured")
         # OTA lifecycle hints from ESP.
@@ -707,6 +757,7 @@ class DJConnectStatusView(HomeAssistantView):
         conf = runtime.config
         response = {
             "success": True,
+            "client_type": _runtime_client_type(runtime),
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
             "device_language": runtime.device_language(),
             "language": runtime.device_language(),
@@ -748,6 +799,10 @@ class DJConnectCommandView(HomeAssistantView):
             return _json_error(self, "not_configured", 503)
         if not runtime.authorize_device_request(request.headers, data.get("device_id")):
             return _json_error(self, "unauthorized", 401)
+        client_type = _validate_required_client_type(data)
+        if client_type is None:
+            return _json_error(self, "invalid_client_type", 400)
+        runtime.device_status[CONF_CLIENT_TYPE] = client_type
         if not _runtime_versions_compatible(runtime):
             return _runtime_version_mismatch_response(self, runtime)
         header_device = request.headers.get("X-DJConnect-Device-ID")
@@ -759,6 +814,7 @@ class DJConnectCommandView(HomeAssistantView):
                 real_device_id,
                 getattr(runtime, "device_status", {}).get("local_url"),
                 runtime.device_token,
+                getattr(runtime, "device_status", {}).get(CONF_CLIENT_TYPE),
             )
         command = str(data.get("command") or "").strip()
         if not command:
@@ -826,6 +882,10 @@ class DJConnectEventView(HomeAssistantView):
             return _json_error(self, "invalid_json", 400)
         if not runtime.authorize_device_request(request.headers, data.get("device_id")):
             return _json_error(self, "unauthorized", 401)
+        client_type = _validate_required_client_type(data)
+        if client_type is None:
+            return _json_error(self, "invalid_client_type", 400)
+        runtime.device_status[CONF_CLIENT_TYPE] = client_type
         if not _runtime_versions_compatible(runtime):
             return _runtime_version_mismatch_response(self, runtime)
         event_type = data.get("type") or data.get("event")
@@ -862,6 +922,7 @@ class DJConnectVoiceView(HomeAssistantView):
                 device_id,
                 getattr(runtime, "device_status", {}).get("local_url"),
                 runtime.device_token,
+                getattr(runtime, "device_status", {}).get(CONF_CLIENT_TYPE),
             )
 
         try:

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "djconnect"
 NAME = "DJConnect"
-VERSION = "3.0.9"
+VERSION = "3.0.10"
 
 API_BASE = "/api/djconnect"
 API_PAIR = f"{API_BASE}/pair"
@@ -19,6 +19,7 @@ CONF_DEVICE_ID = "device_id"
 CONF_DEVICE_NAME = "device_name"
 CONF_DEVICE_TOKEN = "device_token"
 CONF_DEVICE_LANGUAGE = "device_language"
+CONF_CLIENT_TYPE = "client_type"
 CONF_LOCAL_URL = "local_url"
 CONF_HA_EXTERNAL_URL = "ha_external_url"
 CONF_PAIR_CODE = "pair_code"
@@ -57,6 +58,16 @@ CONF_MIN_BATTERY_FOR_OTA = "min_battery_for_ota"
 
 DEFAULT_DEVICE_NAME = "DJConnect"
 DEFAULT_DEVICE_LANGUAGE = "en"
+CLIENT_TYPE_ESP32 = "esp32"
+CLIENT_TYPE_IOS = "ios"
+CLIENT_TYPE_MACOS = "macos"
+DEFAULT_CLIENT_TYPE = CLIENT_TYPE_ESP32
+CLIENT_TYPES = [CLIENT_TYPE_ESP32, CLIENT_TYPE_IOS, CLIENT_TYPE_MACOS]
+CLIENT_TYPE_NAMES = {
+    CLIENT_TYPE_ESP32: "ESP32 device",
+    CLIENT_TYPE_IOS: "iOS app",
+    CLIENT_TYPE_MACOS: "macOS app",
+}
 DEFAULT_SETUP_METHOD = "pair_existing"
 SETUP_METHOD_PAIR_EXISTING = "pair_existing"
 SETUP_METHOD_BLE_WIFI = "ble_wifi"

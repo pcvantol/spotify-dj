@@ -4,7 +4,7 @@ Werk in de bestaande proprietary ESP firmware repo `pcvantol/djconnect-app`.
 
 ## Doel
 
-Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.6`.
+Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.9`.
 
 De HA integration is de trusted backend voor:
 
@@ -39,6 +39,9 @@ De ESP blijft eigenaar van:
 - Pairing/status/voice/command auth gebruikt alleen het device bearer token.
 - Device ID format voor actuele firmware is `djconnect-lilygo-XXXXXXXXXXXX`.
 - Accepteer geen legacy `djconnect-XXXXXXXXXXXX` device IDs en bouw geen compatibility fallback voor dat oude formaat.
+- Pairing/status gebruikt canoniek `client_type` om DJConnect client runtimes te onderscheiden.
+- ESP/LilyGO firmware moet altijd `client_type: "esp32"` meesturen en bewaren; dit is verplicht, geen fallback.
+- `ios` en `macos` zijn gereserveerde waarden voor toekomstige DJConnect app-clients; ESP firmware mag die niet voor zichzelf gebruiken.
 - HA integration en ESP firmware moeten dezelfde `major.minor` protocolversie gebruiken: HA `3.0.z` praat alleen met ESP `3.0.z`, HA `3.1.z` alleen met ESP `3.1.z`.
 - Patchversies mogen verschillen; major/minor mismatch is een protocolblokkade, geen pairing-token failure.
 - Alle user-facing tekst, filenames, namespaces, logs en provisioning labels gebruiken `DJConnect` / `djconnect`; nergens meer `SpotifyDJ`, `spotifydj` of `spotify_dj`.
@@ -126,10 +129,13 @@ Authorization: Bearer <device_token>
 Controleer en fix:
 
 - ESP ontvangt `device_token` via `POST /api/device/pair`.
+- ESP ontvangt `client_type` via `POST /api/device/pair`; verwacht voor deze firmware `esp32`.
 - ESP ontvangt `ha_local_url` en/of `ha_remote_url` via `POST /api/device/pair`.
 - ESP gebruikt `ha_local_url` LAN-first en `ha_remote_url` als cloud fallback.
 - ESP accepteert en verwacht geen legacy `ha_url` pairingveld meer.
 - ESP accepteert als persistent device ID alleen `djconnect-lilygo-XXXXXXXXXXXX`.
+- ESP slaat `client_type=esp32` persistent of runtime-bekend op en stuurt dit verplicht mee in pairing-info, status, command/event JSON payloads waar JSON wordt gebruikt.
+- HA behandelt ontbrekende of onbekende `client_type` op ESP JSON routes als contractfout (`invalid_client_type`).
 - Een tijdelijke setup-code identiteit mag alleen tijdens captive/setup flow bestaan; na pairing moet de firmware de echte LilyGO device ID gebruiken.
 - ESP slaat exact die token persistent op.
 - Eerste call naar HA `/api/djconnect/command` gebruikt exact die token.
@@ -157,6 +163,7 @@ Verwachte HA -> ESP pair payload:
   "pair_code": "123456",
   "device_id": "djconnect-lilygo-XXXXXXXXXXXX",
   "device_name": "DJConnect",
+  "client_type": "esp32",
   "device_language": "nl",
   "language": "nl",
   "device_token": "<device-token>",
@@ -178,6 +185,7 @@ Stuur minimaal:
 ```json
 {
   "device_id": "djconnect-lilygo-XXXXXXXXXXXX",
+  "client_type": "esp32",
   "ha_pairing_status": "paired|pending|stale|unpaired",
   "local_url": "http://djconnect-lilygo-XXXXXXXXXXXX.local",
   "firmware": "3.0.x",
@@ -229,20 +237,20 @@ POST /api/djconnect/command
 Payload voorbeelden:
 
 ```json
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"status"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"devices"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"queue"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"playlists"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"pause"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"play"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"next"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"previous"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"set_output","value":"iPhone","play":true}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"set_volume","value":35}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"start_liked_proxy","play":true}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"start_playlist","value":"spotify:playlist:...","play":true}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"set_shuffle","value":true}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"set_repeat","value":"context"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"status"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"devices"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"queue"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"playlists"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"pause"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"play"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"next"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"previous"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"set_output","value":"iPhone","play":true}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"set_volume","value":35}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"start_liked_proxy","play":true}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"start_playlist","value":"spotify:playlist:...","play":true}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"set_shuffle","value":true}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"set_repeat","value":"context"}
 ```
 
 Verwachte response shapes:
@@ -489,7 +497,7 @@ Voeg/update host tests waar mogelijk:
 - PTT upload bouwt correcte headers en content type.
 - No Spotify OAuth secret keys in status/pair/provision payloads.
 - OTA payload device target `lilygo-t-embed-s3`.
-- DJConnect asset conversie test of snapshot/checksum zodat het firmware asset niet per ongeluk terugvalt naar een oud SpotifyDJ icoon.
+- DJConnect asset conversie test of snapshot/checksum zodat het firmware asset niet per ongeluk terugvalt naar een oud of verkeerd icoon.
 
 ## Acceptatiecriteria
 

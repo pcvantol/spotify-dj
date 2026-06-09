@@ -1032,7 +1032,11 @@ class VoiceHttpHelperTest(unittest.TestCase):
             app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": Runtime()}})}
 
             async def json(self):
-                return {"device_id": "djconnect-device", "pair_code": "654321"}
+                return {
+                    "device_id": "djconnect-device",
+                    "client_type": "esp32",
+                    "pair_code": "654321",
+                }
 
         response = asyncio.run(self.http.DJConnectPairView(None).post(Request()))
 
@@ -1079,6 +1083,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             async def json(self):
                 return {
                     "device_id": "djconnect-device",
+                    "client_type": "esp32",
                     "pair_code": "123456",
                     "local_url": "http://djconnect.local",
                 }
@@ -1145,6 +1150,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             async def json(self):
                 return {
                     "device_id": "djconnect-device",
+                    "client_type": "esp32",
                     "spotify_configured": False,
                 }
 
@@ -1208,6 +1214,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             async def json(self):
                 return {
                     "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
                     "local_url": "http://djconnect-lilygo-90B70990A994.local",
                     "spotify_configured": True,
                 }
@@ -1215,15 +1222,45 @@ class VoiceHttpHelperTest(unittest.TestCase):
         response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
+        self.assertEqual(response["payload"]["client_type"], "esp32")
         self.assertEqual(
             config_entries.updates[0][const.CONF_DEVICE_ID],
             "djconnect-lilygo-90B70990A994",
         )
         self.assertEqual(config_entries.updates[0][const.CONF_DEVICE_TOKEN], "device-token")
+        self.assertEqual(config_entries.updates[0][const.CONF_CLIENT_TYPE], "esp32")
         self.assertEqual(
             config_entries.updates[0][const.CONF_LOCAL_URL],
             "http://djconnect-lilygo-90B70990A994.local",
         )
+
+    def test_status_view_rejects_missing_client_type(self) -> None:
+        const = importlib.import_module("custom_components.djconnect.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            ota_in_progress = False
+            ota_last_error = None
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+        runtime = Runtime()
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
+
+            async def json(self):
+                return {"device_id": "djconnect-lilygo-90B70990A994"}
+
+        response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 400)
+        self.assertEqual(response["payload"]["error"], "invalid_client_type")
+        self.assertIn("client_type", response["payload"]["message"])
 
     def test_status_view_accepts_lilygo_device_id_and_flattens_device_settings(self) -> None:
         const = importlib.import_module("custom_components.djconnect.const")
@@ -1260,6 +1297,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             async def json(self):
                 return {
                     "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "ios",
                     "update_state": "idle",
                     "firmware": "3.0.6",
                     "settings": {
@@ -1278,8 +1316,10 @@ class VoiceHttpHelperTest(unittest.TestCase):
         response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
+        self.assertEqual(response["payload"]["client_type"], "ios")
         self.assertFalse(runtime.ota_in_progress)
         self.assertEqual(runtime.device_status["device_id"], "djconnect-lilygo-90B70990A994")
+        self.assertEqual(runtime.device_status["client_type"], "ios")
         self.assertEqual(runtime.device_status["screen_brightness"], 91)
         self.assertEqual(runtime.device_status["screen_timeout_ms"], 60000)
         self.assertEqual(runtime.device_status["turn_off_after_ms"], 300000)
@@ -1320,6 +1360,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             async def json(self):
                 return {
                     "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
                     "firmware": "v3.0.99",
                 }
 
@@ -1359,6 +1400,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             async def json(self):
                 return {
                     "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
                     "firmware": "3.1.0",
                 }
 
@@ -1395,6 +1437,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             async def json(self):
                 return {
                     "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
                     "command": "status",
                 }
 
@@ -1403,6 +1446,12 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["status_code"], 426)
         self.assertEqual(response["payload"]["error"], "version_mismatch")
         self.assertEqual(response["payload"]["firmware"], "4.0.0")
+
+    def test_dev_firmware_zero_version_skips_major_minor_check(self) -> None:
+        self.assertTrue(self.http._versions_compatible("3.0.7", "0.0.0"))
+        self.assertTrue(self.http._versions_compatible("3.0.7", " 0.0.0 "))
+        self.assertFalse(self.http._versions_compatible("3.1.0", "3.2.0"))
+        self.assertFalse(self.http._versions_compatible("3.0.7", "4.0.0"))
 
     def test_status_view_prefers_current_spotify_credentials(self) -> None:
         const = importlib.import_module("custom_components.djconnect.const")
@@ -1446,6 +1495,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             async def json(self):
                 return {
                     "device_id": "djconnect-device",
+                    "client_type": "esp32",
                     "spotify_configured": False,
                 }
 
@@ -1491,6 +1541,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             async def json(self):
                 return {
                     "device_id": "djconnect-device",
+                    "client_type": "esp32",
                     "spotify_configured": False,
                 }
 
@@ -1540,6 +1591,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             async def json(self):
                 return {
                     "device_id": "djconnect-device",
+                    "client_type": "esp32",
                     "spotify_configured": True,
                 }
 
@@ -1579,6 +1631,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             async def json(self):
                 return {
                     "device_id": "djconnect-device",
+                    "client_type": "esp32",
                     "spotify_configured": False,
                 }
 
@@ -1619,6 +1672,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             async def json(self):
                 return {
                     "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
                     "command": "devices",
                     "value": "",
                     "play": False,
@@ -1658,7 +1712,11 @@ class VoiceHttpHelperTest(unittest.TestCase):
             app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": Runtime()}})}
 
             async def json(self):
-                return {"device_id": "djconnect-lilygo-90B70990A994", "command": "status"}
+                return {
+                    "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
+                    "command": "status",
+                }
 
         original = self.http.handle_spotify_command
         self.http.handle_spotify_command = command_handler
@@ -1696,7 +1754,11 @@ class VoiceHttpHelperTest(unittest.TestCase):
             app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": Runtime()}})}
 
             async def json(self):
-                return {"device_id": "djconnect-lilygo-90B70990A994", "command": "status"}
+                return {
+                    "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
+                    "command": "status",
+                }
 
         original = self.http.handle_spotify_command
         self.http.handle_spotify_command = command_handler
@@ -1739,7 +1801,11 @@ class VoiceHttpHelperTest(unittest.TestCase):
             app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
 
             async def json(self):
-                return {"device_id": "djconnect-lilygo-90B70990A994", "command": "next"}
+                return {
+                    "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
+                    "command": "next",
+                }
 
         original = self.http.handle_spotify_command
         self.http.handle_spotify_command = command_handler

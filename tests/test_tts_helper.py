@@ -435,6 +435,7 @@ class TtsHelperTest(unittest.TestCase):
         )
         payload = session.calls[1]["json"]
         self.assertEqual(payload["device_id"], "djconnect-lilygo-90B70990A994")
+        self.assertEqual(payload["client_type"], "esp32")
         self.assertEqual(payload["ha_local_url"], "http://homeassistant.local:8123")
         self.assertEqual(payload["ha_remote_url"], "https://example.ui.nabu.casa")
         self.assertNotIn("ha_url", payload)
@@ -533,7 +534,10 @@ class TtsHelperTest(unittest.TestCase):
                 self.headers = headers
 
             async def json(self):
-                return {"device_id": "djconnect-lilygo-90B70990A994"}
+                return {
+                    "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
+                }
 
         async def command_handler(hass, runtime, command, value=None, *, play=None):
             return {"success": True, "playback": {"has_playback": False}}
@@ -549,6 +553,7 @@ class TtsHelperTest(unittest.TestCase):
             async def json(self):
                 return {
                     "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
                     "command": "status",
                 }
 

@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.0.9`
+- Home Assistant integration: `3.0.10`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -182,6 +182,7 @@ code` when the ESP shows a new code.
 
 - Pairing is unauthenticated by design, but requires the pairing code or 12-character device suffix shown on the DJConnect device.
 - After pairing, device endpoints use the per-device bearer token.
+- Pairing/status metadata must include `client_type`; ESP/LilyGO firmware sends `esp32`, while `ios` and `macos` are reserved for future app clients.
 - Home Assistant keeps pairing status `pending` until the ESP confirms `ha_pairing_status=paired`; a local token alone is not treated as confirmed pairing.
 - Home Assistant calls `POST /api/device/pair` only during initial pairing, explicit re-pair/token rotation, or stale-pairing recovery. Normal status, playback and settings updates never trigger a new direct pair callback.
 - BLE WiFi provisioning sends only SSID/password to the BLE WiFi characteristic; it does not send Spotify credentials, device tokens or other secrets.
@@ -311,11 +312,13 @@ and/or file header. DJConnect does not send Opus or M4A URLs.
 
 During pairing, DJConnect sends only non-secret device settings to the ESP, such
 as `device_token`, `ha_local_url`, `ha_remote_url`, `assist_pipeline_id`,
-`device_language` and `language`. The ESP should try `ha_local_url` first and use
-`ha_remote_url` as a cloud fallback. Spotify OAuth credentials stay in Home
-Assistant and are used only by the HA playback backend. Pair/status payloads
-must not contain `ha_url`, `refresh_token`, `spotify_refresh_token`, `client_id`
-or a `spotify` OAuth object.
+`client_type`, `device_language` and `language`. `client_type` identifies the
+paired DJConnect client runtime; current values are `esp32`, `ios` and `macos`,
+with `esp32` as the default for LilyGO/ESP firmware. The ESP should try
+`ha_local_url` first and use `ha_remote_url` as a cloud fallback. Spotify OAuth
+credentials stay in Home Assistant and are used only by the HA playback backend.
+Pair/status payloads must not contain `ha_url`, `refresh_token`,
+`spotify_refresh_token`, `client_id` or a `spotify` OAuth object.
 
 Spotify refresh tokens can rotate after OAuth. DJConnect stores newly returned refresh tokens immediately and treats that latest stored value as canonical for HA backend playback. If the ESP later reports `spotify_configured=false`, Home Assistant treats this as a compatibility/status hint, not as a request to send OAuth credentials to the ESP.
 
@@ -329,6 +332,7 @@ Provisioning fields sent to the ESP can include:
   "ha_local_url": "http://homeassistant.local:8123",
   "ha_remote_url": "https://example.ui.nabu.casa",
   "assist_pipeline_id": "...",
+  "client_type": "esp32",
   "device_language": "nl",
   "language": "nl",
   "backend_available": true
@@ -359,6 +363,9 @@ POST /api/djconnect/status
 ```
 
 Authenticated device requests use the provisioned bearer token and can include `X-DJConnect-Device-ID`.
+Status and pairing payloads use canonical `client_type` metadata so Home
+Assistant can distinguish ESP32 devices from future iOS/macOS app clients.
+ESP JSON payloads must include `client_type`.
 
 BLE setup-mode devices are matched by service UUID:
 
@@ -483,12 +490,12 @@ Example manifest:
 
 ```json
 {
-  "version": "3.0.9",
+  "version": "3.0.10",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.9.bin",
+  "asset": "djconnect-device-v3.0.10.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "3.0.9"
+  "min_ha_integration": "3.0.10"
 }
 ```
 
@@ -503,7 +510,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.0.9
+./release.sh 3.0.10
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -514,7 +521,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.0.9 --dry-run
+./release.sh 3.0.10 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -572,11 +579,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.0.9"
-git tag v3.0.9
+git commit -m "Release DJConnect v3.0.10"
+git tag v3.0.10
 git push origin main
-git push origin v3.0.9
-gh release create v3.0.9 --title "DJConnect v3.0.9" --notes-file CHANGELOG.md
+git push origin v3.0.10
+gh release create v3.0.10 --title "DJConnect v3.0.10" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

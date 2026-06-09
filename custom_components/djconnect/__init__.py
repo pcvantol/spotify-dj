@@ -23,6 +23,7 @@ from .const import (
     API_TTS,
     API_VOICE,
     CONF_ASSIST_PIPELINE_ID,
+    CONF_CLIENT_TYPE,
     CONF_DEVICE_ID,
     CONF_DEVICE_LANGUAGE,
     CONF_DEVICE_NAME,
@@ -35,6 +36,7 @@ from .const import (
     CONF_SPOTIFY_REFRESH_TOKEN,
     CONF_SPOTIFY_SCOPES,
     DEFAULT_DEVICE_LANGUAGE,
+    DEFAULT_CLIENT_TYPE,
     DEFAULT_SPOTIFY_MARKET,
     DEFAULT_SPOTIFY_SCOPES,
     DOMAIN,
@@ -234,6 +236,15 @@ class DJConnectRuntime:
         language = str(self.config.get(CONF_DEVICE_LANGUAGE) or DEFAULT_DEVICE_LANGUAGE)
         return "nl" if language.lower().startswith("nl") else "en"
 
+    def client_type(self) -> str:
+        """Return the paired DJConnect client type."""
+        client_type = str(
+            self.device_status.get(CONF_CLIENT_TYPE)
+            or self.config.get(CONF_CLIENT_TYPE)
+            or DEFAULT_CLIENT_TYPE
+        ).strip()
+        return client_type or DEFAULT_CLIENT_TYPE
+
     async def async_device_get(self, hass: HomeAssistant, path: str) -> dict[str, Any]:
         """Call an authenticated local ESP GET endpoint."""
         local_url = await self.async_device_local_url(hass)
@@ -399,6 +410,7 @@ class DJConnectRuntime:
             "pair_code": conf.get(CONF_PAIR_CODE),
             "device_id": reported_device_id or conf.get(CONF_DEVICE_ID),
             "device_name": conf.get(CONF_DEVICE_NAME, "DJConnect"),
+            "client_type": self.client_type(),
             "device_language": self.device_language(),
             "language": self.device_language(),
             "device_token": token,

@@ -22,6 +22,7 @@ from .const import (
     CONF_ALLOW_OTA_ON_BATTERY,
     CONF_ASSIST_PIPELINE_ID,
     CONF_BLE_ADDRESS,
+    CONF_CLIENT_TYPE,
     CONF_DEVICE_ID,
     CONF_DEVICE_LANGUAGE,
     CONF_DEVICE_NAME,
@@ -53,6 +54,7 @@ from .const import (
     CONF_WIFI_PASSWORD,
     CONF_WIFI_SSID,
     DEFAULT_ASSIST_PIPELINE_ID,
+    DEFAULT_CLIENT_TYPE,
     DEFAULT_DEVICE_NAME,
     DEFAULT_DEVICE_LANGUAGE,
     DEFAULT_DJ_RESPONSE_ENABLED,
@@ -72,6 +74,7 @@ from .const import (
     DEFAULT_TTS_ENGINE,
     DEFAULT_TTS_LANGUAGE,
     DEFAULT_TTS_VOICE,
+    CLIENT_TYPE_NAMES,
     DJ_STYLE_NAMES,
     DJ_STYLES,
     DOMAIN,
@@ -918,6 +921,10 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         user_input.get(CONF_DEVICE_LANGUAGE),
                         _ha_device_language(getattr(self, "hass", None)),
                     ),
+                    CONF_CLIENT_TYPE: _clean(
+                        user_input.get(CONF_CLIENT_TYPE),
+                        DEFAULT_CLIENT_TYPE,
+                    ),
                     CONF_DEVICE_TOKEN: secrets.token_urlsafe(32),
                     CONF_LOCAL_URL: _clean(
                         user_input.get(CONF_LOCAL_URL),
@@ -953,6 +960,9 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not _advanced_enabled(self):
             schema[vol.Optional(ADVANCED_OPTIONS_FIELD, default=False)] = bool
         else:
+            schema[
+                vol.Optional(CONF_CLIENT_TYPE, default=DEFAULT_CLIENT_TYPE)
+            ] = vol.In(CLIENT_TYPE_NAMES)
             schema[vol.Optional(CONF_LOCAL_URL, default=_default_local_url(pair_code))] = str
         return schema
 
