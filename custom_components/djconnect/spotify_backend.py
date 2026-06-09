@@ -378,6 +378,7 @@ class SpotifyBackend:
         uri = str(item.get("uri") or "").strip()
         if not uri:
             raise SpotifyBackendError(f"Spotify search found no {spotify_type} for: {query}")
+        self.runtime.last_resolved_media = _normalize_search_item(item, spotify_type, query)
         _LOGGER.debug(
             "DJConnect Spotify search resolved type=%s query=%s uri=%s",
             spotify_type,
@@ -497,6 +498,23 @@ def _first_search_item(data: dict[str, Any], spotify_type: str) -> dict[str, Any
         if isinstance(item, dict):
             return item
     return {}
+
+
+def _normalize_search_item(item: dict[str, Any], spotify_type: str, query: str) -> dict[str, Any]:
+    artists = item.get("artists") or []
+    owner = item.get("owner") or {}
+    album = item.get("album") or {}
+    return {
+        "type": spotify_type,
+        "query": query,
+        "uri": item.get("uri") or "",
+        "title": item.get("name") or "",
+        "track_name": item.get("name") or "",
+        "artist": ", ".join(artist.get("name", "") for artist in artists if artist.get("name")),
+        "artist_name": ", ".join(artist.get("name", "") for artist in artists if artist.get("name")),
+        "album_name": album.get("name") or "",
+        "owner": owner.get("display_name") or owner.get("id") or "",
+    }
 
 
 def _select_spotify_device(devices: list[dict[str, Any]], configured: str) -> dict[str, Any]:

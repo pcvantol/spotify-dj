@@ -201,6 +201,8 @@ class SpotifyBackendTest(unittest.TestCase):
             session.calls[1]["json"],
             {"uris": ["spotify:track:pearl-jam"]},
         )
+        self.assertEqual(runtime.last_resolved_media["title"], "")
+        self.assertEqual(runtime.last_resolved_media["uri"], "spotify:track:pearl-jam")
 
     def test_play_recovers_no_active_device_by_transferring_to_configured_source(self) -> None:
         class Response:

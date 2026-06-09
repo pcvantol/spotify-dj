@@ -69,7 +69,13 @@ class ProcessorRuntimeTest(unittest.TestCase):
             }
 
         async def play(hass, runtime, intent, conf):
-            return {"track": "Pearl Jam - Black"}
+            return {
+                "resolved_media": {
+                    "title": "Black",
+                    "artist": "Pearl Jam",
+                    "album_name": "Ten",
+                }
+            }
 
         original_assist = self.processor.process_text_with_assist
         original_play = self.processor.play_from_intent
@@ -91,9 +97,57 @@ class ProcessorRuntimeTest(unittest.TestCase):
 
         self.assertEqual(runtime.updates[0], {"last_text": "Speel Black", "last_error": None})
         self.assertEqual(runtime.last_intent["type"], "search")
-        self.assertEqual(runtime.last_dj_text, "Daar gaan we.")
-        self.assertEqual(runtime.last_playback["track"], "Pearl Jam - Black")
-        self.assertEqual(result["playback"]["track"], "Pearl Jam - Black")
+        self.assertEqual(
+            runtime.last_dj_text,
+            "Daar is Pearl Jam, met Black. Van Ten; zet 'm maar lekker open.",
+        )
+        self.assertEqual(runtime.last_playback["resolved_media"]["title"], "Black")
+        self.assertEqual(result["playback"]["resolved_media"]["artist"], "Pearl Jam")
+
+    def test_process_text_command_uses_festival_style_for_resolved_track(self) -> None:
+        async def assist(hass, user_text, conf):
+            return {
+                "type": "search",
+                "spotify_search_query": user_text,
+                "dj_announcement": "Daar gaan we.",
+            }
+
+        async def play(hass, runtime, intent, conf):
+            return {
+                "device_response": {
+                    "playback": {
+                        "track_name": "Alive",
+                        "artist": "Pearl Jam",
+                    }
+                }
+            }
+
+        original_assist = self.processor.process_text_with_assist
+        original_play = self.processor.play_from_intent
+        self.processor.process_text_with_assist = assist
+        self.processor.play_from_intent = play
+        runtime = Runtime()
+        runtime.config = {
+            "dj_style": "festival",
+            "tts_language": "nl",
+        }
+        try:
+            result = asyncio.run(
+                self.processor.process_text_command(
+                    object(),
+                    runtime,
+                    "ik wil pearl jam starten",
+                    play=True,
+                )
+            )
+        finally:
+            self.processor.process_text_with_assist = original_assist
+            self.processor.play_from_intent = original_play
+
+        self.assertEqual(
+            result["dj_text"],
+            "Handen omhoog: Alive van Pearl Jam. Dit is er eentje om wakker van te worden.",
+        )
 
     def test_process_text_command_keeps_intent_when_playback_fails(self) -> None:
         async def assist(hass, user_text, conf):

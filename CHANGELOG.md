@@ -1,7 +1,9 @@
 # Changelog
 
-## 3.0.22
+## 3.0.23
 
+- Generate the spoken PTT DJ response from resolved Spotify/playback metadata and the selected DJ style, so successful requests mention the actual track, artist, album or playlist instead of a generic “I’ll start it” fallback.
+- Store resolved Spotify Search metadata with playback responses so device TTS can describe what actually started playing.
 - Resolve plain Assist/voice search text through Spotify Search before starting playback, so commands like `ik wil Pearl Jam starten` are converted to a playable Spotify URI instead of being sent to `/me/player/play` as arbitrary text.
 - Retry playback once when Spotify reports no active playback device: DJConnect now refreshes Spotify devices, selects the configured source by visible name or device ID when possible, transfers playback there and retries.
 - Show Spotify source override in the normal config/options flow again, because it is needed for reliable voice playback routing.

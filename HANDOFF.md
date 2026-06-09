@@ -128,6 +128,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 
 - Current release line is `3.0.x`; only the latest GitHub release/tag should be kept after release cleanup.
 - Voice/Assist search text such as "ik wil Pearl Jam starten" must be resolved through Spotify Search before `/me/player/play`; do not send arbitrary text as `context_uri`.
+- Device DJ responses after successful PTT playback should be generated from resolved Spotify/playback metadata and the configured `dj_style`, not from the generic Assist fallback announcement.
 - If Spotify playback fails because there is no active device, refresh `/me/player/devices`, prefer configured `spotify_source` by id or visible name, transfer playback and retry once.
 - `spotify_source` is a normal options-flow field again because it is needed for reliable voice playback routing; firmware/OTA overrides remain hidden behind the local advanced checkbox.
 - `3.0.21` prevents Nabu Casa/cloud URLs from being sent as `ha_local_url` during pairing and falls back to HA network/source-IP local URL discovery, then `http://homeassistant.local:8123`.

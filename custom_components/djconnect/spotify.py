@@ -45,6 +45,7 @@ async def play_from_intent(
         "source": source,
         "media_content_id": media_content_id,
         "media_content_type": media_content_type,
+        "resolved_media": getattr(runtime, "last_resolved_media", None),
         "device_response": response,
     }
 
