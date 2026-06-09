@@ -4,8 +4,8 @@
 
 - Repository: `pcvantol/djconnect`.
 - Integration domain: `djconnect`.
-- Current integration release: `3.0.18`.
-- Release status: DJConnect `3.0.18` is the current release target.
+- Current integration release: `3.0.19`.
+- Release status: DJConnect `3.0.19` is the current release target.
 - Home Assistant integration is HACS-distributed and MIT-licensed.
 - ESP firmware source remains proprietary in `pcvantol/djconnect-app`.
 - Public firmware release assets live in `pcvantol/djconnect-firmware`.
@@ -126,6 +126,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 ## Current Release Notes
 
 - Current release line is `3.0.x`; only the latest GitHub release/tag should be kept after release cleanup.
+- `3.0.19` sets the Spotify repair OAuth popup title and description directly on the Repairs external-step result, so Home Assistant no longer shows a blank dialog when translation lookup misses a dynamic repair issue id.
 - `3.0.18` adds explicit Spotify repair-flow popup text for the initial external-website repair step, so the repair dialog does not open blank.
 - Strict current ESP device identity is `djconnect-lilygo-XXXXXXXXXXXX`; legacy `djconnect-XXXXXXXXXXXX` IDs are not accepted.
 - HA blocks ESP calls with HTTP `426` `version_mismatch` when HA and ESP firmware `major.minor` differ, while preserving pairing/token state.
