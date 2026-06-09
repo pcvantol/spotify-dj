@@ -40,6 +40,7 @@ from .assist_stt import (
     transcribe_wav_with_assist,
 )
 from .dj_response import async_send_dj_response_best_effort, get_tts_audio
+from .ha_urls import async_ha_url_payload
 from .processor import process_text_command
 from .spotify_backend import SpotifyBackendError, handle_spotify_command
 from .spotify_oauth import exchange_code_for_refresh_token
@@ -579,7 +580,6 @@ class DJConnectPairView(HomeAssistantView):
             "success": True,
             "device_token": token,
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
-            "ha_url": conf.get(CONF_HA_EXTERNAL_URL, ""),
             "device_language": runtime.device_language(),
             "language": runtime.device_language(),
             "api_base": "/api/djconnect",
@@ -587,6 +587,7 @@ class DJConnectPairView(HomeAssistantView):
             "status_path": API_STATUS,
             "event_path": API_EVENT,
         }
+        response.update(await async_ha_url_payload(hass, conf))
         return self.json(response)
 
 
@@ -635,11 +636,11 @@ class DJConnectStatusView(HomeAssistantView):
         response = {
             "success": True,
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
-            "ha_url": conf.get(CONF_HA_EXTERNAL_URL, ""),
             "device_language": runtime.device_language(),
             "language": runtime.device_language(),
             "playback": getattr(runtime, "last_playback", None) or {},
         }
+        response.update(await async_ha_url_payload(hass, conf))
         backend_available = bool(_current_spotify_credentials(runtime))
         _LOGGER.debug(
             "DJConnect status from device %s: spotify_configured=%s backend_available=%s",

@@ -8,6 +8,7 @@
 - Preserve the split licensing model: MIT-licensed Home Assistant integration, proprietary ESP firmware source, public firmware binaries covered by `FIRMWARE-LICENSE.md`, and visible Spotify trademark/non-affiliation notices.
 - Harden pairing so Home Assistant only calls `/api/device/pair` during initial pairing, explicit re-pair/token rotation or stale-pairing recovery, and never during normal startup, status sync, settings sync or playback commands.
 - Keep Home Assistant pairing status pending until the ESP confirms `ha_pairing_status=paired`, while accepting the real `djconnect-lilygo-XXXXXXXXXXXX` device ID after setup-code based pairing.
+- Replace the legacy ESP pairing `ha_url` field with `ha_local_url` and `ha_remote_url` so firmware can use LAN-first routing with cloud fallback.
 - Move backend playback fully behind the Home Assistant integration and expose it through the optional DJConnect playback proxy `media_player`.
 - Replace the old combined `set_play_mode` flow with canonical `set_shuffle` and `set_repeat` backend commands plus native Home Assistant switch/select entities.
 - Cache Spotify access tokens in Home Assistant, refresh them on demand, retry once after Spotify API `401`, and show revoked refresh tokens through user-friendly reauthorization/Repair flows.

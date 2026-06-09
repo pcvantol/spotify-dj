@@ -94,6 +94,9 @@ Authorization: Bearer <device_token>
 Controleer en fix:
 
 - ESP ontvangt `device_token` via `POST /api/device/pair`.
+- ESP ontvangt `ha_local_url` en/of `ha_remote_url` via `POST /api/device/pair`.
+- ESP gebruikt `ha_local_url` LAN-first en `ha_remote_url` als cloud fallback.
+- ESP accepteert en verwacht geen legacy `ha_url` pairingveld meer.
 - ESP slaat exact die token persistent op.
 - Eerste call naar HA `/api/djconnect/command` gebruikt exact die token.
 - Eerste call naar HA `/api/djconnect/status` gebruikt exact die token.
@@ -111,6 +114,25 @@ Veilige logs:
 - log `device_token=present/missing`, nooit de waarde;
 - log HA response status en error key;
 - log geen Authorization header.
+
+Verwachte HA -> ESP pair payload:
+
+```json
+{
+  "pair_code": "123456",
+  "device_id": "djconnect-lilygo-XXXXXXXXXXXX",
+  "device_name": "DJConnect",
+  "device_language": "nl",
+  "language": "nl",
+  "device_token": "<device-token>",
+  "ha_local_url": "http://homeassistant.local:8123",
+  "ha_remote_url": "https://example.ui.nabu.casa",
+  "assist_pipeline_id": "..."
+}
+```
+
+Minimaal een van `ha_local_url` of `ha_remote_url` moet aanwezig zijn. `ha_url`
+mag niet in de payload staan.
 
 ### 2. Status payload uitbreiden
 

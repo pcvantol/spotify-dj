@@ -394,6 +394,7 @@ class TtsHelperTest(unittest.TestCase):
                 self.const.CONF_DEVICE_ID: "djconnect-123456",
                 self.const.CONF_PAIR_CODE: "123456",
                 self.const.CONF_DEVICE_LANGUAGE: "nl",
+                self.const.CONF_HA_EXTERNAL_URL: "https://example.ui.nabu.casa",
                 self.const.CONF_SPOTIFY_CLIENT_ID: "client-id",
                 self.const.CONF_SPOTIFY_REFRESH_TOKEN: "refresh-token",
             },
@@ -406,12 +407,21 @@ class TtsHelperTest(unittest.TestCase):
         original_session = self.integration.async_get_clientsession
         self.integration.async_get_clientsession = lambda hass: session
         try:
-            result = asyncio.run(runtime.pair_device(object()))
+            hass = types.SimpleNamespace(
+                config=types.SimpleNamespace(
+                    internal_url="http://homeassistant.local:8123",
+                    external_url="https://fallback.example",
+                )
+            )
+            result = asyncio.run(runtime.pair_device(hass))
         finally:
             self.integration.async_get_clientsession = original_session
 
         self.assertTrue(result["success"])
         payload = session.calls[0]["json"]
+        self.assertEqual(payload["ha_local_url"], "http://homeassistant.local:8123")
+        self.assertEqual(payload["ha_remote_url"], "https://example.ui.nabu.casa")
+        self.assertNotIn("ha_url", payload)
         self.assertEqual(payload["device_language"], "nl")
         self.assertEqual(payload["language"], "nl")
         self.assertNotIn("spotify", payload)

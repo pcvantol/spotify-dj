@@ -1044,7 +1044,10 @@ class VoiceHttpHelperTest(unittest.TestCase):
         const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
-            config = {const.CONF_PAIR_CODE: "123456"}
+            config = {
+                const.CONF_PAIR_CODE: "123456",
+                const.CONF_HA_EXTERNAL_URL: "https://example.ui.nabu.casa",
+            }
             device_status = {}
 
             def ensure_device_token(self):
@@ -1083,6 +1086,15 @@ class VoiceHttpHelperTest(unittest.TestCase):
         response = asyncio.run(self.http.DJConnectPairView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
+        self.assertEqual(
+            response["payload"]["ha_local_url"],
+            "https://example.ui.nabu.casa",
+        )
+        self.assertEqual(
+            response["payload"]["ha_remote_url"],
+            "https://example.ui.nabu.casa",
+        )
+        self.assertNotIn("ha_url", response["payload"])
         self.assertNotIn("spotify", response["payload"])
         self.assertNotIn("refresh_token", response["payload"])
         self.assertNotIn("spotify_refresh_token", response["payload"])
@@ -1139,6 +1151,9 @@ class VoiceHttpHelperTest(unittest.TestCase):
         response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
+        self.assertEqual(response["payload"]["ha_local_url"], "https://ha.example")
+        self.assertEqual(response["payload"]["ha_remote_url"], "https://ha.example")
+        self.assertNotIn("ha_url", response["payload"])
         self.assertTrue(response["payload"]["backend_available"])
         self.assertNotIn("refresh_token", response["payload"])
         self.assertNotIn("spotify_refresh_token", response["payload"])

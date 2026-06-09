@@ -52,6 +52,7 @@ from .http import (
 )
 from .assist_stt import detect_stt_support
 from .dj_response import async_send_dj_response, async_send_dj_response_best_effort
+from .ha_urls import async_ha_url_payload
 from .processor import process_text_command
 from .repairs import async_create_fixable_issues
 from .spotify_oauth import (
@@ -375,9 +376,11 @@ class DJConnectRuntime:
             "device_language": self.device_language(),
             "language": self.device_language(),
             "device_token": token,
-            "ha_url": conf.get(CONF_HA_EXTERNAL_URL),
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
         }
+        payload.update(await async_ha_url_payload(hass, conf))
+        if not payload.get("ha_local_url") and not payload.get("ha_remote_url"):
+            raise RuntimeError("Home Assistant local or remote URL is required for pairing")
         session = async_get_clientsession(hass)
         async with session.post(
             url,

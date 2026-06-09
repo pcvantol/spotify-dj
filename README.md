@@ -302,11 +302,12 @@ decides whether the temporary URL is WAV, MP3 or unknown based on content type
 and/or file header. DJConnect does not send Opus or M4A URLs.
 
 During pairing, DJConnect sends only non-secret device settings to the ESP, such
-as `device_token`, `ha_url`, `assist_pipeline_id`, `device_language` and
-`language`. Spotify OAuth credentials stay in Home Assistant and are used only by
-the HA playback backend. Pair/status payloads must not contain
-`refresh_token`, `spotify_refresh_token`, `client_id` or a `spotify` OAuth
-object.
+as `device_token`, `ha_local_url`, `ha_remote_url`, `assist_pipeline_id`,
+`device_language` and `language`. The ESP should try `ha_local_url` first and use
+`ha_remote_url` as a cloud fallback. Spotify OAuth credentials stay in Home
+Assistant and are used only by the HA playback backend. Pair/status payloads
+must not contain `ha_url`, `refresh_token`, `spotify_refresh_token`, `client_id`
+or a `spotify` OAuth object.
 
 Spotify refresh tokens can rotate after OAuth. DJConnect stores newly returned refresh tokens immediately and treats that latest stored value as canonical for HA backend playback. If the ESP later reports `spotify_configured=false`, Home Assistant treats this as a compatibility/status hint, not as a request to send OAuth credentials to the ESP.
 
@@ -317,7 +318,8 @@ Provisioning fields sent to the ESP can include:
 ```json
 {
   "device_token": "<per-device-token>",
-  "ha_url": "https://example.ui.nabu.casa",
+  "ha_local_url": "http://homeassistant.local:8123",
+  "ha_remote_url": "https://example.ui.nabu.casa",
   "assist_pipeline_id": "...",
   "device_language": "nl",
   "language": "nl",
@@ -325,8 +327,8 @@ Provisioning fields sent to the ESP can include:
 }
 ```
 
-The ESP should prefer `device_language` over `language` and store it as
-`provision.language`.
+At least one of `ha_local_url` or `ha_remote_url` must be present. The ESP should
+prefer `device_language` over `language` and store it as `provision.language`.
 
 ## Home Assistant HTTP Endpoints
 
