@@ -102,6 +102,41 @@ class AssistPipelineTest(unittest.TestCase):
         self.assertEqual(text, "Arrr, Pearl Jam op de draaitafel!")
         self.assertIn("Sound like a pirate DJ.", calls[0][2]["text"])
 
+    def test_generate_dj_response_ignores_assist_device_lookup_error(self) -> None:
+        class Services:
+            async def async_call(self, domain, service, data, **kwargs):
+                return {
+                    "response": {
+                        "response_type": "error",
+                        "speech": {
+                            "plain": {
+                                "speech": (
+                                    "Sorry, ik kan geen apparaat vinden met de naam "
+                                    "twee zinnen klink als radio DJ Robert Jensen Media "
+                                    "{'type': 'artist', 'uri': 'spotify:artist:abc'}"
+                                )
+                            }
+                        },
+                    }
+                }
+
+        hass = types.SimpleNamespace(services=Services())
+        text = asyncio.run(
+            self.pipeline.generate_dj_response_with_assist(
+                hass,
+                media={"artist": "Robert Jensen Media", "uri": "spotify:artist:abc"},
+                fallback_text="Daar is Robert Jensen Media. Blijf erbij.",
+                conf={
+                    "dj_response_prompt": "twee zinnen klink als radio DJ",
+                    "tts_language": "nl-NL",
+                },
+            )
+        )
+
+        self.assertEqual(text, "Daar is Robert Jensen Media. Blijf erbij.")
+        self.assertNotIn("geen apparaat", text)
+        self.assertNotIn("spotify:artist", text)
+
     def test_intent_from_djconnect_data_uses_speech_as_dj_response(self) -> None:
         intent = self.pipeline._intent_from_assist_response(
             {

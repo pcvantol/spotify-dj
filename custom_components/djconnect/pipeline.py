@@ -151,7 +151,10 @@ async def generate_dj_response_with_assist(
         )
         response = (result or {}).get("response") or {}
         generated = _speech_from_response(response)
-        return generated or fallback_text
+        if _is_usable_dj_response(generated):
+            return generated
+        _LOGGER.debug("Ignoring unusable Assist DJ response: %s", generated)
+        return fallback_text
     except Exception:  # noqa: BLE001
         _LOGGER.debug("DJConnect DJ response generation through Assist failed", exc_info=True)
         return fallback_text
@@ -232,3 +235,30 @@ def _speech_from_response(conversation_response: dict[str, Any]) -> str:
     plain = speech.get("plain") or {}
     ssml = speech.get("ssml") or {}
     return (plain.get("speech") or ssml.get("speech") or "").strip()
+
+
+def _is_usable_dj_response(value: str) -> bool:
+    """Return whether Assist produced displayable DJ response text."""
+    text = str(value or "").strip()
+    if not text:
+        return False
+    normalized = " ".join(text.lower().split())
+    blocked_fragments = (
+        "geen apparaat vinden",
+        "kan geen apparaat",
+        "can't find",
+        "cannot find",
+        "no device",
+        "home assistant devices",
+        "djconnect muziekopdracht",
+        "djconnect music request",
+        "spotify:artist:",
+        "spotify:track:",
+        "spotify:album:",
+        "spotify:playlist:",
+        "{'type'",
+        '"type"',
+        "'uri'",
+        '"uri"',
+    )
+    return not any(fragment in normalized for fragment in blocked_fragments)

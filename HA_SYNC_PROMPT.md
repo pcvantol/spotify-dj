@@ -4,7 +4,7 @@ Werk in de bestaande Home Assistant custom integration repo `pcvantol/djconnect`
 
 ## Doel
 
-Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmware contracten voor release `v3.0.7`.
+Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmware contracten voor release `v3.0.27`.
 
 ## 0. Repository / Release Hygiene
 
@@ -12,7 +12,7 @@ Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmwar
 - ESP source repo: `pcvantol/djconnect-app`.
 - Public OTA firmware repo: `pcvantol/djconnect-firmware`.
 - Firmware binaries/manifests must be consumed from `djconnect-firmware`; the ESP source repo is not the OTA asset host.
-- Current HA integration release/tag baseline is `v3.0.7`; do not reference old 2.x firmware assets or tags.
+- Current HA integration release/tag baseline is `v3.0.27`; do not reference old 2.x firmware assets or tags.
 - Current firmware asset naming convention is `djconnect-device-vX.Y.Z.bin`.
 - Current OTA manifest filename is `firmware_manifest.json`.
 - Current OTA manifest `device` target is `lilygo-t-embed-s3`.
@@ -67,7 +67,7 @@ Expected ESP pairing-info response before direct pairing:
   "device_id": "djconnect-lilygo-XXXXXXXXXXXX",
   "device_name": "DJConnect",
   "pair_code": "123456",
-  "firmware": "3.0.7",
+  "firmware": "3.0.27",
   "local_url": "http://djconnect-lilygo-XXXXXXXXXXXX.local"
 }
 ```
@@ -100,6 +100,7 @@ Content-Type: application/json
 Payload bevat onder andere:
 
 - `device_id`
+- `client_type` met waarde `esp32` voor ESP/LilyGO clients
 - `firmware`
 - `ha_pairing_status`
 - `playback_configured`
@@ -120,6 +121,8 @@ Taken:
 - Publish invalid unknown device values zoals volume `-1` als unavailable/`None`, niet als out-of-range HA state.
 - OTA/update entity moet `ota_state/update_state=idle` plus firmware version verwerken om `updating` te clearen na reboot.
 - Status payloads mogen nooit secrets loggen of in diagnostics tonen.
+- ESP JSON routes moeten `client_type` verplicht valideren; ontbrekend of onbekend `client_type` geeft een zichtbare contractfout, geen stille fallback.
+- Huidige waarden zijn `esp32`, `ios` en `macos`; ESP/LilyGO firmware gebruikt verplicht `esp32`.
 - HA en ESP firmware moeten dezelfde `major.minor` protocolversie gebruiken.
 - Patchversies mogen verschillen: HA `3.0.x` accepteert ESP `3.0.y`, maar niet ESP `3.1.y` of `2.9.y`.
 - Als de ESP `firmware` major/minor niet matcht met de HA integration versie, retourneer HTTP `426` met `error:"version_mismatch"` en velden `ha_version`, `ha_major_minor`, `firmware`, `firmware_major_minor`.
@@ -161,6 +164,7 @@ Response contract:
 - Nooit HTTP 503 voor normale backend unavailable.
 - `command=status` moet direct na ESP boot snel kunnen antwoorden.
 - Gebruik geen gecombineerde `set_play_mode`; gebruik `set_shuffle` boolean en `set_repeat` met `off`/`track`/`context`.
+- `/api/djconnect/command` is geen authoritative device-status bron en mag geen sensorwaarden resetten of vervangen door lege/unknown snapshots.
 
 ## 4. Local ESP Device Command API
 
@@ -213,7 +217,12 @@ Rules:
 - Text-only/JSON requests naar `/api/djconnect/voice` zijn DJ-response developer tests en mogen geen Spotify command parsing/playback uitvoeren.
 - Raw WAV PTT requests blijven wel STT + command parser + backend playback gebruiken.
 - HA gebruikt `stt_engine` option eerst, daarna Assist pipeline fallback.
-- HA DJ response prompt vraagt waar mogelijk om een kort leuk feitje over artiest en/of nummer.
+- De config/options flow gebruikt één vrije `dj_response_prompt` voor de gesproken response op het device.
+- Verwijder oude vaste DJ style/profile opties volledig; geen backwards compatibility voor `dj_style` of `dj_profile`.
+- Gebruik `dj_response_prompt` alleen voor de DJ response na Spotify-resolutie/playback, niet in de command-parser prompt.
+- De command-parser prompt mag prompttekst zoals "Noem waar mogelijk..." nooit meegeven aan Spotify search of Assist device control.
+- Free-text PTT/search requests zoeken standaard alleen Spotify-artiesten. Gebruik Spotify Search `type=artist` voor opdrachten zoals "ik wil Pearl Jam starten" of "Metallica"; broad track/album search alleen bij expliciete toekomstige contractuitbreiding.
+- Na succesvolle Spotify resolve/playback genereert HA de DJ response op basis van resolved metadata (`artist`, context, playback/current item, artwork waar beschikbaar) plus `dj_response_prompt`.
 
 ## 6. Optional HA Media Player Entity
 
@@ -240,11 +249,11 @@ OTA payload naar ESP:
 
 ```json
 {
-  "version": "3.0.7",
-  "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.7/djconnect-device-v3.0.7.bin",
+  "version": "3.0.27",
+  "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.27/djconnect-device-v3.0.27.bin",
   "sha256": "...",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.7.bin"
+  "asset": "djconnect-device-v3.0.27.bin"
 }
 ```
 
@@ -266,6 +275,14 @@ OTA payload naar ESP:
 - HA/ESP major.minor mismatch returns HTTP 426 `version_mismatch` and keeps pairing intact.
 - Pair payload contains `ha_local_url` and/or `ha_remote_url`, and never `ha_url`.
 - Diagnostics redact keys containing `token`, `password` or `secret` and include legal metadata.
+- Full status payload vult sensoren.
+- Status updates zijn merge-only: ontbrekende velden behouden bestaande waarden.
+- Command/voice/backend/playback payloads en coordinator refreshes mogen de cached ESP device-status niet vervangen door lege dicts, `None`, `unknown` of `pending`.
+- Persist/restore last-known ESP status in config entry data as `last_device_status`; never store secrets there.
+- `sensor.djconnect_last_track` and `sensor.djconnect_last_command` keep their last non-empty native value when sparse runtime snapshots omit them.
+- Expose PTT debug attributes on status/last-command sensors: last STT text, Spotify search summary and resolved media metadata.
+- Spotify artist-only search is covered by tests: `"Metallica"` / `"ik wil Pearl Jam starten"` must query artists, not leak DJ response prompt text into the query.
+- `dj_response_prompt` replaces old fixed style/profile options; tests must fail if `dj_style` or `dj_profile` return.
 
 Run:
 
@@ -275,7 +292,7 @@ python3 -m unittest discover -s tests
 
 ## 9. Acceptance Criteria
 
-- ESP `v3.0.7` pairs without stale-pairing loops.
+- ESP `v3.0.27` pairs without stale-pairing loops.
 - After a 6-digit setup-code flow, ESP logs `Home Assistant direct pairing stored: device_token=present`, exits the pairing screen and after reboot logs `Home Assistant pairing: paired`.
 - ESP S indicator updates green/grey/red after reboot without user action.
 - HA entities reflect ESP state after reboot/status post.
@@ -285,4 +302,6 @@ python3 -m unittest discover -s tests
 - OTA discovers firmware from `pcvantol/djconnect-firmware`.
 - OTA sends target `lilygo-t-embed-s3`, not `djconnect-device`.
 - Raw WAV PTT returns DJ response text and optional WAV/MP3 audio URL.
+- Raw WAV PTT resolves artist requests through Spotify artist search, starts playback, then generates a user-facing DJ response from resolved metadata and `dj_response_prompt`.
+- Sensor values, especially last command and last track, remain stable after sparse command/status/playback refreshes.
 - No old SpotifyDJ/spotifydj/spotify_dj naming remains in HA user-facing UI, docs or tests except explicit negative migration notes.

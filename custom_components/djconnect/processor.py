@@ -111,6 +111,10 @@ def _track_response(
         if is_nl:
             return f"Handen omhoog: {subject}. Dit is er eentje om wakker van te worden."
         return f"Hands up: {subject}. This one should wake the room."
+    if "robert jensen" in prompt_words:
+        if is_nl:
+            return f"Daar is {subject}, scherp en lekker op de speakers. Blijf erbij, dit is DJConnect radio."
+        return f"Here is {subject}, sharp and ready on the speakers. Stay with it, this is DJConnect radio."
     if album and artist:
         return f"Daar is {artist}, met {title}. Van {album}; zet 'm maar lekker open."
     return f"Daar is {subject}. Zet 'm maar lekker open." if is_nl else f"Here is {subject}. Turn it up."
@@ -124,6 +128,12 @@ def _playlist_response(playlist: str, *, prompt: str, is_nl: bool) -> str:
         return f"Daar gaan we: {playlist}. Tijd om los te komen." if is_nl else f"Here we go: {playlist}. Time to move."
     if "rustig" in prompt_words or "calm" in prompt_words:
         return f"Ik zet {playlist} rustig voor je op." if is_nl else f"I'll ease into {playlist} for you."
+    if "robert jensen" in prompt_words:
+        return (
+            f"Daar is {playlist}, strak gestart op DJConnect radio. Blijf erbij, er komt meer aan."
+            if is_nl
+            else f"Here is {playlist}, lined up on DJConnect radio. Stay with it, more is coming."
+        )
     return f"Ik zet {playlist} voor je klaar." if is_nl else f"I'll start {playlist} for you."
 
 

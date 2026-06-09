@@ -156,6 +156,56 @@ class ProcessorRuntimeTest(unittest.TestCase):
             "Handen omhoog: Alive van Pearl Jam. Dit is er eentje om wakker van te worden.",
         )
 
+    def test_process_text_command_uses_radio_prompt_when_assist_generation_fails(self) -> None:
+        async def assist(hass, user_text, conf):
+            return {
+                "type": "search",
+                "spotify_search_query": user_text,
+                "dj_announcement": "Daar gaan we.",
+            }
+
+        async def play(hass, runtime, intent, conf):
+            return {
+                "resolved_media": {
+                    "artist": "Robert Jensen Media",
+                    "uri": "spotify:artist:abc",
+                }
+            }
+
+        async def bad_dj_response(hass, *, media, fallback_text, conf):
+            return fallback_text
+
+        original_assist = self.processor.process_text_with_assist
+        original_play = self.processor.play_from_intent
+        original_dj_response = self.processor.generate_dj_response_with_assist
+        self.processor.process_text_with_assist = assist
+        self.processor.play_from_intent = play
+        self.processor.generate_dj_response_with_assist = bad_dj_response
+        runtime = Runtime()
+        runtime.config = {
+            "dj_response_prompt": "gebruik twee zinnen en klink als radio DJ Robert Jensen",
+            "tts_language": "nl",
+        }
+        try:
+            result = asyncio.run(
+                self.processor.process_text_command(
+                    object(),
+                    runtime,
+                    "start Robert Jensen",
+                    play=True,
+                )
+            )
+        finally:
+            self.processor.process_text_with_assist = original_assist
+            self.processor.play_from_intent = original_play
+            self.processor.generate_dj_response_with_assist = original_dj_response
+
+        self.assertEqual(
+            result["dj_text"],
+            "Daar is Robert Jensen Media, scherp en lekker op de speakers. Blijf erbij, dit is DJConnect radio.",
+        )
+        self.assertNotIn("spotify:artist", result["dj_text"])
+
     def test_process_text_command_keeps_intent_when_playback_fails(self) -> None:
         async def assist(hass, user_text, conf):
             return {

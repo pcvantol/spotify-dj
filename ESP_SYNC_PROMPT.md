@@ -4,7 +4,7 @@ Werk in de bestaande proprietary ESP firmware repo `pcvantol/djconnect-app`.
 
 ## Doel
 
-Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.21`.
+Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.27`.
 
 De HA integration is de trusted backend voor:
 
@@ -34,6 +34,7 @@ De ESP blijft eigenaar van:
 - ESP bewaart geen Spotify OAuth/client_id/refresh_token of andere playback-backend credentials.
 - ESP stuurt generieke playback commands naar HA.
 - HA vertaalt playback commands naar Spotify of toekomstige backends.
+- HA verwerkt vrije PTT/voice muziekrequests als artist-only Spotify search; ESP stuurt alleen de gesproken/gestranscribeerde opdracht door en probeert zelf geen Spotify parsing.
 - ESP speaker is alleen voor local cues en DJ/voice response audio.
 - `/api/device/provision_spotify` mag niet bestaan of gebruikt worden.
 - Pairing/status/voice/command auth gebruikt alleen het device bearer token.
@@ -44,6 +45,7 @@ De ESP blijft eigenaar van:
 - `ios` en `macos` zijn gereserveerde waarden voor toekomstige DJConnect app-clients; ESP firmware mag die niet voor zichzelf gebruiken.
 - HA integration en ESP firmware moeten dezelfde `major.minor` protocolversie gebruiken: HA `3.0.z` praat alleen met ESP `3.0.z`, HA `3.1.z` alleen met ESP `3.1.z`.
 - Patchversies mogen verschillen; major/minor mismatch is een protocolblokkade, geen pairing-token failure.
+- HA gebruikt één vrije `dj_response_prompt` voor de gesproken DJ response; ESP hoeft geen vaste DJ style/profile opties te bewaren of te tonen.
 - Alle user-facing tekst, filenames, namespaces, logs en provisioning labels gebruiken `DJConnect` / `djconnect`; nergens meer `SpotifyDJ`, `spotifydj` of `spotify_dj`.
 - BLE local name, mDNS instance name, captive portal title/SSID, HTTP info payloads en display labels mogen nergens meer `SpotifyDJ`, `spotify_dj` of `spotifydj` adverteren; anders kan Home Assistant naast DJConnect ook een oude `spotify_dj` discovery kaart tonen als de oude integration nog geïnstalleerd is.
 - NVS taal key blijft `provision.language`.
@@ -232,6 +234,9 @@ Belangrijk statuscontract:
 - Command/voice payloads mogen geen lege of partial device-status snapshot voorstellen.
 - Als een statusveld onbekend is, laat het liever weg dan `null`, lege string of lege array te sturen.
 - `ha_pairing_status` moet na succesvol pairen expliciet `paired` blijven in statusposts; laat dit veld niet wegvallen naar `pending`.
+- Stuur geen partial command/voice/playback payloads alsof ze volledige device-status zijn.
+- Stuur `last_track` en `last_command` alleen wanneer er een echte nieuwe waarde is; stuur geen lege string/null om onbekend te betekenen.
+- Als ESP geen actuele waarde voor batterij, firmware, RSSI, schermstatus, LED-status of sound output heeft, laat het veld weg zodat HA de laatst bekende waarde behoudt.
 
 Versiecontract:
 
@@ -409,9 +414,11 @@ Acties:
 
 - Directe HA Assist WebSocket auth vanaf ESP niet gebruiken.
 - ESP uploadt alleen raw WAV.
+- ESP voert zelf geen Spotify search/parser uit; HA doet STT, artist-only Spotify resolve/playback en genereert daarna de DJ response.
 - ESP speelt WAV of MP3 audio URL af indien ondersteund.
 - Onbekend audioformaat: text-only tonen, niet crashen.
 - Geen tijdelijke audio URL tokens loggen.
+- Toon de `text`/`dj_text` uit HA als user-facing response; bouw geen eigen generieke fallback zoals "ik zet hem klaar" over een succesvolle HA response heen.
 
 ### 6. OAuth / Spotify secrets verwijderen
 
@@ -507,6 +514,7 @@ Huidige states:
 - Bonus games Pong, Asteroids en Fly mogen in UI blijven.
 - Gebruik bij Asteroids een blauwe LED-ring/game accentkleur in plaats van paars.
 - Noem oude broker-gebaseerde routes nergens.
+- Verwijder oude vaste DJ style/profile UI als die nog in firmware bestaat; HA beheert de vrije DJ response prompt.
 
 ### 10. Tests
 
@@ -517,6 +525,8 @@ Voeg/update host tests waar mogelijk:
 - 401/403/404 markeert pairing stale maar wist NVS niet automatisch.
 - 426 `version_mismatch` wist pairing niet en toont update-required state.
 - Status payload bevat settings aliases.
+- Status payload laat onbekende velden weg in plaats van lege/null waarden te sturen.
+- `last_track` en `last_command` worden niet leeg teruggestuurd tijdens heartbeat/menu/playback polls.
 - Device command parsing voor brightness/speaker/language/theme/log_level.
 - PTT upload bouwt correcte headers en content type.
 - No Spotify OAuth secret keys in status/pair/provision payloads.
