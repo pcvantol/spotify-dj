@@ -42,6 +42,7 @@ De ESP blijft eigenaar van:
 - HA integration en ESP firmware moeten dezelfde `major.minor` protocolversie gebruiken: HA `3.0.z` praat alleen met ESP `3.0.z`, HA `3.1.z` alleen met ESP `3.1.z`.
 - Patchversies mogen verschillen; major/minor mismatch is een protocolblokkade, geen pairing-token failure.
 - Alle user-facing tekst, filenames, namespaces, logs en provisioning labels gebruiken `DJConnect` / `djconnect`; nergens meer `SpotifyDJ`, `spotifydj` of `spotify_dj`.
+- BLE local name, mDNS instance name, captive portal title/SSID, HTTP info payloads en display labels mogen nergens meer `SpotifyDJ`, `spotify_dj` of `spotifydj` adverteren; anders kan Home Assistant naast DJConnect ook een oude `spotify_dj` discovery kaart tonen als de oude integration nog geïnstalleerd is.
 - NVS taal key blijft `provision.language`.
 - NVS namespace is `djconnect`.
 - Secrets nooit loggen: geen device tokens, HA tokens, Spotify tokens, WiFi wachtwoorden of tijdelijke audio URL tokens.

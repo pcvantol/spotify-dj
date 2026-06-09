@@ -131,6 +131,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - Repository, integration assets, examples, website copy and user-facing documentation are aligned with DJConnect.
 - Older GitHub releases and tags were removed before publishing the clean DJConnect release line.
 - Strict current ESP device identity is `djconnect-lilygo-XXXXXXXXXXXX`; legacy `djconnect-XXXXXXXXXXXX` IDs are not accepted.
+- If Home Assistant still shows a discovered `spotify_dj` / `SpotifyDJ` card, the old custom integration or old ESP firmware discovery is still present outside this repo. Remove `/config/custom_components/spotify_dj`, remove the old HACS repository, clear ignored/discovered SpotifyDJ entries if needed, restart HA, and make sure ESP firmware advertises DJConnect-only BLE/mDNS names.
 - Spotify OAuth callback stores tokens even if an options flow is already closed and `UnknownFlow` occurs.
 - Spotify OAuth Repair flow starts an external Spotify OAuth step and does not mark the issue fixed until a new token is stored.
 - Pairing/provisioning logs include exception class/repr for empty-message failures.
