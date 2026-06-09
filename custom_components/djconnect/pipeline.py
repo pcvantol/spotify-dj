@@ -124,22 +124,22 @@ async def generate_dj_response_with_assist(
     """Ask HA Assist for a short DJ response using resolved playback metadata."""
     prompt = str(conf.get(CONF_DJ_RESPONSE_PROMPT) or DEFAULT_DJ_RESPONSE_PROMPT).strip()
     language = conf.get(CONF_TTS_LANGUAGE) or DEFAULT_TTS_LANGUAGE
-    media_context = {
-        key: value
-        for key, value in media.items()
-        if key in {"type", "title", "track_name", "artist", "artist_name", "album_name", "playlist", "owner", "uri"}
-        and value not in (None, "", [], {})
-    }
+    media_context = _dj_response_media_context(media)
     if not media_context:
         return fallback_text
+    media_lines = _dj_response_media_lines(media_context)
     text = (
-        "Maak alleen de korte DJ response tekst voor het DJConnect device. "
-        "Gebruik deze DJ response prompt letterlijk als stijl-/inhoudsinstructie: "
-        f"{prompt}. Media: {media_context}. Geen JSON, geen uitleg."
+        "Je schrijft alleen een korte gesproken DJ response voor het DJConnect device. "
+        "Dit is geen Home Assistant apparaatopdracht. Bedien geen apparaten. "
+        "Gebruik deze DJ response prompt als stijl-/inhoudsinstructie: "
+        f"{prompt}\n\nMedia:\n{media_lines}\n\n"
+        "Antwoord alleen met de tekst die uitgesproken moet worden. Geen JSON, geen uitleg, geen URI."
         if str(language).lower().startswith("nl")
-        else "Return only the short DJ response text for the DJConnect device. "
-        f"Use this DJ response prompt as style/content guidance: {prompt}. "
-        f"Media: {media_context}. No JSON, no explanation."
+        else "Write only a short spoken DJ response for the DJConnect device. "
+        "This is not a Home Assistant device command. Do not control devices. "
+        f"Use this DJ response prompt as style/content guidance: {prompt}\n\n"
+        f"Media:\n{media_lines}\n\n"
+        "Return only the text that should be spoken. No JSON, no explanation, no URI."
     )
     try:
         result = await hass.services.async_call(
@@ -151,13 +151,58 @@ async def generate_dj_response_with_assist(
         )
         response = (result or {}).get("response") or {}
         generated = _speech_from_response(response)
-        if _is_usable_dj_response(generated):
+        blocked_reason = _dj_response_block_reason(generated)
+        if blocked_reason is None:
             return generated
-        _LOGGER.debug("Ignoring unusable Assist DJ response: %s", generated)
+        _LOGGER.debug(
+            "Ignoring unusable Assist DJ response (%s): %s",
+            blocked_reason,
+            generated,
+        )
         return fallback_text
     except Exception:  # noqa: BLE001
         _LOGGER.debug("DJConnect DJ response generation through Assist failed", exc_info=True)
         return fallback_text
+
+
+def _dj_response_media_context(media: dict[str, Any]) -> dict[str, Any]:
+    """Return safe user-facing media metadata for DJ response generation."""
+    allowed_keys = (
+        "type",
+        "title",
+        "track_name",
+        "name",
+        "artist",
+        "artist_name",
+        "album_name",
+        "album",
+        "playlist",
+        "owner",
+    )
+    return {
+        key: value
+        for key in allowed_keys
+        if (value := media.get(key)) not in (None, "", [], {})
+    }
+
+
+def _dj_response_media_lines(media_context: dict[str, Any]) -> str:
+    labels = {
+        "type": "type",
+        "title": "titel",
+        "track_name": "nummer",
+        "name": "naam",
+        "artist": "artiest",
+        "artist_name": "artiest",
+        "album_name": "album",
+        "album": "album",
+        "playlist": "playlist",
+        "owner": "eigenaar",
+    }
+    lines = []
+    for key, value in media_context.items():
+        lines.append(f"{labels.get(key, key)}: {value}")
+    return "\n".join(lines)
 
 
 def _intent_from_assist_response(response: dict[str, Any], user_text: str) -> dict[str, Any]:
@@ -239,9 +284,14 @@ def _speech_from_response(conversation_response: dict[str, Any]) -> str:
 
 def _is_usable_dj_response(value: str) -> bool:
     """Return whether Assist produced displayable DJ response text."""
+    return _dj_response_block_reason(value) is None
+
+
+def _dj_response_block_reason(value: str) -> str | None:
+    """Return why generated DJ response text should not be displayed."""
     text = str(value or "").strip()
     if not text:
-        return False
+        return "empty"
     normalized = " ".join(text.lower().split())
     blocked_fragments = (
         "geen apparaat vinden",
@@ -261,4 +311,7 @@ def _is_usable_dj_response(value: str) -> bool:
         "'uri'",
         '"uri"',
     )
-    return not any(fragment in normalized for fragment in blocked_fragments)
+    for fragment in blocked_fragments:
+        if fragment in normalized:
+            return fragment
+    return None

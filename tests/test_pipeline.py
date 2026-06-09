@@ -101,6 +101,53 @@ class AssistPipelineTest(unittest.TestCase):
 
         self.assertEqual(text, "Arrr, Pearl Jam op de draaitafel!")
         self.assertIn("Sound like a pirate DJ.", calls[0][2]["text"])
+        self.assertIn("artiest: Pearl Jam", calls[0][2]["text"])
+        self.assertNotIn("spotify:artist", calls[0][2]["text"])
+        self.assertNotIn("{'artist'", calls[0][2]["text"])
+        self.assertNotIn("'uri'", calls[0][2]["text"])
+
+    def test_generate_dj_response_prompt_uses_safe_media_lines(self) -> None:
+        calls = []
+
+        class Services:
+            async def async_call(self, domain, service, data, **kwargs):
+                calls.append(data)
+                return {
+                    "response": {
+                        "speech": {
+                            "plain": {
+                                "speech": (
+                                    "Nirvana gaat erin, rauw en recht uit de speakers."
+                                )
+                            }
+                        }
+                    }
+                }
+
+        hass = types.SimpleNamespace(services=Services())
+        text = asyncio.run(
+            self.pipeline.generate_dj_response_with_assist(
+                hass,
+                media={
+                    "type": "artist",
+                    "artist": "Nirvana",
+                    "uri": "spotify:artist:abc",
+                },
+                fallback_text="Daar is Nirvana.",
+                conf={
+                    "dj_response_prompt": "Noem de artiest en klink warm.",
+                    "tts_language": "nl-NL",
+                },
+            )
+        )
+
+        self.assertEqual(text, "Nirvana gaat erin, rauw en recht uit de speakers.")
+        prompt = calls[0]["text"]
+        self.assertIn("type: artist", prompt)
+        self.assertIn("artiest: Nirvana", prompt)
+        self.assertNotIn("spotify:artist", prompt)
+        self.assertNotIn("{", prompt)
+        self.assertNotIn("}", prompt)
 
     def test_generate_dj_response_ignores_assist_device_lookup_error(self) -> None:
         class Services:
@@ -136,6 +183,13 @@ class AssistPipelineTest(unittest.TestCase):
         self.assertEqual(text, "Daar is Example Artist. Blijf erbij.")
         self.assertNotIn("geen apparaat", text)
         self.assertNotIn("spotify:artist", text)
+
+    def test_ordinary_artist_dj_response_is_usable(self) -> None:
+        self.assertTrue(
+            self.pipeline._is_usable_dj_response(
+                "Nirvana gaat erin, rauw en recht uit de speakers."
+            )
+        )
 
     def test_intent_from_djconnect_data_uses_speech_as_dj_response(self) -> None:
         intent = self.pipeline._intent_from_assist_response(
