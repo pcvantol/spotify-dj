@@ -4,8 +4,8 @@
 
 - Repository: `pcvantol/djconnect`.
 - Integration domain: `djconnect`.
-- Current target integration release: `3.0.0`.
-- Release status: publish and verify DJConnect `3.0.0`.
+- Current integration release: `3.0.1`.
+- Release status: DJConnect `3.0.1` is published as the latest GitHub release.
 - Home Assistant integration is HACS-distributed and MIT-licensed.
 - ESP firmware source remains proprietary in `pcvantol/djconnect-app`.
 - Public firmware release assets live in `pcvantol/djconnect-firmware`.
@@ -95,6 +95,8 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - Repair flow must open Spotify OAuth and may only close as fixed after a new/missing refresh token is stored, not merely because an old token exists.
 - Options flow also has a “Spotify opnieuw autoriseren” action using the same callback storage path.
 - Token sent by HA to ESP in `POST /api/device/pair` must be exactly the token accepted by HA `/status`, `/command` and `/voice`.
+- HA -> ESP pairing payload uses `ha_local_url` and `ha_remote_url`; legacy `ha_url` must not be sent or expected.
+- At least one of `ha_local_url` or `ha_remote_url` must be present. ESP should try `ha_local_url` first and use `ha_remote_url` as cloud fallback.
 - HA may call `POST /api/device/pair` only for initial pairing, explicit re-pair/token rotation or stale-pairing recovery. Startup with a stored token, normal status sync, playback commands and settings sync must not call it.
 - Setup-code pairing can start with a temporary six-digit identity, but HA must learn and persist only the real `djconnect-lilygo-XXXXXXXXXXXX` ID from the first authenticated ESP call. Legacy `djconnect-XXXXXXXXXXXX` IDs are not accepted.
 - ESP status payloads can report device settings as top-level fields or nested `settings`, `screen` and `led` objects; HA flattens those aliases for native entities.
@@ -115,11 +117,15 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 
 ## Current Release Notes
 
+- `3.0.1` uses the dark DJConnect SVG banner in the README so GitHub and HACS do not show the old white PNG canvas.
+- Product website hero was refreshed with a landscape LilyGO-style device, rectangular screen, DJConnect icon on screen, right-side volume dial, purple LEDs and no text/device overlap.
+- Product website now calls out personal voice based DJ responses and bonus games: Pong, Asteroids and Fly.
 - Repository, integration assets, examples, website copy and user-facing documentation are aligned with DJConnect.
-- Older GitHub releases and tags have been removed before publishing the clean `v3.0.0` release.
-- Spotify OAuth callback now stores tokens even if an options flow is already closed and `UnknownFlow` occurs.
-- Spotify OAuth Repair flow now starts an external Spotify OAuth step and does not mark the issue fixed until a new token is stored.
-- Pairing/provisioning logs now include exception class/repr for empty-message failures.
+- Older GitHub releases and tags were removed before publishing the clean DJConnect release line.
+- Strict current ESP device identity is `djconnect-lilygo-XXXXXXXXXXXX`; legacy `djconnect-XXXXXXXXXXXX` IDs are not accepted.
+- Spotify OAuth callback stores tokens even if an options flow is already closed and `UnknownFlow` occurs.
+- Spotify OAuth Repair flow starts an external Spotify OAuth step and does not mark the issue fixed until a new token is stored.
+- Pairing/provisioning logs include exception class/repr for empty-message failures.
 - Status response includes cached playback where available.
 - Backend playback auth failures are returned as user-friendly JSON without forcing ESP pairing reset.
 - Device number entities accept common firmware status aliases and unit conversions.
@@ -138,16 +144,16 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 
 ## Next Tasks
 
-1. Release DJConnect `3.0.0` after tests pass.
-2. Install via HACS and restart Home Assistant.
-3. Test Repair flow for revoked Spotify token.
-4. Test options-flow Spotify reauthorize action.
-5. Pair a device from scratch and verify token synchronization.
-6. Verify ESP `/status` includes current settings aliases consumed by HA.
-7. Run physical PTT end-to-end.
-8. Verify native playback proxy media player controls Spotify backend playback.
-9. Verify no Spotify OAuth secrets are sent to ESP or logged.
-10. Cleanup old releases after successful publication with `./cleanup_old_releases.sh --keep 1 --execute`.
+1. Install `3.0.1` via HACS and restart Home Assistant.
+2. Verify the README/HACS banner and product website hero render as intended.
+3. Push the ESP-side DJConnect rename in `pcvantol/djconnect-app`.
+4. Test Repair flow for revoked Spotify token.
+5. Test options-flow Spotify reauthorize action.
+6. Pair a device from scratch and verify token synchronization with `ha_local_url` / `ha_remote_url`.
+7. Verify ESP `/status` includes current settings aliases consumed by HA.
+8. Run physical PTT end-to-end.
+9. Verify native playback proxy media player controls Spotify backend playback.
+10. Verify no Spotify OAuth secrets are sent to ESP or logged.
 
 ## Validation Commands
 

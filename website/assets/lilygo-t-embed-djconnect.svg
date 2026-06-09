@@ -57,7 +57,8 @@
 
       <text x="430" y="230" text-anchor="middle" fill="#f7f7fb" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="900">DJConnect</text>
       <text x="430" y="276" text-anchor="middle" fill="#9de8ff" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" letter-spacing="2">PUSH TO TALK</text>
-      <text x="430" y="322" text-anchor="middle" fill="#b7bccb" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700">Vraag muziek. Krijg DJ response.</text>
+      <text x="430" y="316" text-anchor="middle" fill="#b7bccb" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Vraag muziek.</text>
+      <text x="430" y="346" text-anchor="middle" fill="#b7bccb" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Krijg DJ response.</text>
     </g>
 
     <circle cx="748" cy="280" r="106" fill="#0a0d13" stroke="rgba(255,255,255,0.16)" stroke-width="4"/>
@@ -73,19 +74,19 @@
     </g>
     <circle cx="748" cy="280" r="78" fill="#05060a" stroke="#090b11" stroke-width="10"/>
     <circle cx="748" cy="280" r="58" fill="#020308" stroke="rgba(255,255,255,0.22)" stroke-width="3"/>
-    <g fill="#000" stroke="rgba(255,255,255,0.08)" stroke-width="1">
-      <circle cx="748" cy="232" r="4"/>
-      <circle cx="772" cy="238" r="4"/>
-      <circle cx="790" cy="256" r="4"/>
-      <circle cx="796" cy="280" r="4"/>
-      <circle cx="790" cy="304" r="4"/>
-      <circle cx="772" cy="322" r="4"/>
-      <circle cx="748" cy="328" r="4"/>
-      <circle cx="724" cy="322" r="4"/>
-      <circle cx="706" cy="304" r="4"/>
-      <circle cx="700" cy="280" r="4"/>
-      <circle cx="706" cy="256" r="4"/>
-      <circle cx="724" cy="238" r="4"/>
+    <g fill="#000" stroke="rgba(255,255,255,0.10)" stroke-width="1">
+      <circle cx="748" cy="204" r="4"/>
+      <circle cx="786" cy="214" r="4"/>
+      <circle cx="814" cy="242" r="4"/>
+      <circle cx="824" cy="280" r="4"/>
+      <circle cx="814" cy="318" r="4"/>
+      <circle cx="786" cy="346" r="4"/>
+      <circle cx="748" cy="356" r="4"/>
+      <circle cx="710" cy="346" r="4"/>
+      <circle cx="682" cy="318" r="4"/>
+      <circle cx="672" cy="280" r="4"/>
+      <circle cx="682" cy="242" r="4"/>
+      <circle cx="710" cy="214" r="4"/>
     </g>
     <circle cx="748" cy="280" r="30" fill="#0d111b" stroke="rgba(255,255,255,0.16)" stroke-width="2"/>
     <path d="M748 224v22" stroke="#c084fc" stroke-width="7" stroke-linecap="round" filter="url(#purpleGlow)"/>
