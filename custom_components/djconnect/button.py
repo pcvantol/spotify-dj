@@ -25,6 +25,7 @@ async def async_setup_entry(
             DJConnectCommandButton(runtime, hass, "next", "next_track"),
             DJConnectCommandButton(runtime, hass, "previous", "previous_track"),
             DJConnectCommandButton(runtime, hass, "play_pause", "play_pause"),
+            DJConnectRefreshUpNextButton(runtime, hass),
             DJConnectRefreshInfoButton(runtime, hass),
             DJConnectRebootButton(runtime, hass),
         ]
@@ -106,6 +107,18 @@ class DJConnectRefreshInfoButton(DJConnectBaseButton):
 
     async def async_press(self) -> None:
         await self.runtime.async_refresh_device_info(self.hass)
+
+
+class DJConnectRefreshUpNextButton(DJConnectBaseButton):
+    def __init__(self, runtime, hass: HomeAssistant) -> None:
+        super().__init__(runtime, hass, "refresh_up_next")
+
+    async def async_press(self) -> None:
+        try:
+            await handle_spotify_command(self.hass, self.runtime, "queue")
+        except SpotifyBackendError as exc:
+            self.runtime.update(last_error=str(exc))
+            _LOGGER.warning("DJConnect up next refresh unavailable: %s", exc)
 
 
 class DJConnectRebootButton(DJConnectBaseButton):

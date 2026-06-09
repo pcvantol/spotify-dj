@@ -266,6 +266,9 @@
       "refresh_device_info": {
         "name": "Refresh device info"
       },
+      "refresh_up_next": {
+        "name": "Refresh up next"
+      },
       "reboot_device": {
         "name": "Reboot device"
       }

@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.0.12`
+- Home Assistant integration: `3.0.13`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -207,7 +207,13 @@ DJConnect creates:
 - `sensor.djconnect_wifi_rssi`
 - `sensor.djconnect_firmware_version`
 - `sensor.djconnect_last_track`
+- `sensor.djconnect_queue`
+- `sensor.djconnect_outputs`
+- `select.djconnect_sound_output`
+- `media_player.djconnect_playback_proxy`
 - `button.djconnect_test_dj_voice`
+- `button.djconnect_refresh_up_next`
+- `button.djconnect_refresh_device_info`
 - `update.djconnect_firmware`
 
 Entity IDs can differ if Home Assistant has renamed the device or entities.
@@ -216,6 +222,12 @@ Use `button.djconnect_test_dj_voice` after setup to test the configured HA TTS
 engine, voice and language with a short DJ response on the DJConnect device
 speaker/display. This does not use Spotify Connect or a Home Assistant media
 player for DJ response audio.
+
+Use `button.djconnect_refresh_up_next` to refresh the backend queue/up-next list
+from Spotify/Home Assistant. Use `button.djconnect_refresh_device_info` for the
+local ESP device info/status refresh. The sound-output select also refreshes
+Spotify output devices when Home Assistant updates the entity, so available
+outputs do not depend on a prior manual `devices` command.
 
 ## Services
 
@@ -235,6 +247,7 @@ text -> HA Assist conversation pipeline -> DJConnect intent -> Spotify -> ESP DJ
 ```
 
 `djconnect.test_command` accepts `command_text` and optional `play`. The legacy `text` key is still accepted for existing YAML/scripts. With `play: false`, it uses the same command parser path without starting Spotify playback.
+`djconnect.test_parse` also accepts `command_text`; `djconnect.test_tts` accepts `dj_response_text` and keeps legacy `text` as a compatibility alias.
 
 If command processing or Spotify playback fails, DJConnect still sends a
 friendly DJ response to the ESP device when possible, so the user hears or sees
@@ -490,12 +503,12 @@ Example manifest:
 
 ```json
 {
-  "version": "3.0.12",
+  "version": "3.0.13",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.12.bin",
+  "asset": "djconnect-device-v3.0.13.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "3.0.12"
+  "min_ha_integration": "3.0.13"
 }
 ```
 
@@ -510,7 +523,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.0.12
+./release.sh 3.0.13
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -521,7 +534,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.0.12 --dry-run
+./release.sh 3.0.13 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -579,11 +592,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.0.12"
-git tag v3.0.12
+git commit -m "Release DJConnect v3.0.13"
+git tag v3.0.13
 git push origin main
-git push origin v3.0.12
-gh release create v3.0.12 --title "DJConnect v3.0.12" --notes-file CHANGELOG.md
+git push origin v3.0.13
+gh release create v3.0.13 --title "DJConnect v3.0.13" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

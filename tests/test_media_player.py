@@ -265,6 +265,31 @@ class DJConnectMediaPlayerTest(unittest.TestCase):
 
         self.assertEqual(commands, [("next", {}), ("previous", {})])
 
+    def test_refresh_up_next_button_fetches_queue(self) -> None:
+        calls = []
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            device_status={},
+            last_error=None,
+            last_playback={},
+            update=lambda **kwargs: calls.append(("update", kwargs)),
+        )
+
+        async def fake_handler(hass, runtime_arg, command, value=None, *, play=None):
+            calls.append((command, value, play))
+            runtime_arg.device_status["queue"] = [{"title": "Up next"}]
+            return {"success": True, "queue": runtime_arg.device_status["queue"]}
+
+        original = self.button.handle_spotify_command
+        self.button.handle_spotify_command = fake_handler
+        try:
+            asyncio.run(self.button.DJConnectRefreshUpNextButton(runtime, object()).async_press())
+        finally:
+            self.button.handle_spotify_command = original
+
+        self.assertEqual(calls, [("queue", None, None)])
+        self.assertEqual(runtime.device_status["queue"], [{"title": "Up next"}])
+
     def test_media_player_update_handles_backend_auth_failure(self) -> None:
         updates = []
 

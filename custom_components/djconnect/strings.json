@@ -266,6 +266,9 @@
       "refresh_device_info": {
         "name": "Device-info verversen"
       },
+      "refresh_up_next": {
+        "name": "Up next verversen"
+      },
       "reboot_device": {
         "name": "Device herstarten"
       }

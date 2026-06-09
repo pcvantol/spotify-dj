@@ -136,6 +136,68 @@ class DJConnectSelectTest(unittest.TestCase):
         self.assertEqual(sound_output.options, ["Living room", "Kitchen"])
         self.assertEqual(sound_output.current_option, "Living room")
 
+    def test_sound_output_uses_devices_aliases(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={},
+            device_status={
+                "devices": {"items": [{"id": "dev-1", "name": "Living room"}]},
+                "sound_output": "Living room",
+            },
+            last_playback={},
+            listeners=[],
+        )
+        sound_output = self.select.DJConnectCommandSelect(
+            runtime,
+            object(),
+            "sound_output",
+            "sound_output",
+            "set_output",
+            [],
+        )
+
+        self.assertEqual(sound_output.options, ["Living room"])
+        self.assertEqual(
+            self.select._output_id_from_option(runtime.device_status, "Living room"),
+            "dev-1",
+        )
+
+    def test_sound_output_update_fetches_spotify_devices(self) -> None:
+        calls = []
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={},
+            device_status={},
+            last_playback={},
+            listeners=[],
+            update=lambda **kwargs: calls.append(("update", kwargs)),
+        )
+        sound_output = self.select.DJConnectCommandSelect(
+            runtime,
+            object(),
+            "sound_output",
+            "sound_output",
+            "set_output",
+            [],
+        )
+
+        async def fake_handler(hass, runtime_arg, command, value=None, *, play=None):
+            calls.append((command, value, play))
+            runtime_arg.device_status["available_outputs"] = [
+                {"id": "dev-1", "name": "Living room"}
+            ]
+            return {"success": True, "devices": runtime_arg.device_status["available_outputs"]}
+
+        original = self.select.handle_spotify_command
+        self.select.handle_spotify_command = fake_handler
+        try:
+            asyncio.run(sound_output.async_update())
+        finally:
+            self.select.handle_spotify_command = original
+
+        self.assertIn(("devices", None, None), calls)
+        self.assertEqual(sound_output.options, ["Living room"])
+
     def test_sound_output_prefers_playback_device_and_active_output(self) -> None:
         runtime = types.SimpleNamespace(
             entry=types.SimpleNamespace(entry_id="entry-1"),

@@ -61,6 +61,7 @@ ENTITY_TRANSLATION_KEYS = {
     ("button", "previous_track"),
     ("button", "play_pause"),
     ("button", "refresh_device_info"),
+    ("button", "refresh_up_next"),
     ("button", "reboot_device"),
     ("number", "volume"),
     ("number", "brightness"),

@@ -31,7 +31,7 @@ async def async_setup_entry(
                 "sound_output",
                 "sound_output",
                 "set_output",
-                _options_from_status(runtime.device_status, "available_outputs"),
+                _options_from_status(runtime.device_status),
             ),
             DJConnectCommandSelect(
                 runtime,
@@ -112,7 +112,6 @@ class DJConnectCommandSelect(SelectEntity):
         if self.status_key == "sound_output":
             options = _options_from_status(
                 self.runtime.device_status,
-                "available_outputs",
                 self._fallback_options,
             )
             current = self.current_option
@@ -171,6 +170,14 @@ class DJConnectCommandSelect(SelectEntity):
         self.runtime.device_status[self.status_key] = option
         self.runtime.update()
 
+    async def async_update(self) -> None:
+        if self.status_key != "sound_output":
+            return
+        try:
+            await handle_spotify_command(self.hass, self.runtime, "devices")
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.debug("DJConnect sound output refresh failed: %s", exc)
+
     @callback
     def _handle_runtime_update(self) -> None:
         self.async_write_ha_state()
@@ -188,10 +195,9 @@ class DJConnectCommandSelect(SelectEntity):
 
 def _options_from_status(
     status: dict[str, Any],
-    key: str,
     fallback: list[str] | None = None,
 ) -> list[str]:
-    values = status.get(key) or fallback or []
+    values = _output_values(status) or fallback or []
     if isinstance(values, str):
         values = [item.strip() for item in values.split(",")]
     options: list[str] = []
@@ -206,7 +212,7 @@ def _options_from_status(
 
 
 def _output_id_from_option(status: dict[str, Any], option: str) -> str:
-    values = status.get("available_outputs") or []
+    values = _output_values(status)
     if not isinstance(values, list):
         return option
     for value in values:
@@ -227,7 +233,7 @@ def _current_sound_output(runtime: Any) -> str | None:
         value = status.get(key)
         if value not in (None, ""):
             return str(value)
-    values = status.get("available_outputs") or []
+    values = _output_values(status)
     if isinstance(values, list):
         for value in values:
             if isinstance(value, dict) and value.get("active"):
@@ -235,6 +241,21 @@ def _current_sound_output(runtime: Any) -> str | None:
                 if label not in (None, ""):
                     return str(label)
     return None
+
+
+def _output_values(status: dict[str, Any]) -> list[Any]:
+    for key in ("available_outputs", "outputs", "devices"):
+        values = status.get(key)
+        if isinstance(values, dict):
+            for nested_key in ("items", "outputs", "devices"):
+                nested = values.get(nested_key)
+                if isinstance(nested, list):
+                    return nested
+        if isinstance(values, list):
+            return values
+        if isinstance(values, str) and values.strip():
+            return [item.strip() for item in values.split(",")]
+    return []
 
 
 def _current_turn_off_after(status: dict[str, Any]) -> str | None:
