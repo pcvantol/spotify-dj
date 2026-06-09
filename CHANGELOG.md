@@ -1,7 +1,8 @@
 # Changelog
 
-## 3.0.15
+## 3.0.16
 
+- Guard device sensors against command/voice payloads: `/api/djconnect/command` and voice-only payloads now explicitly avoid device sensor merges, so sparse command/status polls cannot reset battery, firmware, RSSI, pairing, output or screen/LED state to unknown/pending.
 - Add an authenticated voice debug endpoint at `/api/djconnect/debug/last_voice.wav`; when DJConnect debug logging is enabled, HA keeps the last raw ESP WAV in memory so you can listen to exactly what STT received.
 - Add `button.djconnect_refresh_up_next` to refresh the backend queue/up-next list from Home Assistant.
 - Refresh Spotify output devices from the sound-output select so HA shows available outputs without needing a manual `devices` command first.

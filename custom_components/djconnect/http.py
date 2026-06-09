@@ -470,6 +470,15 @@ def _store_debug_voice_wav(
     )
 
 
+def _is_voice_only_payload(data: Any) -> bool:
+    if not isinstance(data, dict):
+        return False
+    voice_keys = {"recording", "state", "last_error", "error", "message", "recognized_text"}
+    identity_keys = {"device_id", CONF_CLIENT_TYPE, "payload_type"}
+    keys = set(data)
+    return bool(keys & voice_keys) and keys <= voice_keys | identity_keys
+
+
 def _set_device_state(runtime: Any, state: str) -> None:
     status = getattr(runtime, "device_status", None)
     if isinstance(status, dict):
@@ -845,6 +854,8 @@ class DJConnectCommandView(HomeAssistantView):
         client_type = _validate_required_client_type(data)
         if client_type is None:
             return _json_error(self, "invalid_client_type", 400)
+        if data.get("payload_type") == "command" or data.get("command"):
+            _LOGGER.debug("Ignoring command payload for device sensor update")
         runtime.device_status[CONF_CLIENT_TYPE] = client_type
         if not _runtime_versions_compatible(runtime):
             return _runtime_version_mismatch_response(self, runtime)
@@ -1017,6 +1028,8 @@ class DJConnectVoiceView(HomeAssistantView):
                     data = await request.json()
                 except Exception:  # noqa: BLE001
                     return _json_error(self, "invalid_json", 400)
+                if _is_voice_only_payload(data):
+                    _LOGGER.debug("Ignoring voice-only payload for device sensor update")
             elif request.headers.get("X-DJConnect-Text"):
                 pass
             elif content_type:

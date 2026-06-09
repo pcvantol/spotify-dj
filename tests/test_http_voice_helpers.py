@@ -1938,6 +1938,124 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertTrue(response["payload"]["success"])
         self.assertFalse(runtime.pair_called)
 
+    def test_command_payload_does_not_reset_existing_sensor_values(self) -> None:
+        const = importlib.import_module("custom_components.djconnect.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {
+                "device_id": "djconnect-lilygo-90B70990A994",
+                "client_type": "esp32",
+                "ha_pairing_status": "paired",
+                "battery_percent": 85,
+                "firmware": "3.0.15",
+                "wifi_rssi": -55,
+                "screen_state": "on",
+                "led_state": "idle",
+                "sound_output": "Living room",
+                "last_track": "Alive",
+            }
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+
+        async def command_handler(hass, runtime, command, value=None, *, play=None):
+            return {"success": True, "playback": {"has_playback": True}}
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
+
+            async def json(self):
+                return {
+                    "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
+                    "payload_type": "command",
+                    "command": "status",
+                }
+
+        original = self.http.handle_spotify_command
+        self.http.handle_spotify_command = command_handler
+        try:
+            with self.assertLogs(self.http._LOGGER, level="DEBUG") as captured:
+                response = asyncio.run(self.http.DJConnectCommandView(None).post(Request()))
+        finally:
+            self.http.handle_spotify_command = original
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertIn("Ignoring command payload for device sensor update", "\n".join(captured.output))
+        self.assertEqual(runtime.device_status["ha_pairing_status"], "paired")
+        self.assertEqual(runtime.device_status["battery_percent"], 85)
+        self.assertEqual(runtime.device_status["firmware"], "3.0.15")
+        self.assertEqual(runtime.device_status["wifi_rssi"], -55)
+        self.assertEqual(runtime.device_status["screen_state"], "on")
+        self.assertEqual(runtime.device_status["led_state"], "idle")
+        self.assertEqual(runtime.device_status["sound_output"], "Living room")
+        self.assertEqual(runtime.device_status["last_track"], "Alive")
+
+    def test_voice_only_payload_does_not_reset_existing_sensor_values(self) -> None:
+        const = importlib.import_module("custom_components.djconnect.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {
+                "device_id": "djconnect-lilygo-90B70990A994",
+                "client_type": "esp32",
+                "ha_pairing_status": "paired",
+                "battery_percent": 85,
+                "firmware": "3.0.15",
+                "wifi_rssi": -55,
+                "screen_state": "on",
+                "led_state": "idle",
+                "sound_output": "Living room",
+            }
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+        hass = types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})
+
+        class Request:
+            headers = {
+                "Authorization": "Bearer device-token",
+                "X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994",
+                "Content-Type": "application/json",
+            }
+            app = {"hass": hass}
+
+            async def json(self):
+                return {
+                    "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
+                    "recording": False,
+                    "state": "idle",
+                    "last_error": "",
+                }
+
+        with self.assertLogs(self.http._LOGGER, level="DEBUG") as captured:
+            response = asyncio.run(self.http.DJConnectVoiceView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 400)
+        self.assertIn("Ignoring voice-only payload for device sensor update", "\n".join(captured.output))
+        self.assertEqual(runtime.device_status["ha_pairing_status"], "paired")
+        self.assertEqual(runtime.device_status["battery_percent"], 85)
+        self.assertEqual(runtime.device_status["firmware"], "3.0.15")
+        self.assertEqual(runtime.device_status["wifi_rssi"], -55)
+        self.assertEqual(runtime.device_status["screen_state"], "on")
+        self.assertEqual(runtime.device_status["led_state"], "idle")
+        self.assertEqual(runtime.device_status["sound_output"], "Living room")
+
     def test_store_rotated_spotify_refresh_token_persists_without_logging_secret(self) -> None:
         const = importlib.import_module("custom_components.djconnect.const")
         updates = []
