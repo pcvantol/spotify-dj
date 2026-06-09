@@ -367,11 +367,34 @@ class DJConnectRuntime:
         local_url = await self.async_device_local_url(hass)
         if not local_url:
             raise RuntimeError("DJConnect device local_url is unknown")
+        session = async_get_clientsession(hass)
+        pairing_info: dict[str, Any] = {}
+        try:
+            async with session.get(
+                local_url.rstrip("/") + "/api/device/pairing-info",
+                timeout=ClientTimeout(total=10),
+            ) as resp:
+                text = await resp.text()
+                if resp.status < 200 or resp.status >= 300:
+                    raise RuntimeError(
+                        f"ESP pairing info failed HTTP {resp.status}: {text}"
+                    )
+                pairing_info = json.loads(text) if text else {}
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("ESP pairing info returned invalid JSON") from exc
+
+        expected_pair_code = str(conf.get(CONF_PAIR_CODE) or "").strip()
+        reported_pair_code = str(pairing_info.get("pair_code") or "").strip()
+        if expected_pair_code and reported_pair_code and expected_pair_code != reported_pair_code:
+            raise RuntimeError("ESP pairing code does not match this setup")
+        reported_device_id = str(pairing_info.get("device_id") or "").strip()
+        if reported_device_id:
+            self._learn_device_id(reported_device_id)
         token = self.ensure_device_token()
         url = local_url.rstrip("/") + "/api/device/pair"
         payload = {
             "pair_code": conf.get(CONF_PAIR_CODE),
-            "device_id": conf.get(CONF_DEVICE_ID),
+            "device_id": reported_device_id or conf.get(CONF_DEVICE_ID),
             "device_name": conf.get(CONF_DEVICE_NAME, "DJConnect"),
             "device_language": self.device_language(),
             "language": self.device_language(),
@@ -381,7 +404,6 @@ class DJConnectRuntime:
         payload.update(await async_ha_url_payload(hass, conf))
         if not payload.get("ha_local_url") and not payload.get("ha_remote_url"):
             raise RuntimeError("Home Assistant local or remote URL is required for pairing")
-        session = async_get_clientsession(hass)
         async with session.post(
             url,
             json=payload,

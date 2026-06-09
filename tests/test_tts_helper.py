@@ -381,12 +381,23 @@ class TtsHelperTest(unittest.TestCase):
             async def text(self):
                 return '{"success": true}'
 
+        class PairingInfoResponse(Response):
+            async def text(self):
+                return (
+                    '{"device_id":"djconnect-lilygo-90B70990A994",'
+                    '"pair_code":"123456","local_url":"http://djconnect.local"}'
+                )
+
         class Session:
             def __init__(self):
                 self.calls = []
 
+            def get(self, url, **kwargs):
+                self.calls.append({"method": "GET", "url": url, **kwargs})
+                return PairingInfoResponse()
+
             def post(self, url, **kwargs):
-                self.calls.append({"url": url, **kwargs})
+                self.calls.append({"method": "POST", "url": url, **kwargs})
                 return Response()
 
         entry = types.SimpleNamespace(
@@ -418,7 +429,12 @@ class TtsHelperTest(unittest.TestCase):
             self.integration.async_get_clientsession = original_session
 
         self.assertTrue(result["success"])
-        payload = session.calls[0]["json"]
+        self.assertEqual(
+            session.calls[0]["url"],
+            "http://djconnect.local/api/device/pairing-info",
+        )
+        payload = session.calls[1]["json"]
+        self.assertEqual(payload["device_id"], "djconnect-lilygo-90B70990A994")
         self.assertEqual(payload["ha_local_url"], "http://homeassistant.local:8123")
         self.assertEqual(payload["ha_remote_url"], "https://example.ui.nabu.casa")
         self.assertNotIn("ha_url", payload)
