@@ -51,12 +51,12 @@
 
     <g clip-path="url(#screenClip)">
       <g filter="url(#iconGlow)">
-        <path d="M170 294c-15-39-8-90 25-120 34-30 86-34 122-7 33 25 44 73 28 110" fill="none" stroke="url(#iconAccent)" stroke-width="7" stroke-linecap="round"/>
-        <circle cx="220" cy="255" r="50" fill="url(#iconVinyl)"/>
-        <circle cx="220" cy="255" r="16" fill="#151023" stroke="url(#iconAccent)" stroke-width="5"/>
-        <path d="M272 206c11-6 25 2 25 14 0 11-11 19-21 16-9 32-19 60-40 81-9 9-19 16-28 19" fill="none" stroke="#dbe6ff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="281" cy="220" r="13" fill="#131522" stroke="url(#iconAccent)" stroke-width="4"/>
-        <text x="174" y="319" fill="#f7f9ff" stroke="url(#iconAccent)" stroke-width="4" stroke-linejoin="round" font-family="Avenir Next, Arial Black, Impact, sans-serif" font-style="italic" font-weight="900" font-size="62" letter-spacing="-6">DJ</text>
+        <path d="M176 288c-12-32-6-74 21-99 28-25 72-28 102-6 27 21 36 60 23 91" fill="none" stroke="url(#iconAccent)" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="217" cy="257" r="42" fill="url(#iconVinyl)"/>
+        <circle cx="217" cy="257" r="13" fill="#151023" stroke="url(#iconAccent)" stroke-width="5"/>
+        <path d="M261 216c9-5 21 2 21 12 0 9-9 16-18 13-7 27-16 50-33 68-8 8-16 13-24 16" fill="none" stroke="#dbe6ff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="268" cy="228" r="11" fill="#131522" stroke="url(#iconAccent)" stroke-width="4"/>
+        <text x="178" y="313" fill="#f7f9ff" stroke="url(#iconAccent)" stroke-width="3" stroke-linejoin="round" font-family="Avenir Next, Arial Black, Impact, sans-serif" font-style="italic" font-weight="900" font-size="52" letter-spacing="-5">DJ</text>
       </g>
 
       <text x="430" y="230" text-anchor="middle" fill="#f7f7fb" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="900">DJConnect</text>
