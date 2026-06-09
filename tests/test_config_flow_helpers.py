@@ -387,6 +387,22 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertIn(self.const.CONF_WIFI_SSID, keys)
         self.assertIn(self.const.CONF_WIFI_PASSWORD, keys)
 
+    def test_ble_wifi_schema_selects_single_discovered_device_by_default(self) -> None:
+        schema = self.config_flow._ble_wifi_schema({"AA:BB": "DJConnect A994"})
+
+        defaults = {marker.key: marker.default for marker in schema}
+
+        self.assertEqual(defaults[self.const.CONF_BLE_ADDRESS], "AA:BB")
+
+    def test_ble_wifi_schema_keeps_placeholder_when_multiple_devices_exist(self) -> None:
+        schema = self.config_flow._ble_wifi_schema(
+            {"AA:BB": "DJConnect A994", "CC:DD": "DJConnect 1234"}
+        )
+
+        defaults = {marker.key: marker.default for marker in schema}
+
+        self.assertEqual(defaults[self.const.CONF_BLE_ADDRESS], "")
+
     def test_pair_schema_allows_returning_to_ble_setup(self) -> None:
         flow = self.config_flow.DJConnectConfigFlow()
         flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="nl-NL"))

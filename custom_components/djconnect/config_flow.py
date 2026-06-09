@@ -280,11 +280,12 @@ def _entity_options(
 def _ble_wifi_schema(devices: dict[str, str], hass: Any = None) -> dict[Any, Any]:
     """Build BLE WiFi provisioning fields with discovered devices when present."""
     device_validator = vol.In({"": "Select device", **devices}) if devices else str
+    default_device = next(iter(devices), "") if len(devices) == 1 else ""
     return {
         vol.Required(BLE_ACTION_FIELD, default=BLE_ACTION_PROVISION): vol.In(
             _ble_action_names(hass)
         ),
-        vol.Optional(CONF_BLE_ADDRESS, default=""): device_validator,
+        vol.Optional(CONF_BLE_ADDRESS, default=default_device): device_validator,
         vol.Optional(CONF_WIFI_SSID, default=""): str,
         vol.Optional(CONF_WIFI_PASSWORD, default=""): str,
     }
