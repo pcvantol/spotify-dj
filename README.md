@@ -1,5 +1,9 @@
 # DJConnect
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/pcvantol/djconnect/main/assets/djconnect/djconnect-logo-512x256.png" alt="DJConnect" width="420">
+</p>
+
 DJConnect is a Home Assistant custom integration for a DJConnect device.
 
 The Home Assistant integration handles pairing, Spotify OAuth, backend playback commands, OTA firmware updates, device status, and voice/AI integration. Spotify credentials stay in Home Assistant; the ESP sends generic playback commands to the integration.
