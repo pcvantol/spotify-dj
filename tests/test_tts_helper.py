@@ -626,11 +626,11 @@ class TtsHelperTest(unittest.TestCase):
         runtime.device_token = "device-token"
         runtime.device_status["local_url"] = "http://djconnect-lilygo-90B70990A994.local"
         release = types.SimpleNamespace(
-            version="3.0.1",
-            firmware_url="https://example/djconnect-device-v3.0.1.bin",
+            version="3.0.2",
+            firmware_url="https://example/djconnect-device-v3.0.2.bin",
             sha256="a" * 64,
             device="lilygo-t-embed-s3",
-            firmware_asset="djconnect-device-v3.0.1.bin",
+            firmware_asset="djconnect-device-v3.0.2.bin",
         )
         session = Session()
         original_session = self.integration.async_get_clientsession
@@ -646,11 +646,11 @@ class TtsHelperTest(unittest.TestCase):
         self.assertEqual(
             call["json"],
             {
-                "version": "3.0.1",
-                "url": "https://example/djconnect-device-v3.0.1.bin",
+                "version": "3.0.2",
+                "url": "https://example/djconnect-device-v3.0.2.bin",
                 "sha256": "a" * 64,
                 "device": "lilygo-t-embed-s3",
-                "asset": "djconnect-device-v3.0.1.bin",
+                "asset": "djconnect-device-v3.0.2.bin",
             },
         )
 
@@ -678,11 +678,11 @@ class TtsHelperTest(unittest.TestCase):
         runtime = self.integration.DJConnectRuntime(entry=entry)
         runtime.device_status["local_url"] = "http://djconnect-lilygo-90B70990A994.local"
         release = types.SimpleNamespace(
-            version="3.0.1",
-            firmware_url="https://example/djconnect-device-v3.0.1.bin",
+            version="3.0.2",
+            firmware_url="https://example/djconnect-device-v3.0.2.bin",
             sha256="a" * 64,
             device="djconnect-device",
-            firmware_asset="djconnect-device-v3.0.1.bin",
+            firmware_asset="djconnect-device-v3.0.2.bin",
         )
         original_session = self.integration.async_get_clientsession
         self.integration.async_get_clientsession = lambda hass: Session()
