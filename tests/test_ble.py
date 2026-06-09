@@ -21,9 +21,9 @@ def install_ble_stubs() -> None:
         types.ModuleType("homeassistant.core"),
     )
     core.HomeAssistant = object
-    package = types.ModuleType("custom_components.spotify_dj")
-    package.__path__ = [str(ROOT / "custom_components" / "spotify_dj")]
-    sys.modules.setdefault("custom_components.spotify_dj", package)
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
+    sys.modules.setdefault("custom_components.djconnect", package)
     homeassistant.core = core
 
 
@@ -31,7 +31,7 @@ class BleHelperTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         install_ble_stubs()
-        cls.ble = importlib.import_module("custom_components.spotify_dj.ble")
+        cls.ble = importlib.import_module("custom_components.djconnect.ble")
 
     def test_wifi_payload_is_compact_utf8_json(self) -> None:
         payload = self.ble.wifi_payload("Thuis", "geheim")

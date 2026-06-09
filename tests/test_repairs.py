@@ -86,9 +86,9 @@ def install_repairs_stubs() -> list[dict]:
     sys.modules["homeassistant.helpers.issue_registry"] = issue_registry
     install_repairs_stubs.deleted = deleted
 
-    package = types.ModuleType("custom_components.spotify_dj")
-    package.__path__ = [str(ROOT / "custom_components" / "spotify_dj")]
-    sys.modules.setdefault("custom_components.spotify_dj", package)
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
+    sys.modules.setdefault("custom_components.djconnect", package)
     return issues
 
 
@@ -96,7 +96,7 @@ class RepairsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.issues = install_repairs_stubs()
-        cls.repairs = importlib.import_module("custom_components.spotify_dj.repairs")
+        cls.repairs = importlib.import_module("custom_components.djconnect.repairs")
 
     def setUp(self) -> None:
         self.issues.clear()
@@ -196,7 +196,7 @@ class RepairsTest(unittest.TestCase):
         self.assertEqual(result["step_id"], "authorize")
         self.assertIn("https://accounts.spotify.com/authorize", result["url"])
         self.assertIn("authorize_url", result["description_placeholders"])
-        self.assertEqual(len(hass.data["spotify_dj"]["spotify_oauth_pending"]), 1)
+        self.assertEqual(len(hass.data["djconnect"]["spotify_oauth_pending"]), 1)
 
     def test_spotify_reauth_fix_flow_requires_new_token(self) -> None:
         entry = types.SimpleNamespace(
@@ -238,7 +238,7 @@ class RepairsTest(unittest.TestCase):
 
         self.assertEqual(result["type"], "create_entry")
         self.assertIn(
-            {"domain": "spotify_dj", "issue_id": "entry-1_spotify_refresh_token_revoked"},
+            {"domain": "djconnect", "issue_id": "entry-1_spotify_refresh_token_revoked"},
             install_repairs_stubs.deleted,
         )
 

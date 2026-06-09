@@ -50,11 +50,11 @@ def install_sensor_stubs() -> None:
     sys.modules["homeassistant.helpers.entity_platform"] = entity_platform
 
 
-class SpotifyDJSensorTest(unittest.TestCase):
+class DJConnectSensorTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         install_sensor_stubs()
-        cls.sensor = importlib.import_module("custom_components.spotify_dj.sensor")
+        cls.sensor = importlib.import_module("custom_components.djconnect.sensor")
 
     def test_pairing_status_is_pending_until_device_confirms(self) -> None:
         runtime = types.SimpleNamespace(
@@ -63,12 +63,25 @@ class SpotifyDJSensorTest(unittest.TestCase):
             device_status={},
             listeners=[],
         )
-        entity = self.sensor.SpotifyDJPairingStatusSensor(runtime)
+        entity = self.sensor.DJConnectPairingStatusSensor(runtime)
 
         self.assertEqual(entity.native_value, "pending")
 
         runtime.device_status["ha_pairing_status"] = "paired"
         self.assertEqual(entity.native_value, "paired")
+
+    def test_screen_and_led_state_sensors_read_status_payload(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            device_status={"screen_state": "on", "led_state": "off"},
+            listeners=[],
+        )
+
+        screen = self.sensor.DJConnectScreenStateSensor(runtime)
+        led = self.sensor.DJConnectLedStateSensor(runtime)
+
+        self.assertEqual(screen.native_value, "on")
+        self.assertEqual(led.native_value, "off")
 
 
 if __name__ == "__main__":

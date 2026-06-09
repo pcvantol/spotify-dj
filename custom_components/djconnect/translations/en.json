@@ -1,0 +1,388 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up DJConnect",
+        "description": "Choose whether the DJConnect device is already on WiFi, or provision WiFi credentials over Bluetooth first.",
+        "data": {
+          "setup_method": "Setup method"
+        },
+        "data_description": {
+          "setup_method": "Use Bluetooth only to write WiFi credentials. Pairing happens over WiFi; Spotify playback is handled by Home Assistant."
+        }
+      },
+      "pair": {
+        "title": "Pair DJConnect device",
+        "description": "Enter the pairing code shown on the DJConnect device display. The manual device URL is only needed when mDNS discovery is unavailable. Spotify is a trademark of Spotify AB. DJConnect is not affiliated with, endorsed by, or sponsored by Spotify AB.",
+        "data": {
+          "pair_code": "Pairing code",
+          "device_name": "Device name",
+          "device_language": "Device language",
+          "local_url": "Manual device URL",
+          "show_advanced_options": "Show advanced options"
+        },
+        "data_description": {
+          "pair_code": "The 6 digit code or 12 character device suffix shown on the device display.",
+          "device_name": "Friendly name for this DJConnect remote.",
+          "device_language": "Language for the DJConnect device UI. This is sent to the device during pairing.",
+          "local_url": "Advanced fallback. Use a real device hostname such as http://djconnect-[device-suffix].local; 6 digit setup codes are not device hostnames.",
+          "show_advanced_options": "Show manual and firmware/OTA override fields."
+        }
+      },
+      "ble_wifi": {
+        "title": "Provision WiFi over Bluetooth",
+        "description": "Select a DJConnect device in setup mode to write WiFi over BLE, or continue to pairing if WiFi was already configured through the captive portal.",
+        "data": {
+          "ble_address": "DJConnect BLE device",
+          "wifi_ssid": "WiFi SSID",
+          "wifi_password": "WiFi password",
+          "ble_action": "Action"
+        },
+        "data_description": {
+          "ble_address": "Bluetooth address of the DJConnect setup device.",
+          "wifi_ssid": "WiFi network name to save on the DJConnect device.",
+          "wifi_password": "WiFi password. This is sent only to the BLE WiFi characteristic and is not logged.",
+          "ble_action": "Choose one action: write WiFi over Bluetooth, rescan devices or continue directly to pairing."
+        }
+      },
+      "spotify": {
+        "title": "Connect Spotify",
+        "description": "Enter the HTTPS Home Assistant external URL. DJConnect uses a bundled Spotify Client ID by default; you can override it in advanced options. PKCE does not require a client secret. The Spotify redirect URI must be the external URL plus /api/djconnect/spotify/callback.",
+        "data": {
+          "spotify_client_id": "Spotify Client ID",
+          "ha_external_url": "Home Assistant external URL",
+          "spotify_market": "Spotify market",
+          "show_advanced_options": "Show advanced options"
+        },
+        "data_description": {
+          "spotify_client_id": "Advanced override for the bundled Spotify Client ID.",
+          "ha_external_url": "Prefilled when Home Assistant has an external URL configured. Prefer your Nabu Casa URL.",
+          "spotify_market": "Spotify market used for search and playback requests.",
+          "show_advanced_options": "Show manual and firmware/OTA override fields."
+        }
+      },
+      "spotify_oauth": {
+        "title": "Authorize DJConnect with Spotify",
+        "description": "Home Assistant opens Spotify in your browser. After approving access, return here to continue setup."
+      },
+      "voice": {
+        "title": "Voice, playback and firmware settings",
+        "data": {
+          "assist_pipeline_id": "Assist pipeline",
+          "stt_engine": "STT engine",
+          "tts_engine": "TTS engine",
+          "tts_language": "TTS language",
+          "tts_voice": "TTS voice",
+          "dj_response_enabled": "Play DJ response on device",
+          "dj_style": "DJ style",
+          "dj_profile": "DJ style",
+          "spotify_source": "Spotify source override",
+          "liked_proxy_playlist_uri": "Liked songs playlist URI",
+          "firmware_repo": "Firmware repository",
+          "firmware_asset_prefix": "Firmware asset prefix",
+          "firmware_device": "Firmware device",
+          "firmware_channel": "Firmware channel",
+          "max_audio_bytes": "Maximum audio bytes",
+          "allow_ota_on_battery": "Allow OTA on battery",
+          "min_battery_for_ota": "Minimum battery for OTA",
+          "dj_response_ttl_seconds": "DJ response audio TTL seconds",
+          "show_advanced_options": "Show advanced options",
+          "options_action": "Action"
+        },
+        "data_description": {
+          "assist_pipeline_id": "Assist pipeline used by DJConnect devices for speech recognition.",
+          "stt_engine": "Home Assistant STT entity used for physical PTT speech recognition. Leave empty to use the Assist pipeline STT provider.",
+          "tts_engine": "Home Assistant TTS entity used for DJ responses.",
+          "tts_language": "Language passed to the TTS engine.",
+          "tts_voice": "Voice passed to the TTS engine when supported.",
+          "dj_response_enabled": "Create a temporary WAV or MP3 audio URL and send it with the DJ text to the DJConnect device.",
+          "dj_style": "Tone used for DJConnect announcements.",
+          "dj_profile": "Tone used for DJConnect announcements.",
+          "spotify_source": "Advanced optional override for a playback output/source. Leave empty for dynamic/default playback.",
+          "liked_proxy_playlist_uri": "Optional playlist URI used as a proxy for liked songs.",
+          "firmware_repo": "Advanced firmware release repository.",
+          "firmware_asset_prefix": "Advanced firmware binary asset prefix.",
+          "firmware_device": "Advanced firmware target/device identifier.",
+          "firmware_channel": "Advanced firmware release channel.",
+          "max_audio_bytes": "Compatibility limit for older audio uploads.",
+          "allow_ota_on_battery": "Allow firmware updates while the device is not USB powered.",
+          "min_battery_for_ota": "Minimum battery percentage before OTA is allowed.",
+          "dj_response_ttl_seconds": "Number of seconds the temporary WAV download URL remains valid.",
+          "show_advanced_options": "Show manual and firmware/OTA override fields.",
+          "options_action": "Choose whether to save options, reauthorize Spotify, retry pairing with the current code, or fully re-pair with a new pairing code."
+        }
+      },
+      "spotify_reauth": {
+        "title": "Reauthorize Spotify",
+        "description": "Home Assistant opens Spotify so DJConnect can be authorized again. After approval you return to Home Assistant."
+      },
+      "spotify_reauth_done": {
+        "title": "Spotify OAuth succeeded",
+        "description": "DJConnect Spotify OAuth succeeded. The refresh token is stored in Home Assistant. You can close this window; Home Assistant now manages Spotify playback itself."
+      },
+      "repair_pairing": {
+        "title": "Re-pair DJConnect",
+        "description": "Put the DJConnect device in pairing mode and enter the new pairing code shown on its display. Home Assistant will create a new device token.",
+        "data": {
+          "pair_code": "New pairing code"
+        },
+        "data_description": {
+          "pair_code": "The 6 digit code or 12 character device suffix shown on the device display."
+        }
+      }
+    },
+    "error": {
+      "missing_pair_code": "Enter the pairing code shown on the DJConnect device display.",
+      "invalid_pair_code": "Enter either a 6 digit pairing code or a 12 character hexadecimal device suffix.",
+      "spotify_client_id_required": "Enter the Client ID from your Spotify Developer App.",
+      "external_url_required": "Enter your Home Assistant external URL, for example your Nabu Casa URL.",
+      "external_url_https_required": "Use an HTTPS external URL. The recommended URL is your Nabu Casa URL.",
+      "external_url_invalid": "Enter a complete HTTPS URL, for example https://example.ui.nabu.casa.",
+      "oauth_setup_failed": "Spotify authorization could not be started. Check the Client ID and external URL, then try again.",
+      "oauth_not_completed": "Spotify authorization has not completed yet. Approve access in Spotify and return to Home Assistant.",
+      "oauth_failed": "Spotify authorization failed. Start the Spotify step again and check the redirect URI in your Spotify app.",
+      "ble_device_required": "Select a DJConnect BLE device or enter its Bluetooth address.",
+      "wifi_ssid_required": "Enter the WiFi SSID to provision.",
+      "ble_wifi_failed": "WiFi provisioning over Bluetooth failed. Check the selected device, SSID and password, then try again.",
+      "repair_pairing_failed": "Re-pairing failed. Check that the DJConnect device is reachable and showing a pairing code."
+    },
+    "abort": {
+      "already_configured": "This DJConnect device is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "DJConnect options",
+        "description": "Adjust DJConnect voice, playback, OTA and firmware settings. Spotify is a trademark of Spotify AB. DJConnect is not affiliated with, endorsed by, or sponsored by Spotify AB.",
+        "data": {
+          "assist_pipeline_id": "Assist pipeline",
+          "stt_engine": "STT engine",
+          "tts_engine": "TTS engine",
+          "tts_language": "TTS language",
+          "tts_voice": "TTS voice",
+          "dj_response_enabled": "Play DJ response on device",
+          "dj_style": "DJ style",
+          "dj_profile": "DJ style",
+          "spotify_source": "Spotify source override",
+          "liked_proxy_playlist_uri": "Liked songs playlist URI",
+          "firmware_repo": "Firmware repository",
+          "firmware_asset_prefix": "Firmware asset prefix",
+          "firmware_device": "Firmware device",
+          "firmware_channel": "Firmware channel",
+          "max_audio_bytes": "Maximum audio bytes",
+          "allow_ota_on_battery": "Allow OTA on battery",
+          "min_battery_for_ota": "Minimum battery for OTA",
+          "dj_response_ttl_seconds": "DJ response audio TTL seconds",
+          "show_advanced_options": "Show advanced options",
+          "options_action": "Action"
+        },
+        "data_description": {
+          "assist_pipeline_id": "Assist pipeline used by DJConnect devices for speech recognition.",
+          "stt_engine": "Home Assistant STT entity used for physical PTT speech recognition. Leave empty to use the Assist pipeline STT provider.",
+          "dj_response_enabled": "Create a temporary WAV or MP3 audio URL and send it with the DJ text to the DJConnect device.",
+          "dj_response_ttl_seconds": "Number of seconds the temporary WAV download URL remains valid.",
+          "allow_ota_on_battery": "Allow firmware updates while the device is not USB powered.",
+          "show_advanced_options": "Show manual and firmware/OTA override fields.",
+          "options_action": "Choose whether to save options, reauthorize Spotify, retry pairing with the current code, or fully re-pair with a new pairing code."
+        }
+      },
+      "repair_pairing": {
+        "title": "Re-pair DJConnect",
+        "description": "Put the DJConnect device in pairing mode and enter the new pairing code shown on its display. Home Assistant will create a new device token.",
+        "data": {
+          "pair_code": "New pairing code"
+        },
+        "data_description": {
+          "pair_code": "The 6 digit code or 12 character device suffix shown on the device display."
+        }
+      }
+    },
+    "error": {
+      "repair_pairing_failed": "Re-pairing failed. Check that the DJConnect device is reachable and showing a pairing code."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "last_command": {
+        "name": "Last command"
+      },
+      "battery": {
+        "name": "Battery"
+      },
+      "wifi_rssi": {
+        "name": "Wi-Fi RSSI"
+      },
+      "firmware_version": {
+        "name": "Firmware version"
+      },
+      "last_track": {
+        "name": "Last track"
+      },
+      "spotify_status": {
+        "name": "Spotify status"
+      },
+      "ha_pairing_status": {
+        "name": "HA pairing status"
+      },
+      "sound_output": {
+        "name": "Sound output"
+      },
+      "playback_available": {
+        "name": "Playback available"
+      },
+      "queue": {
+        "name": "Queue"
+      },
+      "playlists": {
+        "name": "Playlists"
+      },
+      "outputs": {
+        "name": "Outputs"
+      },
+      "screen_state": {
+        "name": "Screen state"
+      },
+      "led_state": {
+        "name": "LED state"
+      }
+    },
+    "button": {
+      "test_dj_response": {
+        "name": "Test ESP DJ response"
+      },
+      "next_track": {
+        "name": "Next track"
+      },
+      "previous_track": {
+        "name": "Previous track"
+      },
+      "play_pause": {
+        "name": "Play/pause"
+      },
+      "refresh_device_info": {
+        "name": "Refresh device info"
+      },
+      "reboot_device": {
+        "name": "Reboot device"
+      }
+    },
+    "update": {
+      "firmware": {
+        "name": "Firmware"
+      }
+    },
+    "number": {
+      "volume": {
+        "name": "Volume"
+      },
+      "brightness": {
+        "name": "Screen brightness"
+      },
+      "screen_timeout": {
+        "name": "Screen timeout"
+      },
+      "turn_off_after": {
+        "name": "Turn off after"
+      },
+      "speaker_volume": {
+        "name": "Speaker volume"
+      }
+    },
+    "select": {
+      "sound_output": {
+        "name": "Sound output"
+      },
+      "repeat_state": {
+        "name": "Repeat"
+      },
+      "language": {
+        "name": "Device language"
+      },
+      "theme": {
+        "name": "Theme"
+      },
+      "log_level": {
+        "name": "Log level"
+      }
+    },
+    "media_player": {
+      "playback_proxy": {
+        "name": "Playback proxy"
+      }
+    },
+    "switch": {
+      "shuffle": {
+        "name": "Shuffle"
+      }
+    }
+  },
+  "issues": {
+    "missing_spotify_oauth_scopes": {
+      "title": "Spotify authorization is missing playlist scope",
+      "fix_flow": {
+        "step": {
+          "authorize": {
+            "title": "Authorize DJConnect with Spotify",
+            "description": "Home Assistant opens Spotify in your browser. Approve access in Spotify, then return to Home Assistant."
+          },
+          "oauth_done": {
+            "title": "Finish Spotify authorization",
+            "description": "If you approved Spotify access, choose Submit to finish the repair. If you closed the Spotify page without approving, choose Fix again to restart authorization."
+          }
+        },
+        "error": {
+          "oauth_not_completed": "Spotify authorization has not completed yet. Approve access in Spotify, then try finishing again."
+        },
+        "abort": {
+          "entry_not_found": "DJConnect configuration could not be found."
+        }
+      }
+    },
+    "missing_spotify_refresh_token": {
+      "title": "Spotify authorization is missing",
+      "fix_flow": {
+        "step": {
+          "authorize": {
+            "title": "Authorize DJConnect with Spotify",
+            "description": "Home Assistant opens Spotify in your browser. Approve access in Spotify, then return to Home Assistant."
+          },
+          "oauth_done": {
+            "title": "Finish Spotify authorization",
+            "description": "If you approved Spotify access, choose Submit to finish the repair. If you closed the Spotify page without approving, choose Fix again to restart authorization."
+          }
+        },
+        "error": {
+          "oauth_not_completed": "Spotify authorization has not completed yet. Approve access in Spotify, then try finishing again."
+        },
+        "abort": {
+          "entry_not_found": "DJConnect configuration could not be found."
+        }
+      }
+    },
+    "spotify_refresh_token_revoked": {
+      "title": "Spotify authorization expired or was revoked",
+      "fix_flow": {
+        "step": {
+          "authorize": {
+            "title": "Authorize DJConnect with Spotify",
+            "description": "Home Assistant opens Spotify in your browser. Approve access in Spotify, then return to Home Assistant."
+          },
+          "oauth_done": {
+            "title": "Finish Spotify authorization",
+            "description": "If you approved Spotify access, choose Submit to finish the repair. If you closed the Spotify page without approving, choose Fix again to restart authorization."
+          }
+        },
+        "error": {
+          "oauth_not_completed": "Spotify authorization has not completed yet. Approve access in Spotify, then try finishing again."
+        },
+        "abort": {
+          "entry_not_found": "DJConnect configuration could not be found."
+        }
+      }
+    }
+  }
+}

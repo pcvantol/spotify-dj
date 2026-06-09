@@ -60,11 +60,11 @@ def install_update_stubs() -> None:
     sys.modules["homeassistant.helpers.entity_platform"] = entity_platform
 
 
-class SpotifyDJUpdateEntityTest(unittest.TestCase):
+class DJConnectUpdateEntityTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         install_update_stubs()
-        cls.update = importlib.import_module("custom_components.spotify_dj.update")
+        cls.update = importlib.import_module("custom_components.djconnect.update")
 
     def test_async_update_records_error_without_crashing(self) -> None:
         runtime = types.SimpleNamespace(
@@ -75,7 +75,7 @@ class SpotifyDJUpdateEntityTest(unittest.TestCase):
             ota_last_error=None,
             listeners=[],
         )
-        entity = self.update.SpotifyDJFirmwareUpdate(runtime, object())
+        entity = self.update.DJConnectFirmwareUpdate(runtime, object())
 
         async def fail(hass, config):
             raise RuntimeError("rate limit exceeded")
@@ -92,6 +92,45 @@ class SpotifyDJUpdateEntityTest(unittest.TestCase):
             entity.extra_state_attributes["firmware_update_error"],
             "rate limit exceeded",
         )
+
+    def test_async_update_throttles_successful_release_checks(self) -> None:
+        github = importlib.import_module("custom_components.djconnect.github")
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={},
+            device_status={},
+            ota_in_progress=False,
+            ota_last_error=None,
+            listeners=[],
+        )
+        entity = self.update.DJConnectFirmwareUpdate(runtime, object())
+        release = github.FirmwareRelease(
+            version="2.9.34",
+            title="DJConnect v2.9.34",
+            body="Release notes",
+            firmware_url="https://example.test/djconnect-device-v2.9.34.bin",
+            firmware_asset="djconnect-device-v2.9.34.bin",
+            manifest_url="https://example.test/firmware_manifest.json",
+            device="lilygo-t-embed-s3",
+        )
+        calls = 0
+
+        async def fetch(hass, config):
+            nonlocal calls
+            calls += 1
+            return release
+
+        original = self.update.fetch_latest_firmware_release
+        self.update.fetch_latest_firmware_release = fetch
+        try:
+            asyncio.run(entity.async_update())
+            asyncio.run(entity.async_update())
+            asyncio.run(entity.async_update(force=True))
+        finally:
+            self.update.fetch_latest_firmware_release = original
+
+        self.assertEqual(calls, 2)
+        self.assertEqual(entity.latest_version, "2.9.34")
 
 
 if __name__ == "__main__":

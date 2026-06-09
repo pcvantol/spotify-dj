@@ -60,20 +60,20 @@ def install_http_stubs() -> None:
     sys.modules["homeassistant.helpers"] = helpers
     sys.modules["homeassistant.helpers.aiohttp_client"] = aiohttp_client
 
-    package = types.ModuleType("custom_components.spotify_dj")
-    package.__path__ = [str(ROOT / "custom_components" / "spotify_dj")]
-    sys.modules.setdefault("custom_components.spotify_dj", package)
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
+    sys.modules.setdefault("custom_components.djconnect", package)
 
 
 class VoiceHttpHelperTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         install_http_stubs()
-        cls.http = importlib.import_module("custom_components.spotify_dj.http")
+        cls.http = importlib.import_module("custom_components.djconnect.http")
 
     def test_text_from_header_takes_precedence(self) -> None:
         text = self.http._text_from_payload(
-            {"X-SpotifyDJ-Text": " Speel Pearl Jam "},
+            {"X-DJConnect-Text": " Speel Pearl Jam "},
             {"text": "Speel Nirvana"},
         )
 
@@ -85,11 +85,11 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(text, "Speel Nirvana")
 
     def test_missing_text_response_documents_assist_flow(self) -> None:
-        response = self.http._missing_text_response(self.http.SpotifyDJVoiceView(None))
+        response = self.http._missing_text_response(self.http.DJConnectVoiceView(None))
 
         self.assertEqual(response["status_code"], 400)
         self.assertEqual(response["payload"]["error"], "missing_text")
-        self.assertIn("X-SpotifyDJ-Text", response["payload"]["message"])
+        self.assertIn("X-DJConnect-Text", response["payload"]["message"])
         self.assertIn("WAV audio", response["payload"]["message"])
 
     def test_command_failed_text_uses_device_language(self) -> None:
@@ -124,7 +124,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         )
 
     def test_voice_view_text_request_runs_direct_dj_response_test(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             config = {}
@@ -154,8 +154,8 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         class Request:
             headers = {
-                "X-SpotifyDJ-Text": "Test",
-                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+                "X-DJConnect-Text": "Test",
+                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
             }
             app = {"hass": hass}
 
@@ -163,7 +163,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
                 return b""
 
         try:
-            response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+            response = asyncio.run(self.http.DJConnectVoiceView(None).post(Request()))
         finally:
             self.http.process_text_command = original_command
             self.http.async_send_dj_response_best_effort = original_dj_response
@@ -172,14 +172,14 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertTrue(response["payload"]["success"])
         self.assertEqual(
             response["payload"]["dj_text"],
-            "SpotifyDJ is klaar voor je volgende verzoek.",
+            "DJConnect is klaar voor je volgende verzoek.",
         )
         self.assertEqual(response["payload"]["recognized_text"], "Test")
         self.assertEqual(response["payload"]["dj_response"], {"success": True, "spoken": False})
         self.assertIsNone(runtime.last_update["last_error"])
 
     def test_voice_view_json_text_request_runs_direct_dj_response_test(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             config = {}
@@ -203,7 +203,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             return {
                 "success": True,
                 "spoken": True,
-                "audio_url_value": "http://ha/api/spotify_dj/tts/test.mp3",
+                "audio_url_value": "http://ha/api/djconnect/tts/test.mp3",
             }
 
         original_command = self.http.process_text_command
@@ -214,7 +214,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
                 "Content-Type": "application/json",
             }
             app = {"hass": hass}
@@ -223,7 +223,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
                 return {"text": "Test"}
 
         try:
-            response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+            response = asyncio.run(self.http.DJConnectVoiceView(None).post(Request()))
         finally:
             self.http.process_text_command = original_command
             self.http.async_send_dj_response_best_effort = original_dj_response
@@ -232,26 +232,26 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertTrue(response["payload"]["success"])
         self.assertEqual(
             response["payload"]["dj_text"],
-            "SpotifyDJ is ready for your next request.",
+            "DJConnect is ready for your next request.",
         )
         self.assertEqual(
             response["payload"]["audio_url"],
-            "http://ha/api/spotify_dj/tts/test.mp3",
+            "http://ha/api/djconnect/tts/test.mp3",
         )
         self.assertEqual(response["payload"]["audio_type"], "mp3")
 
     def test_voice_view_accepts_wav_upload_and_returns_audio_url(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             config = {const.CONF_MAX_AUDIO_BYTES: 100}
-            device_status = {"device_id": "spotifydj-90B70990A994"}
+            device_status = {"device_id": "djconnect-90B70990A994"}
             device_token = "device-token"
 
             def authorize_device_request(self, headers, body_device_id=None):
                 return (
                     headers.get("Authorization") == "Bearer device-token"
-                    and body_device_id == "spotifydj-90B70990A994"
+                    and body_device_id == "djconnect-90B70990A994"
                 )
 
             def update(self, **kwargs):
@@ -276,7 +276,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             return {
                 "success": True,
                 "spoken": True,
-                "audio_url_value": "http://ha/api/spotify_dj/tts/token.mp3",
+                "audio_url_value": "http://ha/api/djconnect/tts/token.mp3",
             }
 
         original_transcribe = self.http.transcribe_wav_with_assist
@@ -289,7 +289,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
                 "Content-Type": "audio/wav",
             }
             app = {"hass": hass}
@@ -299,7 +299,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         try:
             with self.assertLogs(self.http._LOGGER, level="DEBUG") as captured:
-                response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+                response = asyncio.run(self.http.DJConnectVoiceView(None).post(Request()))
         finally:
             self.http.transcribe_wav_with_assist = original_transcribe
             self.http.process_text_command = original_command
@@ -307,23 +307,23 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         log_output = "\n".join(captured.output)
         self.assertIn("audio_url=True", log_output)
-        self.assertNotIn("http://ha/api/spotify_dj/tts/token.mp3", log_output)
+        self.assertNotIn("http://ha/api/djconnect/tts/token.mp3", log_output)
         self.assertEqual(response["status_code"], 200)
         self.assertTrue(response["payload"]["success"])
         self.assertEqual(response["payload"]["recognized_text"], "Speel Pearl Jam")
         self.assertEqual(response["payload"]["text"], "Daar gaan we")
         self.assertEqual(
             response["payload"]["audio_url"],
-            "http://ha/api/spotify_dj/tts/token.mp3",
+            "http://ha/api/djconnect/tts/token.mp3",
         )
         self.assertEqual(response["payload"]["audio_type"], "mp3")
 
     def test_voice_view_wav_command_failure_returns_friendly_200(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             config = {const.CONF_MAX_AUDIO_BYTES: 100}
-            device_status = {"device_id": "spotifydj-90B70990A994"}
+            device_status = {"device_id": "djconnect-90B70990A994"}
 
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
@@ -356,7 +356,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
                 "Content-Type": "audio/wav",
             }
             app = {"hass": hass}
@@ -365,7 +365,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
                 return b"RIFFxxxxWAVEdata"
 
         try:
-            response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+            response = asyncio.run(self.http.DJConnectVoiceView(None).post(Request()))
         finally:
             self.http.transcribe_wav_with_assist = original_transcribe
             self.http.process_text_command = original_command
@@ -379,11 +379,11 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["payload"]["dj_response"], {"success": True, "spoken": False})
 
     def test_voice_view_rejects_oversized_wav_upload(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             config = {const.CONF_MAX_AUDIO_BYTES: 4}
-            device_status = {"device_id": "spotifydj-90B70990A994"}
+            device_status = {"device_id": "djconnect-90B70990A994"}
 
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
@@ -393,7 +393,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
                 "Content-Type": "audio/x-wav",
             }
             app = {"hass": hass}
@@ -401,17 +401,17 @@ class VoiceHttpHelperTest(unittest.TestCase):
             async def read(self):
                 return b"RIFFxxxxWAVEdata"
 
-        response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+        response = asyncio.run(self.http.DJConnectVoiceView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 413)
         self.assertEqual(response["payload"]["error"], "audio_too_large")
 
     def test_voice_view_reports_stt_failure(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             config = {const.CONF_MAX_AUDIO_BYTES: 100}
-            device_status = {"device_id": "spotifydj-90B70990A994"}
+            device_status = {"device_id": "djconnect-90B70990A994"}
 
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
@@ -431,7 +431,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
                 "Content-Type": "application/octet-stream",
             }
             app = {"hass": hass}
@@ -440,7 +440,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
                 return b"RIFFxxxxWAVEdata"
 
         try:
-            response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+            response = asyncio.run(self.http.DJConnectVoiceView(None).post(Request()))
         finally:
             self.http.transcribe_wav_with_assist = original_transcribe
 
@@ -449,12 +449,12 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertIn("STT unavailable", response["payload"]["message"])
 
     def test_voice_view_reports_no_stt_provider_as_503(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
-        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        const = importlib.import_module("custom_components.djconnect.const")
+        assist_stt = importlib.import_module("custom_components.djconnect.assist_stt")
 
         class Runtime:
             config = {const.CONF_MAX_AUDIO_BYTES: 100}
-            device_status = {"device_id": "spotifydj-90B70990A994"}
+            device_status = {"device_id": "djconnect-90B70990A994"}
 
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
@@ -466,7 +466,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         hass = types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})
 
         async def no_provider(hass, wav, conf):
-            raise assist_stt.SpotifyDJNoSttProviderError(
+            raise assist_stt.DJConnectNoSttProviderError(
                 assist_stt.NO_STT_PROVIDER + "stt_engine"
             )
 
@@ -476,7 +476,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
                 "Content-Type": "audio/wav",
             }
             app = {"hass": hass}
@@ -485,7 +485,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
                 return b"RIFFxxxxWAVEdata"
 
         try:
-            response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(Request()))
+            response = asyncio.run(self.http.DJConnectVoiceView(None).post(Request()))
         finally:
             self.http.transcribe_wav_with_assist = original_transcribe
 
@@ -495,8 +495,8 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertIn("stt_engine", response["payload"]["message"])
 
     def test_transcribe_wav_uses_home_assistant_stt_helper(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
-        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        const = importlib.import_module("custom_components.djconnect.const")
+        assist_stt = importlib.import_module("custom_components.djconnect.assist_stt")
         stt_module = types.ModuleType("homeassistant.components.stt")
         assist_pkg = types.ModuleType("homeassistant.components.assist_pipeline")
         pipeline_module = types.ModuleType(
@@ -569,7 +569,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(text, "Speel Pearl Jam")
 
     def test_transcribe_wav_uses_configured_openai_stt_option(self) -> None:
-        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        assist_stt = importlib.import_module("custom_components.djconnect.assist_stt")
         stt_module = types.ModuleType("homeassistant.components.stt")
         pipeline_module = types.ModuleType(
             "homeassistant.components.assist_pipeline.pipeline"
@@ -617,7 +617,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(calls, ["openai"])
 
     def test_transcribe_wav_uses_real_ha_stt_engine_provider_pattern(self) -> None:
-        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        assist_stt = importlib.import_module("custom_components.djconnect.assist_stt")
         stt_module = types.ModuleType("homeassistant.components.stt")
         pipeline_module = types.ModuleType(
             "homeassistant.components.assist_pipeline.pipeline"
@@ -668,7 +668,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(calls, [("nl-NL", b"RIFFxxxxWAVEdata")])
 
     def test_transcribe_wav_falls_back_to_first_stt_entity(self) -> None:
-        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        assist_stt = importlib.import_module("custom_components.djconnect.assist_stt")
         stt_module = types.ModuleType("homeassistant.components.stt")
         pipeline_module = types.ModuleType(
             "homeassistant.components.assist_pipeline.pipeline"
@@ -717,7 +717,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(calls, ["stt.openai_stt"])
 
     def test_transcribe_wav_uses_assist_pipeline_helper_when_no_engine_resolved(self) -> None:
-        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        assist_stt = importlib.import_module("custom_components.djconnect.assist_stt")
         stt_module = types.ModuleType("homeassistant.components.stt")
         assist_pkg = types.ModuleType("homeassistant.components.assist_pipeline")
         pipeline_module = types.ModuleType(
@@ -777,7 +777,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(calls[0]["end_stage"], "stt")
 
     def test_stt_diagnostic_helpers_do_not_log_text(self) -> None:
-        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        assist_stt = importlib.import_module("custom_components.djconnect.assist_stt")
 
         events = [
             {"type": "stt-start", "data": {}},
@@ -791,7 +791,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertNotIn("secret words", str(assist_stt._result_state(result)))
 
     def test_stt_metadata_uses_bits_per_sample_not_stream_bitrate(self) -> None:
-        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        assist_stt = importlib.import_module("custom_components.djconnect.assist_stt")
 
         class SpeechMetadata:
             def __init__(self, **kwargs):
@@ -821,7 +821,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertNotEqual(metadata.kwargs["bit_rate"], 256000)
 
     def test_transcribe_wav_finds_default_cloud_stt_pipeline(self) -> None:
-        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        assist_stt = importlib.import_module("custom_components.djconnect.assist_stt")
         stt_module = types.ModuleType("homeassistant.components.stt")
         pipeline_module = types.ModuleType(
             "homeassistant.components.assist_pipeline.pipeline"
@@ -879,8 +879,8 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(calls[0]["audio"], b"RIFFxxxxWAVEdata")
 
     def test_transcribe_wav_missing_stored_pipeline_falls_back_to_default(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
-        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        const = importlib.import_module("custom_components.djconnect.const")
+        assist_stt = importlib.import_module("custom_components.djconnect.assist_stt")
         stt_module = types.ModuleType("homeassistant.components.stt")
         pipeline_module = types.ModuleType(
             "homeassistant.components.assist_pipeline.pipeline"
@@ -935,8 +935,8 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(text, "engine=cloud")
 
     def test_transcribe_wav_pipeline_without_stt_returns_no_provider(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
-        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        const = importlib.import_module("custom_components.djconnect.const")
+        assist_stt = importlib.import_module("custom_components.djconnect.assist_stt")
         stt_module = types.ModuleType("homeassistant.components.stt")
         pipeline_module = types.ModuleType(
             "homeassistant.components.assist_pipeline.pipeline"
@@ -950,7 +950,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         pipeline_module.async_get_pipelines = lambda hass: Pipelines()
         originals = self._install_stt_modules(stt_module, pipeline_module)
         try:
-            with self.assertRaises(assist_stt.SpotifyDJNoSttProviderError) as raised:
+            with self.assertRaises(assist_stt.DJConnectNoSttProviderError) as raised:
                 asyncio.run(
                     assist_stt.transcribe_wav_with_assist(
                         types.SimpleNamespace(data={}),
@@ -965,7 +965,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertIn("stt_engine", str(raised.exception))
 
     def test_transcribe_wav_no_stt_provider_error(self) -> None:
-        assist_stt = importlib.import_module("custom_components.spotify_dj.assist_stt")
+        assist_stt = importlib.import_module("custom_components.djconnect.assist_stt")
         originals = {
             name: sys.modules.get(name)
             for name in (
@@ -977,7 +977,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         sys.modules.pop("homeassistant.components.assist_pipeline.pipeline", None)
 
         try:
-            with self.assertRaises(assist_stt.SpotifyDJNoSttProviderError) as raised:
+            with self.assertRaises(assist_stt.DJConnectNoSttProviderError) as raised:
                 asyncio.run(
                     assist_stt.transcribe_wav_with_assist(
                         types.SimpleNamespace(data={}),
@@ -1020,7 +1020,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
                 sys.modules[name] = original
 
     def test_pair_view_rejects_wrong_pair_code(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             config = {const.CONF_PAIR_CODE: "123456"}
@@ -1032,16 +1032,16 @@ class VoiceHttpHelperTest(unittest.TestCase):
             app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": Runtime()}})}
 
             async def json(self):
-                return {"device_id": "spotifydj-device", "pair_code": "654321"}
+                return {"device_id": "djconnect-device", "pair_code": "654321"}
 
-        response = asyncio.run(self.http.SpotifyDJPairView(None).post(Request()))
+        response = asyncio.run(self.http.DJConnectPairView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 401)
         self.assertEqual(response["payload"]["error"], "invalid_pair_code")
         self.assertIn("does not match", response["payload"]["message"])
 
     def test_pair_view_does_not_include_spotify_oauth_secrets(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             config = {const.CONF_PAIR_CODE: "123456"}
@@ -1075,12 +1075,12 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
             async def json(self):
                 return {
-                    "device_id": "spotifydj-device",
+                    "device_id": "djconnect-device",
                     "pair_code": "123456",
-                    "local_url": "http://spotifydj.local",
+                    "local_url": "http://djconnect.local",
                 }
 
-        response = asyncio.run(self.http.SpotifyDJPairView(None).post(Request()))
+        response = asyncio.run(self.http.DJConnectPairView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
         self.assertNotIn("spotify", response["payload"])
@@ -1090,9 +1090,11 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertNotIn("spotify_client_id", response["payload"])
         self.assertEqual(response["payload"]["device_language"], "nl")
         self.assertEqual(response["payload"]["language"], "nl")
+        self.assertEqual(runtime.device_status["ha_pairing_status"], "pending")
+        self.assertNotEqual(runtime.device_status.get("ha_pairing_status"), "paired")
 
     def test_status_view_reprovisions_when_spotify_configured_false(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             device_token = "device-token"
@@ -1130,11 +1132,11 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
             async def json(self):
                 return {
-                    "device_id": "spotifydj-device",
+                    "device_id": "djconnect-device",
                     "spotify_configured": False,
                 }
 
-        response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
+        response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
         self.assertTrue(response["payload"]["backend_available"])
@@ -1143,7 +1145,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertNotIn("spotify", response["payload"])
 
     def test_status_view_persists_reported_device_identity_and_local_url(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
         entry = types.SimpleNamespace(data={const.CONF_PAIR_CODE: "981032"})
 
         class ConfigEntries:
@@ -1190,34 +1192,34 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
             async def json(self):
                 return {
-                    "device_id": "spotifydj-90B70990A994",
-                    "local_url": "http://spotifydj-90B70990A994.local",
+                    "device_id": "djconnect-90B70990A994",
+                    "local_url": "http://djconnect-90B70990A994.local",
                     "spotify_configured": True,
                 }
 
-        response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
+        response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
         self.assertEqual(
             config_entries.updates[0][const.CONF_DEVICE_ID],
-            "spotifydj-90B70990A994",
+            "djconnect-90B70990A994",
         )
         self.assertEqual(config_entries.updates[0][const.CONF_DEVICE_TOKEN], "device-token")
         self.assertEqual(
             config_entries.updates[0][const.CONF_LOCAL_URL],
-            "http://spotifydj-90B70990A994.local",
+            "http://djconnect-90B70990A994.local",
         )
 
     def test_status_view_accepts_lilygo_device_id_and_flattens_device_settings(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             device_token = "device-token"
-            device_status = {"device_id": "spotifydj-981032"}
+            device_status = {"device_id": "djconnect-981032"}
             ota_in_progress = True
             ota_last_error = None
             config = {}
-            pairing_device_id = "spotifydj-981032"
+            pairing_device_id = "djconnect-981032"
 
             def authorize_device_request(self, headers, body_device_id=None):
                 return headers.get("Authorization") == "Bearer device-token"
@@ -1236,14 +1238,14 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-SpotifyDJ-Device-ID": "spotifydj-lilygo-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994",
             }
             app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
 
             async def json(self):
                 return {
-                    "device_id": "spotifydj-lilygo-90B70990A994",
-                    "ota_state": "idle",
+                    "device_id": "djconnect-lilygo-90B70990A994",
+                    "update_state": "idle",
                     "firmware": "2.9.25",
                     "settings": {
                         "screen_brightness_percent": 91,
@@ -1258,11 +1260,11 @@ class VoiceHttpHelperTest(unittest.TestCase):
                     "led": {"state": "off"},
                 }
 
-        response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
+        response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
         self.assertFalse(runtime.ota_in_progress)
-        self.assertEqual(runtime.device_status["device_id"], "spotifydj-lilygo-90B70990A994")
+        self.assertEqual(runtime.device_status["device_id"], "djconnect-lilygo-90B70990A994")
         self.assertEqual(runtime.device_status["screen_brightness"], 91)
         self.assertEqual(runtime.device_status["screen_timeout_ms"], 60000)
         self.assertEqual(runtime.device_status["turn_off_after_ms"], 300000)
@@ -1273,7 +1275,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertNotIn("device_token", response["payload"])
 
     def test_status_view_prefers_current_spotify_credentials(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             device_token = "device-token"
@@ -1313,11 +1315,11 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
             async def json(self):
                 return {
-                    "device_id": "spotifydj-device",
+                    "device_id": "djconnect-device",
                     "spotify_configured": False,
                 }
 
-        response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
+        response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
         self.assertTrue(response["payload"]["backend_available"])
@@ -1325,7 +1327,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertNotIn("spotify_refresh_token", response["payload"])
 
     def test_status_view_reprovision_log_does_not_include_token(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             device_token = "device-token"
@@ -1358,12 +1360,12 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
             async def json(self):
                 return {
-                    "device_id": "spotifydj-device",
+                    "device_id": "djconnect-device",
                     "spotify_configured": False,
                 }
 
         with self.assertLogs(self.http._LOGGER, level="DEBUG") as captured:
-            response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
+            response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
 
         log_output = "\n".join(captured.output)
         self.assertEqual(response["status_code"], 200)
@@ -1372,7 +1374,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertNotIn("secret-refresh-token", log_output)
 
     def test_status_view_omits_spotify_when_configured_true(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             device_token = "device-token"
@@ -1407,18 +1409,18 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
             async def json(self):
                 return {
-                    "device_id": "spotifydj-device",
+                    "device_id": "djconnect-device",
                     "spotify_configured": True,
                 }
 
-        response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
+        response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
         self.assertNotIn("spotify", response["payload"])
         self.assertNotIn("spotify_refresh_token", response["payload"])
 
     def test_status_view_handles_missing_spotify_config_without_empty_tokens(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             device_token = "device-token"
@@ -1446,23 +1448,23 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
             async def json(self):
                 return {
-                    "device_id": "spotifydj-device",
+                    "device_id": "djconnect-device",
                     "spotify_configured": False,
                 }
 
-        response = asyncio.run(self.http.SpotifyDJStatusView(None).post(Request()))
+        response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
         self.assertNotIn("spotify", response["payload"])
         self.assertNotIn("spotify_refresh_token", response["payload"])
 
     def test_command_view_dispatches_backend_command(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
         calls = []
 
         class Runtime:
             device_token = "device-token"
-            device_status = {"device_id": "spotifydj-90B70990A994"}
+            device_status = {"device_id": "djconnect-90B70990A994"}
             config = {}
 
             def authorize_device_request(self, headers, body_device_id=None):
@@ -1480,13 +1482,13 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
             }
             app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
 
             async def json(self):
                 return {
-                    "device_id": "spotifydj-90B70990A994",
+                    "device_id": "djconnect-90B70990A994",
                     "command": "devices",
                     "value": "",
                     "play": False,
@@ -1495,7 +1497,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         original = self.http.handle_spotify_command
         self.http.handle_spotify_command = command_handler
         try:
-            response = asyncio.run(self.http.SpotifyDJCommandView(None).post(Request()))
+            response = asyncio.run(self.http.DJConnectCommandView(None).post(Request()))
         finally:
             self.http.handle_spotify_command = original
 
@@ -1505,7 +1507,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(calls, [("devices", "", False)])
 
     def test_command_view_returns_backend_unavailable_json(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             device_token = "device-token"
@@ -1526,12 +1528,12 @@ class VoiceHttpHelperTest(unittest.TestCase):
             app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": Runtime()}})}
 
             async def json(self):
-                return {"device_id": "spotifydj-90B70990A994", "command": "status"}
+                return {"device_id": "djconnect-90B70990A994", "command": "status"}
 
         original = self.http.handle_spotify_command
         self.http.handle_spotify_command = command_handler
         try:
-            response = asyncio.run(self.http.SpotifyDJCommandView(None).post(Request()))
+            response = asyncio.run(self.http.DJConnectCommandView(None).post(Request()))
         finally:
             self.http.handle_spotify_command = original
 
@@ -1542,7 +1544,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertIn("Spotify OAuth", response["payload"]["message"])
 
     def test_command_view_returns_200_for_generic_backend_failure(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             device_token = "device-token"
@@ -1564,12 +1566,12 @@ class VoiceHttpHelperTest(unittest.TestCase):
             app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": Runtime()}})}
 
             async def json(self):
-                return {"device_id": "spotifydj-lilygo-90B70990A994", "command": "status"}
+                return {"device_id": "djconnect-lilygo-90B70990A994", "command": "status"}
 
         original = self.http.handle_spotify_command
         self.http.handle_spotify_command = command_handler
         try:
-            response = asyncio.run(self.http.SpotifyDJCommandView(None).post(Request()))
+            response = asyncio.run(self.http.DJConnectCommandView(None).post(Request()))
         finally:
             self.http.handle_spotify_command = original
 
@@ -1580,7 +1582,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["payload"]["playback"], {"has_playback": False})
 
     def test_command_view_does_not_repair_device_during_normal_command(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class Runtime:
             device_token = "device-token"
@@ -1607,12 +1609,12 @@ class VoiceHttpHelperTest(unittest.TestCase):
             app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
 
             async def json(self):
-                return {"device_id": "spotifydj-lilygo-90B70990A994", "command": "next"}
+                return {"device_id": "djconnect-lilygo-90B70990A994", "command": "next"}
 
         original = self.http.handle_spotify_command
         self.http.handle_spotify_command = command_handler
         try:
-            response = asyncio.run(self.http.SpotifyDJCommandView(None).post(Request()))
+            response = asyncio.run(self.http.DJConnectCommandView(None).post(Request()))
         finally:
             self.http.handle_spotify_command = original
 
@@ -1621,7 +1623,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertFalse(runtime.pair_called)
 
     def test_store_rotated_spotify_refresh_token_persists_without_logging_secret(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
         updates = []
 
         class ConfigEntries:
@@ -1655,7 +1657,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertNotIn("new-secret-token", "\n".join(captured.output))
 
     def test_spotify_callback_succeeds_when_options_flow_is_closed(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
 
         class ConfigFlow:
             async def async_configure(self, flow_id, user_input):
@@ -1701,7 +1703,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
                             "entry_id": "entry-1",
                             "client_id": "client-id",
                             "code_verifier": "verifier",
-                            "redirect_uri": "https://example.ui.nabu.casa/api/spotify_dj/spotify/callback",
+                            "redirect_uri": "https://example.ui.nabu.casa/api/djconnect/spotify/callback",
                             "market": "NL",
                             "scopes": "scope",
                         }
@@ -1718,17 +1720,25 @@ class VoiceHttpHelperTest(unittest.TestCase):
         original_exchange = self.http.exchange_code_for_refresh_token
         self.http.exchange_code_for_refresh_token = exchange
         try:
-            response = asyncio.run(self.http.SpotifyDJSpotifyCallbackView(None).get(request))
+            response = asyncio.run(self.http.DJConnectSpotifyCallbackView(None).get(request))
         finally:
             self.http.exchange_code_for_refresh_token = original_exchange
 
         self.assertEqual(response.status, 200)
+        self.assertEqual(response.content_type, "text/html")
+        self.assertIn("DJConnect is opnieuw geautoriseerd", response.text)
+        self.assertIn("De refresh token is opgeslagen in Home Assistant", response.text)
+        self.assertIn(
+            "https://example.ui.nabu.casa/config/integrations/integration/djconnect",
+            response.text,
+        )
+        self.assertIn("data:image/png;base64,", response.text)
         self.assertEqual(entry.data[const.CONF_SPOTIFY_REFRESH_TOKEN], "new-refresh-token")
         self.assertEqual(config_entries.reloaded, "entry-1")
 
     def test_tts_view_returns_audio_for_valid_token(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
-        dj_response = importlib.import_module("custom_components.spotify_dj.dj_response")
+        const = importlib.import_module("custom_components.djconnect.const")
+        dj_response = importlib.import_module("custom_components.djconnect.dj_response")
         hass = types.SimpleNamespace(data={})
         token = dj_response.store_tts_audio(
             hass,
@@ -1740,7 +1750,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         request = types.SimpleNamespace(app={"hass": hass})
 
         response = asyncio.run(
-            self.http.SpotifyDJTtsView(None).get(request, token, "mp3")
+            self.http.DJConnectTtsView(None).get(request, token, "mp3")
         )
 
         self.assertEqual(response.status, 200)
@@ -1750,20 +1760,20 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertIn("tts_audio", hass.data[const.DOMAIN])
 
     def test_tts_view_returns_410_for_expired_token(self) -> None:
-        dj_response = importlib.import_module("custom_components.spotify_dj.dj_response")
+        dj_response = importlib.import_module("custom_components.djconnect.dj_response")
         hass = types.SimpleNamespace(data={})
         token = dj_response.store_tts_audio(hass, b"RIFFxxxxWAVEdata", 120)
         dj_response._store(hass)[token].expires_at = 0
         request = types.SimpleNamespace(app={"hass": hass})
 
-        response = asyncio.run(self.http.SpotifyDJTtsView(None).get(request, token))
+        response = asyncio.run(self.http.DJConnectTtsView(None).get(request, token))
 
         self.assertEqual(response.status, 410)
 
     def test_tts_view_returns_404_for_unknown_token(self) -> None:
         request = types.SimpleNamespace(app={"hass": types.SimpleNamespace(data={})})
 
-        response = asyncio.run(self.http.SpotifyDJTtsView(None).get(request, "unknown"))
+        response = asyncio.run(self.http.DJConnectTtsView(None).get(request, "unknown"))
 
         self.assertEqual(response.status, 404)
 

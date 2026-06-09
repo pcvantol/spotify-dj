@@ -58,22 +58,22 @@ def install_github_stubs() -> None:
     aiohttp_client.async_get_clientsession = lambda hass: None
     awesomeversion.AwesomeVersion = AwesomeVersion
 
-    package = types.ModuleType("custom_components.spotify_dj")
-    package.__path__ = [str(ROOT / "custom_components" / "spotify_dj")]
-    sys.modules["custom_components.spotify_dj"] = package
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
+    sys.modules["custom_components.djconnect"] = package
 
 
 class GithubFirmwareTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         install_github_stubs()
-        cls.github = importlib.import_module("custom_components.spotify_dj.github")
+        cls.github = importlib.import_module("custom_components.djconnect.github")
 
-    def test_select_release_assets_matches_spotifydj_device_binary(self) -> None:
+    def test_select_release_assets_matches_djconnect_device_binary(self) -> None:
         assets = self.github._select_release_assets(
             [
                 {
-                    "name": "spotifydj-device-v2.7.0.bin",
+                    "name": "djconnect-device-v2.7.0.bin",
                     "browser_download_url": "https://example/firmware.bin",
                 },
                 {
@@ -81,10 +81,10 @@ class GithubFirmwareTest(unittest.TestCase):
                     "browser_download_url": "https://example/manifest.json",
                 },
             ],
-            "spotifydj-device",
+            "djconnect-device",
         )
 
-        self.assertEqual(assets.firmware["name"], "spotifydj-device-v2.7.0.bin")
+        self.assertEqual(assets.firmware["name"], "djconnect-device-v2.7.0.bin")
         self.assertEqual(assets.manifest["name"], "firmware_manifest.json")
 
     def test_firmware_release_uses_manifest_device_and_metadata(self) -> None:
@@ -115,10 +115,10 @@ class GithubFirmwareTest(unittest.TestCase):
                     return Response(
                         {
                             "tag_name": "v2.7.0",
-                            "name": "SpotifyDJ v2.7.0",
+                            "name": "DJConnect v2.7.0",
                             "assets": [
                                 {
-                                    "name": "spotifydj-device-v2.7.0.bin",
+                                    "name": "djconnect-device-v2.7.0.bin",
                                     "browser_download_url": "https://example/firmware.bin",
                                 },
                                 {
@@ -132,7 +132,7 @@ class GithubFirmwareTest(unittest.TestCase):
                     {
                         "version": "2.7.0",
                         "device": "lilygo-t-embed-s3",
-                        "asset": "spotifydj-device-v2.7.0.bin",
+                        "asset": "djconnect-device-v2.7.0.bin",
                         "sha256": "a" * 64,
                         "size": 2113136,
                         "min_ha_integration": "1.0.0",
@@ -145,14 +145,14 @@ class GithubFirmwareTest(unittest.TestCase):
             release = asyncio.run(
                 self.github.fetch_latest_firmware_release(
                     object(),
-                    {"firmware_repo": "pcvantol/spotify-dj-firmware"},
+                    {"firmware_repo": "pcvantol/djconnect-firmware"},
                 )
             )
         finally:
             self.github.async_get_clientsession = original_session
 
         self.assertEqual(release.device, "lilygo-t-embed-s3")
-        self.assertEqual(release.firmware_asset, "spotifydj-device-v2.7.0.bin")
+        self.assertEqual(release.firmware_asset, "djconnect-device-v2.7.0.bin")
         self.assertEqual(release.sha256, "a" * 64)
         self.assertEqual(release.size, 2113136)
         self.assertEqual(release.min_ha_integration, "1.0.0")
@@ -190,10 +190,10 @@ class GithubFirmwareTest(unittest.TestCase):
     def test_missing_manifest_device_falls_back_to_default_target(self) -> None:
         release = self.github.FirmwareRelease(
             version="2.7.0",
-            title="SpotifyDJ v2.7.0",
+            title="DJConnect v2.7.0",
             body=None,
-            firmware_url="https://example/spotifydj-device-v2.7.0.bin",
-            firmware_asset="spotifydj-device-v2.7.0.bin",
+            firmware_url="https://example/djconnect-device-v2.7.0.bin",
+            firmware_asset="djconnect-device-v2.7.0.bin",
             device="lilygo-t-embed-s3",
         )
 
@@ -202,7 +202,7 @@ class GithubFirmwareTest(unittest.TestCase):
     def test_unsupported_manifest_device_warning_is_clear(self) -> None:
         with self.assertLogs(self.github._LOGGER, level="WARNING") as captured:
             self.github._LOGGER.warning(
-                "SpotifyDJ firmware manifest for %s targets unsupported device %s",
+                "DJConnect firmware manifest for %s targets unsupported device %s",
                 "2.7.0",
                 "other-board",
             )
@@ -239,7 +239,7 @@ class GithubFirmwareTest(unittest.TestCase):
             release = asyncio.run(
                 self.github.fetch_latest_firmware_release(
                     object(),
-                    {"firmware_repo": "pcvantol/spotify-dj-firmware"},
+                    {"firmware_repo": "pcvantol/djconnect-firmware"},
                 )
             )
         finally:

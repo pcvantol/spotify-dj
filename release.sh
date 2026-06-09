@@ -39,8 +39,8 @@ if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   exit 64
 fi
 
-if [[ ! -f "CHANGELOG.md" || ! -f "custom_components/spotify_dj/manifest.json" ]]; then
-  echo "Run this script from the spotify-dj repository root." >&2
+if [[ ! -f "CHANGELOG.md" || ! -f "custom_components/djconnect/manifest.json" ]]; then
+  echo "Run this script from the djconnect repository root." >&2
   exit 1
 fi
 
@@ -88,18 +88,18 @@ def replace_text(path: str, replacements: list[tuple[str, str]]) -> None:
         file_path.write_text(updated)
 
 
-manifest_path = Path("custom_components/spotify_dj/manifest.json")
+manifest_path = Path("custom_components/djconnect/manifest.json")
 manifest = json.loads(manifest_path.read_text())
 if manifest.get("version") != version:
-    print("  update custom_components/spotify_dj/manifest.json")
+    print("  update custom_components/djconnect/manifest.json")
     if not dry_run:
         manifest["version"] = version
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
 else:
-    print("  unchanged custom_components/spotify_dj/manifest.json")
+    print("  unchanged custom_components/djconnect/manifest.json")
 
 replace_text(
-    "custom_components/spotify_dj/const.py",
+    "custom_components/djconnect/const.py",
     [(r'^VERSION = "[^"]+"$', f'VERSION = "{version}"')],
 )
 replace_text(
@@ -111,16 +111,16 @@ replace_text(
     [
         (r"^- Home Assistant integration: `[^`]+`$", f"- Home Assistant integration: `{version}`"),
         (r'  "version": "[^"]+",', f'  "version": "{version}",'),
-        (r'  "asset": "spotifydj-device-v[^"]+\.bin",', f'  "asset": "spotifydj-device-{tag}.bin",'),
+        (r'  "asset": "djconnect-device-v[^"]+\.bin",', f'  "asset": "djconnect-device-{tag}.bin",'),
         (r'  "min_ha_integration": "[^"]+"', f'  "min_ha_integration": "{version}"'),
         (r"\./release\.sh [0-9]+\.[0-9]+\.[0-9]+", f"./release.sh {version}"),
         (r"\./release\.sh [0-9]+\.[0-9]+\.[0-9]+ --dry-run", f"./release.sh {version} --dry-run"),
-        (r'git commit -m "Release SpotifyDJ v[^"]+"', f'git commit -m "Release SpotifyDJ {tag}"'),
+        (r'git commit -m "Release DJConnect v[^"]+"', f'git commit -m "Release DJConnect {tag}"'),
         (r"git tag v[0-9]+\.[0-9]+\.[0-9]+", f"git tag {tag}"),
         (r"git push origin v[0-9]+\.[0-9]+\.[0-9]+", f"git push origin {tag}"),
         (
-            r'gh release create v[0-9]+\.[0-9]+\.[0-9]+ --title "SpotifyDJ v[^"]+" --notes-file CHANGELOG\.md',
-            f'gh release create {tag} --title "SpotifyDJ {tag}" --notes-file CHANGELOG.md',
+            r'gh release create v[0-9]+\.[0-9]+\.[0-9]+ --title "DJConnect v[^"]+" --notes-file CHANGELOG\.md',
+            f'gh release create {tag} --title "DJConnect {tag}" --notes-file CHANGELOG.md',
         ),
     ],
 )
@@ -133,10 +133,10 @@ PY
 
 bump_versions
 run git add .
-run git commit -m "Release SpotifyDJ ${TAG}"
+run git commit -m "Release DJConnect ${TAG}"
 run git tag "$TAG"
 run git push origin main
 run git push origin "$TAG"
-run gh release create "$TAG" --title "SpotifyDJ ${TAG}" --notes-file CHANGELOG.md
+run gh release create "$TAG" --title "DJConnect ${TAG}" --notes-file CHANGELOG.md
 
 echo "Release ${TAG} complete."

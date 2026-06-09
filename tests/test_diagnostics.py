@@ -24,16 +24,16 @@ def install_diagnostics_stubs() -> None:
     core.HomeAssistant = object
     config_entries.ConfigEntry = object
 
-    package = types.ModuleType("custom_components.spotify_dj")
-    package.__path__ = [str(ROOT / "custom_components" / "spotify_dj")]
-    sys.modules.setdefault("custom_components.spotify_dj", package)
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
+    sys.modules.setdefault("custom_components.djconnect", package)
 
 
 class DiagnosticsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         install_diagnostics_stubs()
-        cls.diagnostics = importlib.import_module("custom_components.spotify_dj.diagnostics")
+        cls.diagnostics = importlib.import_module("custom_components.djconnect.diagnostics")
 
     def test_redact_hides_token_password_and_secret_aliases(self) -> None:
         data = {
@@ -59,14 +59,14 @@ class DiagnosticsTest(unittest.TestCase):
     def test_diagnostics_include_legal_metadata_and_redact_secrets(self) -> None:
         entry = types.SimpleNamespace(
             entry_id="entry-1",
-            title="SpotifyDJ",
+            title="DJConnect",
             data={
                 "spotify_refresh_token": "refresh-secret",
                 "spotify_scopes": "user-read-playback-state user-modify-playback-state",
             },
             options={"wifi_password": "wifi-secret"},
         )
-        hass = types.SimpleNamespace(data={"spotify_dj": {"entry-1": None}})
+        hass = types.SimpleNamespace(data={"djconnect": {"entry-1": None}})
 
         result = asyncio.run(
             self.diagnostics.async_get_config_entry_diagnostics(hass, entry)
@@ -82,7 +82,7 @@ class DiagnosticsTest(unittest.TestCase):
         )
         self.assertEqual(
             result["legal"]["affiliation"],
-            "SpotifyDJ is not affiliated with, endorsed by, or sponsored by Spotify AB.",
+            "DJConnect is not affiliated with, endorsed by, or sponsored by Spotify AB.",
         )
         self.assertIn(
             "playlist-read-private",

@@ -1,10 +1,10 @@
-# Codex Prompt: Synchronize SpotifyDJ ESP Firmware With HA Integration
+# Codex Prompt: Synchronize DJConnect ESP Firmware With HA Integration
 
-Werk in de bestaande proprietary ESP firmware repo `pcvantol/spotify-dj-app`.
+Werk in de bestaande proprietary ESP firmware repo `pcvantol/djconnect-app`.
 
 ## Doel
 
-Synchroniseer de ESP firmware met de actuele Home Assistant `spotify_dj` integration architectuur.
+Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur.
 
 De HA integration is de trusted backend voor:
 
@@ -29,7 +29,7 @@ De ESP blijft eigenaar van:
 
 ## Belangrijke beslissingen
 
-- Legacy broker-based control is verwijderd. Noem die oude route nergens meer in UI, docs, provisioning, status of logs.
+- De eerdere broker-based control route is verwijderd. Noem die oude route nergens meer in UI, docs, provisioning, status of logs.
 - ESP is geen Spotify Connect speaker/player.
 - ESP bewaart geen Spotify OAuth/client_id/refresh_token of andere playback-backend credentials.
 - ESP stuurt generieke playback commands naar HA.
@@ -37,7 +37,7 @@ De ESP blijft eigenaar van:
 - ESP speaker is alleen voor local cues en DJ/voice response audio.
 - `/api/device/provision_spotify` mag niet meer bestaan of gebruikt worden; als compat route nog aanwezig is, verwijder die of laat hem expliciet `410 Gone` geven zonder secrets.
 - Pairing/status/voice/command auth gebruikt alleen het device bearer token.
-- Device ID format voor actuele firmware is `spotifydj-lilygo-XXXXXXXXXXXX`.
+- Device ID format voor actuele firmware is `djconnect-lilygo-XXXXXXXXXXXX`.
 - NVS taal key blijft `provision.language`.
 - Secrets nooit loggen: geen device tokens, HA tokens, Spotify tokens, WiFi wachtwoorden of tijdelijke audio URL tokens.
 
@@ -47,16 +47,16 @@ De ESP blijft eigenaar van:
 
 Protected routes:
 
-- `POST /api/spotify_dj/status`
-- `POST /api/spotify_dj/command`
-- `POST /api/spotify_dj/voice`
-- `POST /api/spotify_dj/event` indien gebruikt
+- `POST /api/djconnect/status`
+- `POST /api/djconnect/command`
+- `POST /api/djconnect/voice`
+- `POST /api/djconnect/event` indien gebruikt
 
 Headers:
 
 ```http
 Authorization: Bearer <device_token>
-X-SpotifyDJ-Device-ID: spotifydj-lilygo-XXXXXXXXXXXX
+X-DJConnect-Device-ID: djconnect-lilygo-XXXXXXXXXXXX
 Content-Type: application/json
 ```
 
@@ -64,7 +64,7 @@ Voor PTT:
 
 ```http
 Authorization: Bearer <device_token>
-X-SpotifyDJ-Device-ID: spotifydj-lilygo-XXXXXXXXXXXX
+X-DJConnect-Device-ID: djconnect-lilygo-XXXXXXXXXXXX
 Content-Type: audio/wav
 ```
 
@@ -95,9 +95,9 @@ Controleer en fix:
 
 - ESP ontvangt `device_token` via `POST /api/device/pair`.
 - ESP slaat exact die token persistent op.
-- Eerste call naar HA `/api/spotify_dj/command` gebruikt exact die token.
-- Eerste call naar HA `/api/spotify_dj/status` gebruikt exact die token.
-- Eerste call naar HA `/api/spotify_dj/voice` gebruikt exact die token.
+- Eerste call naar HA `/api/djconnect/command` gebruikt exact die token.
+- Eerste call naar HA `/api/djconnect/status` gebruikt exact die token.
+- Eerste call naar HA `/api/djconnect/voice` gebruikt exact die token.
 - ESP mag pending pairing niet wissen bij tijdelijke Spotify/backend fouten.
 - ESP mag pending pairing alleen stale/invalid markeren bij echte HA auth/pairing errors:
   - 401;
@@ -120,9 +120,9 @@ Stuur minimaal:
 
 ```json
 {
-  "device_id": "spotifydj-lilygo-XXXXXXXXXXXX",
+  "device_id": "djconnect-lilygo-XXXXXXXXXXXX",
   "ha_pairing_status": "paired|pending|stale|unpaired",
-  "local_url": "http://spotifydj-lilygo-XXXXXXXXXXXX.local",
+  "local_url": "http://djconnect-lilygo-XXXXXXXXXXXX.local",
   "firmware": "2.9.x",
   "battery_percent": 85,
   "wifi_rssi": -55,
@@ -157,25 +157,25 @@ Gebruik aliases waar makkelijk, want de HA integration accepteert meerdere namen
 ESP stuurt playback commands naar:
 
 ```http
-POST /api/spotify_dj/command
+POST /api/djconnect/command
 ```
 
 Payload voorbeelden:
 
 ```json
-{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"status"}
-{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"devices"}
-{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"queue"}
-{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"playlists"}
-{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"pause"}
-{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"play"}
-{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"next"}
-{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"previous"}
-{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"set_output","value":"iPhone","play":true}
-{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"set_volume","value":35}
-{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"start_liked_proxy","play":true}
-{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"start_playlist","value":"spotify:playlist:...","play":true}
-{"device_id":"spotifydj-lilygo-XXXXXXXXXXXX","command":"set_play_mode","value":"shuffle"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"status"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"devices"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"queue"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"playlists"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"pause"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"play"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"next"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"previous"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"set_output","value":"iPhone","play":true}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"set_volume","value":35}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"start_liked_proxy","play":true}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"start_playlist","value":"spotify:playlist:...","play":true}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"set_play_mode","value":"shuffle"}
 ```
 
 Verwachte response shapes:
@@ -212,7 +212,7 @@ Backend unavailable/auth failure:
 {
   "success": false,
   "error": "backend_unavailable",
-  "message": "Spotify authorization has expired or was revoked. Reauthorize SpotifyDJ.",
+  "message": "Spotify authorization has expired or was revoked. Reauthorize DJConnect.",
   "backend_available": false,
   "playback": {}
 }
@@ -258,7 +258,7 @@ Physical PTT:
 
 ```text
 ESP records WAV
--> POST /api/spotify_dj/voice raw audio/wav
+-> POST /api/djconnect/voice raw audio/wav
 -> HA does STT/Assist/playback/TTS
 -> HA returns DJ text plus optional WAV/MP3 audio_url
 -> ESP displays text and plays local response audio
@@ -271,7 +271,7 @@ Expected HA response:
   "success": true,
   "text": "Daar gaan we.",
   "dj_text": "Daar gaan we.",
-  "audio_url": "http://homeassistant.local:8123/api/spotify_dj/tts/token.mp3",
+  "audio_url": "http://homeassistant.local:8123/api/djconnect/tts/token.mp3",
   "audio_type": "mp3"
 }
 ```
@@ -321,7 +321,7 @@ Controleer:
   "url": "https://...",
   "sha256": "...",
   "device": "lilygo-t-embed-s3",
-  "asset": "spotifydj-device-v2.9.x.bin"
+  "asset": "djconnect-device-v2.9.x.bin"
 }
 ```
 
@@ -370,12 +370,12 @@ Voeg/update host tests waar mogelijk:
 
 ## Acceptatiecriteria
 
-- ESP pairt met HA en blijft paired na de eerste `/api/spotify_dj/command`.
+- ESP pairt met HA en blijft paired na de eerste `/api/djconnect/command`.
 - ESP wist pairing niet door Spotify OAuth/backend failures.
 - ESP status houdt HA native entities actueel.
 - ESP gebruikt alleen de HA-native lokale API.
 - ESP bewaart geen Spotify credentials.
 - ESP stuurt generic playback commands naar HA.
 - ESP PTT uploadt raw WAV naar HA en speelt HA DJ response lokaal af.
-- OTA blijft werken met `spotifydj-device-vX.Y.Z.bin` en target `lilygo-t-embed-s3`.
+- OTA blijft werken met `djconnect-device-vX.Y.Z.bin` en target `lilygo-t-embed-s3`.
 - Logs bevatten geen secrets.

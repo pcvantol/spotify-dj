@@ -1,19 +1,19 @@
-# SpotifyDJ Firmware Binary License
+# DJConnect Firmware Binary License
 
 Copyright (c) 2026 Peter van Tol
 
-This license applies only to SpotifyDJ firmware binaries, firmware release
-assets, firmware manifests, and firmware images distributed for SpotifyDJ
+This license applies only to DJConnect firmware binaries, firmware release
+assets, firmware manifests, and firmware images distributed for DJConnect
 devices. It does not apply to the Home Assistant custom integration in this
 repository, which is licensed separately under the MIT License.
 
 ## Permitted Use
 
-You may install and use SpotifyDJ firmware binaries on genuine SpotifyDJ
+You may install and use DJConnect firmware binaries on genuine DJConnect
 devices that were sold, supplied, or authorized by Peter van Tol or an
 authorized reseller.
 
-You may sell, resell, or distribute SpotifyDJ devices that include the
+You may sell, resell, or distribute DJConnect devices that include the
 preinstalled firmware, provided that the firmware is distributed only as part
 of those devices or as an official firmware update for those devices.
 
@@ -22,7 +22,7 @@ of those devices or as an official firmware update for those devices.
 You may not:
 
 - copy, redistribute, sublicense, or sell the firmware as a standalone product;
-- publish, mirror, or repackage firmware binaries outside official SpotifyDJ
+- publish, mirror, or repackage firmware binaries outside official DJConnect
   release channels without permission;
 - reverse engineer, decompile, disassemble, or attempt to derive firmware
   source code, except where applicable law expressly permits this;
@@ -38,7 +38,7 @@ granted for the firmware.
 
 ## Home Assistant Integration
 
-The SpotifyDJ Home Assistant integration is provided free of charge under the
+The DJConnect Home Assistant integration is provided free of charge under the
 MIT License. The firmware license does not restrict users from installing,
 copying, modifying, or redistributing the Home Assistant integration under the
 terms of the MIT License.

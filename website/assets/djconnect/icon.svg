@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">DJConnect icon</title>
+  <desc id="desc">A purple-blue DJ vinyl record with DJ letters and a vintage broadcast microphone.</desc>
+  <defs>
+    <radialGradient id="bg" cx="32%" cy="18%" r="88%">
+      <stop offset="0" stop-color="#4f7cff"/>
+      <stop offset="0.42" stop-color="#4020a8"/>
+      <stop offset="1" stop-color="#090714"/>
+    </radialGradient>
+    <radialGradient id="vinyl" cx="36%" cy="28%" r="72%">
+      <stop offset="0" stop-color="#343047"/>
+      <stop offset="0.42" stop-color="#13111d"/>
+      <stop offset="1" stop-color="#030207"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="152" y1="142" x2="902" y2="870" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#66e0ff"/>
+      <stop offset="0.48" stop-color="#7b5cff"/>
+      <stop offset="1" stop-color="#db5cff"/>
+    </linearGradient>
+    <linearGradient id="accent2" x1="222" y1="744" x2="880" y2="156" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#42d9ff"/>
+      <stop offset="0.52" stop-color="#8368ff"/>
+      <stop offset="1" stop-color="#ff73d9"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="634" y1="178" x2="850" y2="586" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f2f7ff"/>
+      <stop offset="0.18" stop-color="#9fb3cf"/>
+      <stop offset="0.5" stop-color="#232a43"/>
+      <stop offset="0.82" stop-color="#dde8ff"/>
+      <stop offset="1" stop-color="#65718f"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="34" stdDeviation="34" flood-color="#000" flood-opacity="0.52"/>
+    </filter>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="round"><rect width="1024" height="1024" rx="188"/></clipPath>
+  </defs>
+  <g clip-path="url(#round)">
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+    <circle cx="218" cy="144" r="268" fill="#7d5cff" opacity="0.18"/>
+    <circle cx="834" cy="858" r="300" fill="#3ce1ff" opacity="0.10"/>
+    <path d="M115 778C44 597 75 360 230 221 388 79 632 63 803 191c154 115 206 338 131 512" fill="none" stroke="url(#accent)" stroke-width="24" stroke-linecap="round" opacity="0.95"/>
+    <g filter="url(#shadow)">
+      <circle cx="454" cy="514" r="340" fill="url(#vinyl)"/>
+      <circle cx="454" cy="514" r="306" fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="2"/>
+      <circle cx="454" cy="514" r="254" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="2"/>
+      <circle cx="454" cy="514" r="206" fill="none" stroke="#7f9cff" stroke-opacity="0.10" stroke-width="3"/>
+      <circle cx="454" cy="514" r="150" fill="none" stroke="#ffffff" stroke-opacity="0.05" stroke-width="2"/>
+      <path d="M170 516a284 284 0 0 1 284-284" fill="none" stroke="#fff" stroke-opacity="0.12" stroke-width="8" stroke-linecap="round"/>
+      <path d="M225 688c102 106 282 122 405 34" fill="none" stroke="#66e0ff" stroke-opacity="0.15" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="454" cy="514" r="96" fill="#151023" stroke="url(#accent)" stroke-width="16"/>
+      <circle cx="454" cy="514" r="22" fill="#0b0814" stroke="#b9c7ff" stroke-opacity="0.7" stroke-width="6"/>
+    </g>
+    <g filter="url(#shadow)">
+      <path d="M692 170c58-31 133 11 133 78 0 44-32 80-74 87-37 135-80 252-164 337-46 46-93 74-137 89l-34-74c36-12 73-35 108-70 67-68 103-170 136-287-29-25-39-67-23-103a88 88 0 0 1 55-57Z" fill="#080711" stroke="#030207" stroke-width="24" stroke-linejoin="round"/>
+      <path d="M704 201c39-21 90 8 90 53 0 41-40 70-78 58-37 140-82 258-169 346-38 38-78 62-116 75" fill="none" stroke="url(#metal)" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="733" cy="254" r="58" fill="#131522" stroke="url(#accent2)" stroke-width="14"/>
+      <path d="M706 236h54M699 256h68M709 276h48" stroke="#dbe6ff" stroke-opacity="0.75" stroke-width="8" stroke-linecap="round"/>
+      <path d="M565 655l60 60" stroke="#66e0ff" stroke-width="14" stroke-linecap="round"/>
+    </g>
+    <g filter="url(#shadow)" font-family="Avenir Next, Arial Black, Impact, sans-serif" font-weight="900" font-style="italic">
+      <text x="132" y="786" font-size="372" letter-spacing="-34" fill="#080711" stroke="#080711" stroke-width="74" stroke-linejoin="round">DJ</text>
+      <text x="132" y="786" font-size="372" letter-spacing="-34" fill="#f7f9ff" stroke="url(#accent)" stroke-width="18" stroke-linejoin="round">DJ</text>
+    </g>
+    <path d="M782 754c52-41 94-102 116-172" fill="none" stroke="url(#accent2)" stroke-width="18" stroke-linecap="round" stroke-dasharray="4 34" filter="url(#glow)"/>
+  </g>
+</svg>

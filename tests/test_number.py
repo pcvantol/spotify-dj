@@ -67,16 +67,16 @@ def install_number_stubs() -> None:
     helpers.device_registry = device_registry
     helpers.entity_platform = entity_platform
 
-    package = types.ModuleType("custom_components.spotify_dj")
-    package.__path__ = [str(ROOT / "custom_components" / "spotify_dj")]
-    sys.modules["custom_components.spotify_dj"] = package
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
+    sys.modules["custom_components.djconnect"] = package
 
 
 class NumberTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         install_number_stubs()
-        cls.number = importlib.import_module("custom_components.spotify_dj.number")
+        cls.number = importlib.import_module("custom_components.djconnect.number")
 
     def test_negative_volume_status_is_unknown(self) -> None:
         self.assertEqual(self.number._volume_value({"volume": -1}), -1.0)
@@ -86,7 +86,7 @@ class NumberTest(unittest.TestCase):
             device_status={"volume": -1},
             listeners=[],
         )
-        entity = self.number.SpotifyDJVolumeNumber(runtime, object())
+        entity = self.number.DJConnectVolumeNumber(runtime, object())
 
         self.assertIsNone(entity.native_value)
 
@@ -96,7 +96,7 @@ class NumberTest(unittest.TestCase):
             device_status={"volume": 90},
             listeners=[],
         )
-        entity = self.number.SpotifyDJVolumeNumber(runtime, object())
+        entity = self.number.DJConnectVolumeNumber(runtime, object())
 
         self.assertEqual(entity.native_value, 60.0)
 
@@ -112,7 +112,7 @@ class NumberTest(unittest.TestCase):
             listeners=[],
         )
 
-        brightness = self.number.SpotifyDJCommandNumber(
+        brightness = self.number.DJConnectCommandNumber(
             runtime,
             object(),
             "screen_brightness",
@@ -123,7 +123,7 @@ class NumberTest(unittest.TestCase):
             100,
             "%",
         )
-        speaker = self.number.SpotifyDJCommandNumber(
+        speaker = self.number.DJConnectCommandNumber(
             runtime,
             object(),
             "speaker_volume",
@@ -134,7 +134,7 @@ class NumberTest(unittest.TestCase):
             100,
             "%",
         )
-        screen_timeout = self.number.SpotifyDJCommandNumber(
+        screen_timeout = self.number.DJConnectCommandNumber(
             runtime,
             object(),
             "screen_timeout",
@@ -146,7 +146,7 @@ class NumberTest(unittest.TestCase):
             "s",
             value_multiplier=1000,
         )
-        turn_off_after = self.number.SpotifyDJCommandNumber(
+        turn_off_after = self.number.DJConnectCommandNumber(
             runtime,
             object(),
             "turn_off_after",

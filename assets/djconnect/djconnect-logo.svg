@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2200 620" role="img" aria-labelledby="title desc">
+  <title id="title">DJConnect logo</title>
+  <desc id="desc">DJConnect wordmark with a purple-blue vinyl and broadcast microphone icon.</desc>
+  <defs>
+    <linearGradient id="word" x1="560" y1="120" x2="1760" y2="520" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset="0.42" stop-color="#b7c8ff"/>
+      <stop offset="1" stop-color="#9c6cff"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="20" y1="80" x2="560" y2="540" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#66e0ff"/><stop offset="0.48" stop-color="#7b5cff"/><stop offset="1" stop-color="#db5cff"/>
+    </linearGradient>
+    <radialGradient id="vinyl" cx="36%" cy="28%" r="74%">
+      <stop offset="0" stop-color="#343047"/><stop offset="0.44" stop-color="#13111d"/><stop offset="1" stop-color="#030207"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#000" flood-opacity="0.46"/>
+    </filter>
+  </defs>
+  <rect width="2200" height="620" rx="96" fill="#070812"/>
+  <circle cx="1380" cy="20" r="460" fill="#4f7cff" opacity="0.10"/>
+  <circle cx="2060" cy="540" r="300" fill="#db5cff" opacity="0.10"/>
+  <g transform="translate(50 50) scale(.51)" filter="url(#shadow)">
+    <rect width="1024" height="1024" rx="188" fill="#0b0815"/>
+    <path d="M115 778C44 597 75 360 230 221 388 79 632 63 803 191c154 115 206 338 131 512" fill="none" stroke="url(#accent)" stroke-width="24" stroke-linecap="round"/>
+    <circle cx="454" cy="514" r="340" fill="url(#vinyl)"/>
+    <circle cx="454" cy="514" r="254" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="3"/>
+    <circle cx="454" cy="514" r="96" fill="#151023" stroke="url(#accent)" stroke-width="16"/>
+    <path d="M704 201c39-21 90 8 90 53 0 41-40 70-78 58-37 140-82 258-169 346-38 38-78 62-116 75" fill="none" stroke="#dbe6ff" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="733" cy="254" r="58" fill="#131522" stroke="url(#accent)" stroke-width="14"/>
+    <path d="M706 236h54M699 256h68M709 276h48" stroke="#dbe6ff" stroke-opacity=".75" stroke-width="8" stroke-linecap="round"/>
+    <g font-family="Avenir Next, Arial Black, Impact, sans-serif" font-weight="900" font-style="italic"><text x="132" y="786" font-size="372" letter-spacing="-34" fill="#080711" stroke="#080711" stroke-width="74" stroke-linejoin="round">DJ</text><text x="132" y="786" font-size="372" letter-spacing="-34" fill="#f7f9ff" stroke="url(#accent)" stroke-width="18" stroke-linejoin="round">DJ</text></g>
+  </g>
+  <g font-family="Inter, Avenir Next, Segoe UI, Arial, sans-serif" font-weight="900">
+    <text x="620" y="282" font-size="156" letter-spacing="-8" fill="url(#word)">DJConnect</text>
+    <text x="628" y="374" font-size="34" letter-spacing="4" fill="#74dfff" opacity=".95">YOUR PERSONAL AI DJ FOR HOME ASSISTANT</text>
+  </g>
+</svg>

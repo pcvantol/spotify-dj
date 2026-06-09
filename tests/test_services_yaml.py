@@ -5,7 +5,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SERVICES = ROOT / "custom_components" / "spotify_dj" / "services.yaml"
+SERVICES = ROOT / "custom_components" / "djconnect" / "services.yaml"
 
 
 class ServicesYamlTest(unittest.TestCase):
@@ -26,8 +26,8 @@ class ServicesYamlTest(unittest.TestCase):
         self.assertIn("Developer test", text)
         self.assertIn("Developer helper", text)
         self.assertIn("temporary WAV or MP3 audio_url", text)
-        self.assertIn("/api/spotify_dj/spotify/callback", text)
-        self.assertNotIn("/api/spotify_dj/spotify_callback", text)
+        self.assertIn("/api/djconnect/spotify/callback", text)
+        self.assertNotIn("/api/djconnect/spotify_callback", text)
         self.assertNotIn("stuur", text.lower())
         self.assertNotIn("zonder Spotify playback", text)
 

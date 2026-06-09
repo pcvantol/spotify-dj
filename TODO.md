@@ -1,24 +1,24 @@
-# SpotifyDJ TODO Backlog
+# DJConnect TODO Backlog
 
 ## Immediate Validation
 
 - Install the latest HACS release in Home Assistant.
 - Restart Home Assistant after installation.
-- Open SpotifyDJ options flow and confirm there is no internal server error.
+- Open DJConnect options flow and confirm there is no internal server error.
 - Confirm existing paired device remains paired after HA restart when ESP reports `ha_pairing_status=paired`.
 - Confirm HA shows pairing `pending` and retries `/api/device/pair` when a local token exists but ESP has not confirmed pairing.
-- Confirm ESP `/status` updates persist the real `spotifydj-XXXXXXXXXXXX` device id.
+- Confirm ESP `/status` updates persist the real `djconnect-XXXXXXXXXXXX` device id.
 - Confirm ESP `/status` updates persist the real `local_url` when provided.
-- Confirm old setup-code entries stop using `spotifydj-[6-digit-code].local` after status repair.
+- Confirm old setup-code entries stop using `djconnect-[6-digit-code].local` after status repair.
 
 ## PTT / Voice
 
 - Test physical PTT end-to-end on the ESP device.
-- Confirm ESP uploads raw WAV to `POST /api/spotify_dj/voice`.
+- Confirm ESP uploads raw WAV to `POST /api/djconnect/voice`.
 - Confirm HA logs selected `stt_engine` without secrets.
 - Confirm HA logs WAV metadata: sample rate, channel count, sample width and byte length.
 - Confirm selected HA STT provider accepts the WAV metadata.
-- Confirm recognized text reaches SpotifyDJ command processing.
+- Confirm recognized text reaches DJConnect command processing.
 - Confirm Spotify playback action runs when Spotify is idle.
 - Confirm friendly DJ fallback response is returned when Spotify playback fails.
 - Confirm DJ fallback response follows `device_language` (`nl` or `en`).
@@ -42,8 +42,8 @@
 - Test BLE screen action `Rescan Bluetooth devices`.
 - Test BLE screen action `Write WiFi over Bluetooth`.
 - Test pairing with manual device URL left empty.
-- Test mDNS discovery through `_spotifydj._tcp`.
-- Test mDNS single-device fallback when only one SpotifyDJ device is visible.
+- Test mDNS discovery through `_djconnect._tcp`.
+- Test mDNS single-device fallback when only one DJConnect device is visible.
 - Test manual advanced device URL override on a network where mDNS fails.
 - Confirm invalid pairing code is rejected with a clear user message.
 - Confirm real device id and local URL are persisted after `/pair`.
@@ -62,8 +62,8 @@
 
 ## OTA / Firmware Updates
 
-- Verify firmware release discovery from `pcvantol/spotify-dj-firmware`.
-- Verify binary asset prefix `spotifydj-device` is accepted.
+- Verify firmware release discovery from `pcvantol/djconnect-firmware`.
+- Verify binary asset prefix `djconnect-device` is accepted.
 - Verify `firmware_manifest.json` is parsed even if GitHub serves it as `application/octet-stream`.
 - Verify update entity displays firmware asset, manifest URL, target device, sha256 and min HA integration.
 - Verify OTA payload sends manifest `device`, currently `lilygo-t-embed-s3`.
@@ -72,10 +72,10 @@
 
 ## Developer Services
 
-- Test `spotify_dj.test_parse`.
-- Test `spotify_dj.test_command` with `play: false`.
-- Test `spotify_dj.test_command` with `play: true`.
-- Test `spotify_dj.test_tts` and confirm response is sent to ESP, not HA media player.
+- Test `djconnect.test_parse`.
+- Test `djconnect.test_command` with `play: false`.
+- Test `djconnect.test_command` with `play: true`.
+- Test `djconnect.test_tts` and confirm response is sent to ESP, not HA media player.
 - Test Spotify backend playback after OAuth refresh-token rotation.
 - Update service documentation if any response payload changes.
 

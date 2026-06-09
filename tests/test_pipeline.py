@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
 import sys
 import types
 import unittest
@@ -14,21 +15,26 @@ def install_pipeline_stubs() -> None:
     core.HomeAssistant = object
     sys.modules["homeassistant"] = homeassistant
     sys.modules["homeassistant.core"] = core
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [
+        str(Path(__file__).resolve().parents[1] / "custom_components" / "djconnect")
+    ]
+    sys.modules["custom_components.djconnect"] = package
 
 
 class AssistPipelineTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         install_pipeline_stubs()
-        cls.pipeline = importlib.import_module("custom_components.spotify_dj.pipeline")
+        cls.pipeline = importlib.import_module("custom_components.djconnect.pipeline")
 
-    def test_intent_from_assist_response_uses_spotify_dj_data(self) -> None:
+    def test_intent_from_assist_response_uses_djconnect_data(self) -> None:
         intent = self.pipeline._intent_from_assist_response(
             {
                 "response": {
                     "response_type": "action_done",
                     "data": {
-                        "spotify_dj": {
+                        "djconnect": {
                             "type": "track",
                             "title": "Black",
                             "artist": "Pearl Jam",
@@ -46,13 +52,24 @@ class AssistPipelineTest(unittest.TestCase):
         self.assertEqual(intent["spotify_search_query"], "Pearl Jam Black")
         self.assertEqual(intent["dj_announcement"], "Pearl Jam staat klaar.")
 
-    def test_intent_from_spotifydj_data_uses_speech_as_dj_response(self) -> None:
+    def test_djconnect_assist_prompt_requests_fun_fact(self) -> None:
+        prompt = self.pipeline._djconnect_assist_prompt(
+            "Speel Black van Pearl Jam",
+            "nl-NL",
+        )
+
+        self.assertIn("leuk feitje", prompt)
+        self.assertIn("artiest", prompt)
+        self.assertIn("nummer", prompt)
+        self.assertIn("Speel Black van Pearl Jam", prompt)
+
+    def test_intent_from_djconnect_data_uses_speech_as_dj_response(self) -> None:
         intent = self.pipeline._intent_from_assist_response(
             {
                 "response": {
                     "response_type": "query_answer",
                     "speech": {"plain": {"speech": "Ik zet Pearl Jam voor je klaar."}},
-                    "data": {"spotify_dj": {"type": "search"}},
+                    "data": {"djconnect": {"type": "search"}},
                 }
             },
             "Speel Pearl Jam",

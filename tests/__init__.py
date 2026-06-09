@@ -1,1 +1,1 @@
-"""SpotifyDJ tests."""
+"""DJConnect tests."""

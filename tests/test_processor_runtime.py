@@ -20,9 +20,9 @@ def install_processor_stubs() -> None:
         core.HomeAssistant = object
         sys.modules["homeassistant"] = homeassistant
         sys.modules["homeassistant.core"] = core
-    package = types.ModuleType("custom_components.spotify_dj")
-    package.__path__ = [str(ROOT / "custom_components" / "spotify_dj")]
-    sys.modules.setdefault("custom_components.spotify_dj", package)
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
+    sys.modules.setdefault("custom_components.djconnect", package)
 
 
 class Runtime:
@@ -41,7 +41,7 @@ class ProcessorRuntimeTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         install_processor_stubs()
-        cls.processor = importlib.import_module("custom_components.spotify_dj.processor")
+        cls.processor = importlib.import_module("custom_components.djconnect.processor")
 
     def test_process_text_command_updates_text_before_processing_result(self) -> None:
         async def assist(hass, user_text, conf):

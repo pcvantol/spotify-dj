@@ -1,6 +1,6 @@
 {
-  "name": "SpotifyDJ",
+  "name": "DJConnect",
   "render_readme": true,
-  "domains": ["spotify_dj"],
+  "domains": ["djconnect"],
   "homeassistant": "2025.1.0"
 }

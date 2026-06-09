@@ -6,8 +6,8 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TRANSLATIONS = ROOT / "custom_components" / "spotify_dj" / "translations"
-INTEGRATION = ROOT / "custom_components" / "spotify_dj"
+TRANSLATIONS = ROOT / "custom_components" / "djconnect" / "translations"
+INTEGRATION = ROOT / "custom_components" / "djconnect"
 DOCS = [
     ROOT / "README.md",
     ROOT / "CHANGELOG.md",
@@ -54,6 +54,8 @@ ENTITY_TRANSLATION_KEYS = {
     ("sensor", "queue"),
     ("sensor", "playlists"),
     ("sensor", "outputs"),
+    ("sensor", "screen_state"),
+    ("sensor", "led_state"),
     ("button", "test_dj_response"),
     ("button", "next_track"),
     ("button", "previous_track"),
@@ -66,9 +68,11 @@ ENTITY_TRANSLATION_KEYS = {
     ("number", "turn_off_after"),
     ("number", "speaker_volume"),
     ("select", "sound_output"),
+    ("select", "repeat_state"),
     ("select", "language"),
     ("select", "theme"),
     ("select", "log_level"),
+    ("switch", "shuffle"),
     ("update", "firmware"),
     ("media_player", "playback_proxy"),
 }
@@ -123,13 +127,21 @@ class TranslationTest(unittest.TestCase):
                 self.assertFalse(missing, f"Missing {language} entity translations: {missing}")
 
     def test_entities_use_translation_keys(self) -> None:
-        for filename in ("sensor.py", "button.py", "number.py", "update.py", "media_player.py"):
+        for filename in (
+            "sensor.py",
+            "button.py",
+            "number.py",
+            "select.py",
+            "switch.py",
+            "update.py",
+            "media_player.py",
+        ):
             with self.subTest(filename=filename):
                 text = (INTEGRATION / filename).read_text()
                 self.assertIn("_attr_translation_key", text)
                 self.assertNotIn("_attr_name =", text)
 
-    def test_no_legacy_branding_in_user_facing_integration_files(self) -> None:
+    def test_no_old_branding_in_user_facing_integration_files(self) -> None:
         checked_files = [
             *TRANSLATIONS.glob("*.json"),
             INTEGRATION / "services.yaml",
@@ -140,7 +152,7 @@ class TranslationTest(unittest.TestCase):
             with self.subTest(path=path.name):
                 text = path.read_text().lower()
                 hits = [word for word in forbidden if word in text]
-                self.assertFalse(hits, f"{path} contains legacy wording: {hits}")
+                self.assertFalse(hits, f"{path} contains old branding: {hits}")
 
     def test_removed_message_bus_wording_stays_out_of_docs_and_ui(self) -> None:
         checked_files = [

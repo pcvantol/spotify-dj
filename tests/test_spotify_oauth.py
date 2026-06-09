@@ -37,28 +37,28 @@ def install_oauth_stubs() -> None:
         sys.modules["homeassistant.helpers"] = helpers
         sys.modules["homeassistant.helpers.aiohttp_client"] = aiohttp_client
 
-    package = types.ModuleType("custom_components.spotify_dj")
-    package.__path__ = [str(ROOT / "custom_components" / "spotify_dj")]
-    sys.modules["custom_components.spotify_dj"] = package
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
+    sys.modules["custom_components.djconnect"] = package
 
 
 class SpotifyOAuthTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         install_oauth_stubs()
-        cls.oauth = importlib.import_module("custom_components.spotify_dj.spotify_oauth")
+        cls.oauth = importlib.import_module("custom_components.djconnect.spotify_oauth")
 
-    def test_redirect_uri_uses_spotifydj_callback_path(self) -> None:
+    def test_redirect_uri_uses_djconnect_callback_path(self) -> None:
         self.assertEqual(
             self.oauth.build_redirect_uri("https://example.ui.nabu.casa/"),
-            "https://example.ui.nabu.casa/api/spotify_dj/spotify/callback",
+            "https://example.ui.nabu.casa/api/djconnect/spotify/callback",
         )
 
     def test_authorize_url_contains_pkce_parameters(self) -> None:
-        const = importlib.import_module("custom_components.spotify_dj.const")
+        const = importlib.import_module("custom_components.djconnect.const")
         url = self.oauth.build_authorize_url(
             "client-id",
-            "https://example.ui.nabu.casa/api/spotify_dj/spotify/callback",
+            "https://example.ui.nabu.casa/api/djconnect/spotify/callback",
             const.DEFAULT_SPOTIFY_SCOPES,
             "state-value",
             "verifier-value",

@@ -64,18 +64,18 @@ def install_media_player_stubs() -> None:
     sys.modules["homeassistant.helpers.entity_platform"] = entity_platform
 
 
-class SpotifyDJMediaPlayerTest(unittest.TestCase):
+class DJConnectMediaPlayerTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         install_media_player_stubs()
-        cls.media_player = importlib.import_module("custom_components.spotify_dj.media_player")
+        cls.media_player = importlib.import_module("custom_components.djconnect.media_player")
 
     def test_media_player_represents_backend_playback(self) -> None:
         runtime = types.SimpleNamespace(
             entry=types.SimpleNamespace(entry_id="entry-1"),
             device_token="device-token",
             device_status={
-                "device_id": "spotifydj-90B70990A994",
+                "device_id": "djconnect-90B70990A994",
                 "firmware": "2.9.12",
                 "available_outputs": [{"id": "dev-1", "name": "Living room"}],
             },
@@ -92,7 +92,7 @@ class SpotifyDJMediaPlayerTest(unittest.TestCase):
             },
             listeners=[],
         )
-        entity = self.media_player.SpotifyDJPlaybackProxyMediaPlayer(runtime, object())
+        entity = self.media_player.DJConnectPlaybackProxyMediaPlayer(runtime, object())
 
         self.assertEqual(entity.state, "playing")
         self.assertEqual(entity.media_title, "Alive")
@@ -115,7 +115,7 @@ class SpotifyDJMediaPlayerTest(unittest.TestCase):
             listeners=[],
             update=lambda **kwargs: calls.append(("update", kwargs)),
         )
-        entity = self.media_player.SpotifyDJPlaybackProxyMediaPlayer(runtime, object())
+        entity = self.media_player.DJConnectPlaybackProxyMediaPlayer(runtime, object())
 
         async def fake_handler(hass, runtime_arg, command, value=None, *, play=None):
             calls.append((command, value, play))
@@ -128,6 +128,8 @@ class SpotifyDJMediaPlayerTest(unittest.TestCase):
             asyncio.run(entity.async_media_pause())
             asyncio.run(entity.async_select_source("Living room"))
             asyncio.run(entity.async_set_volume_level(0.5))
+            asyncio.run(entity.async_set_shuffle(True))
+            asyncio.run(entity.async_set_repeat("context"))
             asyncio.run(entity.async_play_media("playlist", "spotify:playlist:abc"))
         finally:
             self.media_player.handle_spotify_command = original
@@ -136,6 +138,8 @@ class SpotifyDJMediaPlayerTest(unittest.TestCase):
         self.assertIn(("pause", None, None), calls)
         self.assertIn(("set_output", "dev-1", False), calls)
         self.assertIn(("set_volume", 30, None), calls)
+        self.assertIn(("set_shuffle", True, None), calls)
+        self.assertIn(("set_repeat", "context", None), calls)
         self.assertIn(("start_playlist", "spotify:playlist:abc", None), calls)
 
     def test_media_player_update_handles_backend_auth_failure(self) -> None:
@@ -155,11 +159,11 @@ class SpotifyDJMediaPlayerTest(unittest.TestCase):
             listeners=[],
             update=update_runtime,
         )
-        entity = self.media_player.SpotifyDJPlaybackProxyMediaPlayer(runtime, object())
+        entity = self.media_player.DJConnectPlaybackProxyMediaPlayer(runtime, object())
 
         async def failing_handler(hass, runtime_arg, command, value=None, *, play=None):
             raise self.media_player.SpotifyBackendError(
-                "Spotify authorization has expired or was revoked. Reauthorize SpotifyDJ."
+                "Spotify authorization has expired or was revoked. Reauthorize DJConnect."
             )
 
         original = self.media_player.handle_spotify_command

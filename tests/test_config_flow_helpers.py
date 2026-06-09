@@ -40,6 +40,18 @@ def install_homeassistant_stubs() -> None:
         def config_entry(self):
             return None
 
+        def async_external_step(self, **kwargs):
+            return {"type": "external", **kwargs}
+
+        def async_external_step_done(self, **kwargs):
+            return {"type": "external_done", **kwargs}
+
+        def async_show_form(self, **kwargs):
+            return {"type": "form", **kwargs}
+
+        def async_create_entry(self, **kwargs):
+            return {"type": "create_entry", **kwargs}
+
     class ConfigEntry:
         pass
 
@@ -96,18 +108,18 @@ def install_homeassistant_stubs() -> None:
     helpers.network = network
     components.cloud = cloud
 
-    package = types.ModuleType("custom_components.spotify_dj")
-    package.__path__ = [str(ROOT / "custom_components" / "spotify_dj")]
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
     package.register_http_views = lambda hass: None
-    sys.modules["custom_components.spotify_dj"] = package
+    sys.modules["custom_components.djconnect"] = package
 
 
 class ConfigFlowHelperTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         install_homeassistant_stubs()
-        cls.config_flow = importlib.import_module("custom_components.spotify_dj.config_flow")
-        cls.const = importlib.import_module("custom_components.spotify_dj.const")
+        cls.config_flow = importlib.import_module("custom_components.djconnect.config_flow")
+        cls.const = importlib.import_module("custom_components.djconnect.const")
 
     def test_https_url_validation_requires_scheme_and_host(self) -> None:
         self.assertTrue(self.config_flow._is_https_url("https://example.ui.nabu.casa"))
@@ -146,6 +158,53 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertEqual(options["anna"], "Anna")
         self.assertEqual(options["bram"], "bram")
         self.assertEqual(options["custom_voice"], "custom_voice")
+
+    def test_tts_voice_sync_clears_stale_voice_after_engine_change(self) -> None:
+        class State:
+            attributes = {"supported_voices": ["puck", "zephyr"]}
+
+        class States:
+            def get(self, entity_id):
+                return State() if entity_id == "tts.google_ai" else None
+
+        hass = types.SimpleNamespace(states=States())
+        values = {
+            self.const.CONF_TTS_ENGINE: "tts.google_ai",
+            self.const.CONF_TTS_VOICE: "MaartenNeural",
+        }
+
+        synced = self.config_flow._sync_tts_voice_with_engine(hass, values)
+
+        self.assertEqual(synced[self.const.CONF_TTS_VOICE], "")
+
+    def test_tts_voice_sync_keeps_voice_when_engine_voices_are_unknown(self) -> None:
+        hass = types.SimpleNamespace(states=None)
+        values = {
+            self.const.CONF_TTS_ENGINE: "tts.custom",
+            self.const.CONF_TTS_VOICE: "custom_voice",
+        }
+
+        synced = self.config_flow._sync_tts_voice_with_engine(hass, values)
+
+        self.assertEqual(synced[self.const.CONF_TTS_VOICE], "custom_voice")
+
+    def test_voice_schema_preserves_explicit_default_values(self) -> None:
+        hass = types.SimpleNamespace(states=None)
+        defaults = self.config_flow._voice_defaults(
+            {
+                self.const.CONF_STT_ENGINE: "",
+                self.const.CONF_TTS_ENGINE: "",
+                self.const.CONF_TTS_VOICE: "",
+            },
+            preserve_empty=True,
+        )
+
+        schema = asyncio.run(self.config_flow._voice_schema(hass, defaults))
+        marker_defaults = {marker.key: marker.default for marker in schema.schema}
+
+        self.assertEqual(marker_defaults[self.const.CONF_STT_ENGINE], "")
+        self.assertEqual(marker_defaults[self.const.CONF_TTS_ENGINE], "")
+        self.assertEqual(marker_defaults[self.const.CONF_TTS_VOICE], "")
 
     def test_voice_schema_hides_firmware_and_ota_fields_until_advanced(self) -> None:
         hass = types.SimpleNamespace(states=None)
@@ -211,7 +270,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertEqual(self.config_flow._voice_errors({}), {})
 
     def test_user_schema_hides_manual_device_url_until_advanced(self) -> None:
-        flow = self.config_flow.SpotifyDJConfigFlow()
+        flow = self.config_flow.DJConnectConfigFlow()
         flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="nl-NL"))
 
         basic_keys = {marker.key for marker in flow._user_schema()}
@@ -223,7 +282,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertIn(self.const.CONF_DEVICE_LANGUAGE, basic_keys)
 
     def test_user_schema_prefills_manual_device_url_from_pair_code(self) -> None:
-        flow = self.config_flow.SpotifyDJConfigFlow()
+        flow = self.config_flow.DJConnectConfigFlow()
         flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
         flow._show_advanced_options = True
         flow._last_pair_code = "90B70990A994"
@@ -235,14 +294,14 @@ class ConfigFlowHelperTest(unittest.TestCase):
 
         self.assertEqual(
             local_url_marker.default,
-            "http://spotifydj-90B70990A994.local",
+            "http://djconnect-90B70990A994.local",
         )
 
     def test_default_local_url_accepts_only_device_suffix(self) -> None:
         self.assertEqual(self.config_flow._default_local_url("123456"), "")
         self.assertEqual(
             self.config_flow._default_local_url("90B70990A994"),
-            "http://spotifydj-90B70990A994.local",
+            "http://djconnect-90B70990A994.local",
         )
         self.assertTrue(self.config_flow._valid_pair_code("123456"))
         self.assertTrue(self.config_flow._valid_pair_code("90B70990A994"))
@@ -320,7 +379,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
         )
 
     def test_ble_wifi_schema_uses_discovered_devices_when_available(self) -> None:
-        schema = self.config_flow._ble_wifi_schema({"AA:BB": "SpotifyDJ 1234"})
+        schema = self.config_flow._ble_wifi_schema({"AA:BB": "DJConnect 1234"})
 
         keys = {marker.key for marker in schema}
         self.assertIn(self.config_flow.BLE_ACTION_FIELD, keys)
@@ -424,9 +483,44 @@ class ConfigFlowHelperTest(unittest.TestCase):
     def test_options_flow_init_does_not_assign_read_only_config_entry(self) -> None:
         entry = types.SimpleNamespace(data={}, options={})
 
-        flow = self.config_flow.SpotifyDJOptionsFlow(entry)
+        flow = self.config_flow.DJConnectOptionsFlow(entry)
 
         self.assertIs(flow._config_entry, entry)
+
+    def test_options_spotify_reauth_finishes_with_done_step(self) -> None:
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={
+                self.const.CONF_HA_EXTERNAL_URL: "https://example.ui.nabu.casa",
+                self.const.CONF_SPOTIFY_CLIENT_ID: "client-id",
+            },
+            options={},
+        )
+        flow = self.config_flow.DJConnectOptionsFlow(entry)
+        flow.flow_id = "flow-1"
+        flow.hass = types.SimpleNamespace(data={})
+
+        external = asyncio.run(flow.async_step_spotify_reauth())
+        self.assertEqual(external["type"], "external")
+        self.assertEqual(external["step_id"], "spotify_reauth")
+        self.assertIn("https://accounts.spotify.com/authorize", external["url"])
+        self.assertIn(
+            flow._oauth["state"],
+            flow.hass.data[self.const.DOMAIN]["spotify_oauth_pending"],
+        )
+
+        done = asyncio.run(
+            flow.async_step_spotify_reauth({"state": flow._oauth["state"]})
+        )
+        self.assertEqual(done["type"], "external_done")
+        self.assertEqual(done["next_step_id"], "spotify_reauth_done")
+
+        form = asyncio.run(flow.async_step_spotify_reauth_done())
+        self.assertEqual(form["type"], "form")
+        self.assertEqual(form["step_id"], "spotify_reauth_done")
+
+        submit = asyncio.run(flow.async_step_spotify_reauth_done({}))
+        self.assertEqual(submit["type"], "create_entry")
 
 
 if __name__ == "__main__":

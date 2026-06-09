@@ -1,4 +1,4 @@
-# SpotifyDJ Issues Backlog
+# DJConnect Issues Backlog
 
 ## Open / Needs Field Validation
 
@@ -15,7 +15,7 @@
 - Status: open / expected migration behavior.
 - Area: pairing/discovery.
 - Symptom: Older config entries may still contain a setup-code-derived `device_id` or no real `local_url`.
-- Current mitigation: `/pair` and `/status` now persist real `spotifydj-XXXXXXXXXXXX` and reported `local_url`.
+- Current mitigation: `/pair` and `/status` now persist real `djconnect-XXXXXXXXXXXX` and reported `local_url`.
 - Next action: Verify existing paired ESP posts `/status`; if not, manually use advanced device URL once or re-pair.
 
 ### mDNS reliability varies by network
@@ -23,7 +23,7 @@
 - Status: open / environmental.
 - Area: device discovery.
 - Symptom: HA may not resolve or browse `.local` names on some networks/VLANs.
-- Current mitigation: Runtime uses device-reported URL, exact `_spotifydj._tcp`, single visible SpotifyDJ service fallback, and advanced manual URL override.
+- Current mitigation: Runtime uses device-reported URL, exact `_djconnect._tcp`, single visible DJConnect service fallback, and advanced manual URL override.
 - Next action: Test on target WiFi/VLAN setup and document any router/mDNS repeater requirements.
 
 ### Home Assistant restart is still required after HACS update
@@ -39,7 +39,7 @@
 - Status: open / frontend cache dependent.
 - Area: branding.
 - Symptom: Integration icon/logo may remain white or stale after update.
-- Current mitigation: Brand assets exist in `custom_components/spotify_dj/brand/`; release checklist includes browser/app cache refresh.
+- Current mitigation: Brand assets exist in `custom_components/djconnect/brand/`; release checklist includes browser/app cache refresh.
 - Next action: Re-check HA frontend behavior after HACS install and cache refresh.
 
 ## Recently Fixed / Monitor
@@ -56,7 +56,7 @@
 
 - Status: fixed in latest release line, monitor after install.
 - Area: provisioning/discovery.
-- Previous symptom: `SpotifyDJ device local_url is unknown` during opportunistic Spotify provisioning.
+- Previous symptom: `DJConnect device local_url is unknown` during opportunistic Spotify provisioning.
 - Fix: Expected reachability/local URL failures defer quietly; real device identity and local URL are restored/persisted from entry data, `/pair` and `/status`.
 - Validation: Confirm status repair persists real `local_url` and provisioning succeeds once ESP is reachable.
 
@@ -73,7 +73,7 @@
 - Status: fixed, monitor.
 - Area: voice endpoint / developer test.
 - Previous symptom: Web test text request looked up a device named `Test` or attempted Spotify playback.
-- Fix: JSON/text-only `/api/spotify_dj/voice` requests are direct DJ-response tests.
+- Fix: JSON/text-only `/api/djconnect/voice` requests are direct DJ-response tests.
 - Validation: Confirm web test returns a ready DJ response and optional TTS audio URL.
 
 ### Options flow internal server error
@@ -88,7 +88,7 @@
 
 - Status: fixed, monitor.
 - Area: firmware update.
-- Previous symptom: ESP rejected OTA when HA sent generic `spotifydj-device` as target.
+- Previous symptom: ESP rejected OTA when HA sent generic `djconnect-device` as target.
 - Fix: OTA payload uses manifest `device`, currently `lilygo-t-embed-s3`.
 - Validation: Confirm OTA payload and update entity attributes against firmware release `firmware_manifest.json`.
 
@@ -111,7 +111,7 @@
 - No direct external AI/STT/TTS calls should be used by active routes.
 - No secret values should appear in logs or diagnostics.
 - All entities should remain grouped under one HA device.
-- `number.spotifydj_volume` must not publish out-of-range values such as `-1`.
+- `number.djconnect_volume` must not publish out-of-range values such as `-1`.
 - Spotify OAuth scopes must keep `playlist-read-private`.
 - Pairing must reject mismatched pairing codes.
 - BLE provisioning must remain WiFi-only.

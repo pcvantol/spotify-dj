@@ -3,8 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SpotifyDJ — Your Home Assistant Spotify Voice Remote</title>
-  <meta name="description" content="SpotifyDJ is een pre-flashed smart music remote voor Home Assistant, Spotify Premium en HA Assist. Pair, speak, play." />
+  <title>DJConnect — Your Personal AI DJ for Home Assistant</title>
+  <meta name="description" content="DJConnect is een pre-flashed personal AI DJ remote voor Home Assistant, Spotify Premium en HA Assist. Press, speak, connect." />
+  <link rel="icon" href="assets/djconnect/icon.svg" type="image/svg+xml" />
+  <link rel="icon" href="assets/djconnect/favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="icon" href="assets/djconnect/favicon-16.png" sizes="16x16" type="image/png" />
+  <link rel="apple-touch-icon" href="assets/djconnect/apple-touch-icon.png" />
+  <link rel="manifest" href="assets/djconnect/site.webmanifest" />
   <style>
     :root {
       --bg: #0b0d12;
@@ -13,7 +18,7 @@
       --text: #f7f7fb;
       --muted: #b7bccb;
       --line: rgba(255, 255, 255, 0.14);
-      --green: #1ed760;
+      --accent-cyan: #66e0ff;
       --orange: #ff9f1c;
       --purple: #8b5cf6;
       --blue: #38bdf8;
@@ -36,7 +41,7 @@
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       line-height: 1.55;
       background:
-        radial-gradient(circle at 12% 8%, rgba(30, 215, 96, 0.22), transparent 28rem),
+        radial-gradient(circle at 12% 8%, rgba(102, 224, 255, 0.18), transparent 28rem),
         radial-gradient(circle at 84% 10%, rgba(139, 92, 246, 0.24), transparent 34rem),
         radial-gradient(circle at 45% 78%, rgba(56, 189, 248, 0.13), transparent 30rem),
         linear-gradient(180deg, #0b0d12 0%, #111827 48%, #090b10 100%);
@@ -82,7 +87,7 @@
       object-fit: cover;
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid rgba(255, 255, 255, 0.18);
-      box-shadow: 0 0 34px rgba(30, 215, 96, 0.3);
+      box-shadow: 0 0 34px rgba(102, 224, 255, 0.28);
     }
 
     .nav-links {
@@ -118,7 +123,7 @@
     }
 
     .btn.primary {
-      background: linear-gradient(135deg, var(--green), #65f08e);
+      background: linear-gradient(135deg, var(--accent-cyan), #8b5cf6);
       color: #07110b;
       border: 0;
     }
@@ -151,8 +156,8 @@
       width: 9px;
       height: 9px;
       border-radius: 99px;
-      background: var(--green);
-      box-shadow: 0 0 20px var(--green);
+      background: var(--accent-cyan);
+      box-shadow: 0 0 20px var(--accent-cyan);
     }
 
     h1, h2, h3 { margin: 0; letter-spacing: -0.045em; line-height: 1.04; }
@@ -200,7 +205,7 @@
       border-radius: var(--radius);
       background:
         linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04)),
-        radial-gradient(circle at 50% 10%, rgba(30, 215, 96, 0.25), transparent 18rem);
+        radial-gradient(circle at 50% 10%, rgba(123, 92, 255, 0.22), transparent 18rem);
       box-shadow: var(--shadow);
       overflow: hidden;
       padding: 28px;
@@ -244,7 +249,7 @@
 
     .screen-title { color: var(--muted); font-size: 0.82rem; }
     .screen-song { font-size: 1.35rem; font-weight: 850; letter-spacing: -0.03em; }
-    .screen-dj { color: var(--green); font-size: 0.92rem; }
+    .screen-dj { color: var(--accent-cyan); font-size: 0.92rem; }
 
     .controls {
       height: 52%;
@@ -257,8 +262,8 @@
       width: 170px;
       height: 170px;
       border-radius: 50%;
-      border: 14px solid rgba(30, 215, 96, 0.86);
-      box-shadow: 0 0 42px rgba(30, 215, 96, 0.45), inset 0 0 30px rgba(30, 215, 96, 0.16);
+      border: 14px solid rgba(102, 224, 255, 0.82);
+      box-shadow: 0 0 42px rgba(123, 92, 255, 0.42), inset 0 0 30px rgba(102, 224, 255, 0.14);
       display: grid;
       place-items: center;
       animation: pulse 2.2s ease-in-out infinite;
@@ -376,14 +381,14 @@
       display: grid;
       place-items: center;
       border-radius: 999px;
-      background: var(--green);
+      background: var(--accent-cyan);
       color: #06120a;
       font-weight: 900;
       z-index: 2;
     }
 
     .num {
-      color: var(--green);
+      color: var(--accent-cyan);
       font-weight: 900;
       margin-bottom: 36px;
     }
@@ -414,7 +419,7 @@
       border-radius: 18px;
       display: grid;
       place-items: center;
-      background: var(--green);
+      background: var(--accent-cyan);
       color: #07110b;
       font-weight: 950;
       font-size: 1.2rem;
@@ -509,9 +514,9 @@
 <body>
   <nav class="nav">
     <div class="wrap nav-inner">
-      <a class="brand" href="#top" aria-label="SpotifyDJ home">
-        <img class="logo" src="assets/spotifydj-logo.png" alt="" aria-hidden="true" />
-        <span>SpotifyDJ</span>
+      <a class="brand" href="#top" aria-label="DJConnect home">
+        <img class="logo" src="assets/djconnect/icon.svg" alt="" aria-hidden="true" />
+        <span>DJConnect</span>
       </a>
       <div class="nav-links" aria-label="Navigatie">
         <a href="#experience">Experience</a>
@@ -529,7 +534,7 @@
         <div>
           <div class="eyebrow"><span class="dot"></span> Pre-flashed • One-button music control • Home Assistant</div>
           <h1>Your music. One button away.</h1>
-          <p class="lead">SpotifyDJ is een fysieke voice remote voor je muziek. Pak het device uit, koppel het met Home Assistant en vraag met één druk op de knop om de muziek die je wilt horen.</p>
+          <p class="lead">DJConnect is een fysieke voice remote voor je muziek. Pak het device uit, koppel het met Home Assistant en vraag met één druk op de knop om de muziek die je wilt horen.</p>
           <div class="hero-actions">
             <a class="btn primary" href="#quickstart">Bekijk quick start</a>
             <a class="btn" href="#requirements">Check benodigdheden</a>
@@ -537,14 +542,14 @@
           <p class="note">Out of the box: geen firmware flashen, geen technisch geknutsel. Devices komen pre-flashed.</p>
         </div>
 
-        <div class="device-card" aria-label="SpotifyDJ device visualisatie">
+        <div class="device-card" aria-label="DJConnect device visualisatie">
           <div class="floating f1"><strong>Push to talk</strong>Vraag muziek met één knop</div>
           <div class="floating f2"><strong>Home Assistant</strong>Regelt muziek en stem</div>
           <div class="floating f3"><strong>DJ response</strong>Antwoord op het device</div>
           <img
             class="device-img"
-            src="assets/lilygo-t-embed-spotifydj.svg"
-            alt="SpotifyDJ device op basis van de LilyGO T-Embed vormfactor"
+            src="assets/lilygo-t-embed-djconnect.svg"
+            alt="DJConnect device op basis van de LilyGO T-Embed vormfactor"
           />
         </div>
       </div>
@@ -556,7 +561,7 @@
           <div>
             <h2>De ervaring uit de doos</h2>
           </div>
-          <p>SpotifyDJ is ontworpen als een product, niet als een bouwpakket. De firmware staat al op het device; jij installeert de Home Assistant integration en koppelt het device.</p>
+          <p>DJConnect is ontworpen als een product, niet als een bouwpakket. De firmware staat al op het device; jij installeert de Home Assistant integration en koppelt het device.</p>
         </div>
         <div class="grid-3">
           <article class="card">
@@ -572,7 +577,7 @@
           <article class="card">
             <div class="icon">🎙️</div>
             <h3>Push-to-talk muziek</h3>
-            <p>Druk op de knop, spreek je verzoek in en SpotifyDJ helpt je muziek starten.</p>
+            <p>Druk op de knop, spreek je verzoek in en DJConnect helpt je muziek starten.</p>
           </article>
           <article class="card">
             <div class="icon">🏓</div>
@@ -596,7 +601,7 @@
           <div class="flow-step"><div class="num">02</div><h3>Spreek</h3><p class="muted">Vraag om een artiest, album, playlist of sfeer.</p></div>
           <div class="flow-step"><div class="num">03</div><h3>Home Assistant</h3><p class="muted">Herkent je stem en stuurt muziek aan.</p></div>
           <div class="flow-step"><div class="num">04</div><h3>Muziek</h3><p class="muted">Playback loopt via je gekozen muziekapparaat.</p></div>
-          <div class="flow-step"><div class="num">05</div><h3>Antwoord</h3><p class="muted">SpotifyDJ toont en spreekt een korte DJ response.</p></div>
+          <div class="flow-step"><div class="num">05</div><h3>Antwoord</h3><p class="muted">DJConnect toont en spreekt een korte DJ response.</p></div>
         </div>
       </div>
     </section>
@@ -608,10 +613,10 @@
           <p class="lead">Setup is bedoeld als: integration installeren, Spotify autoriseren, device pairen, klaar.</p>
         </div>
         <ol class="quick">
-          <li><div><h3>Installeer via HACS</h3><p class="muted">Voeg de SpotifyDJ custom integration toe in HACS en restart Home Assistant.</p></div></li>
-          <li><div><h3>Voeg SpotifyDJ toe</h3><p class="muted">Ga naar Settings → Devices & services → Add integration → SpotifyDJ.</p></div></li>
+          <li><div><h3>Installeer via HACS</h3><p class="muted">Voeg de DJConnect custom integration toe in HACS en restart Home Assistant.</p></div></li>
+          <li><div><h3>Voeg DJConnect toe</h3><p class="muted">Ga naar Settings → Devices & services → Add integration → DJConnect.</p></div></li>
           <li><div><h3>Autoriseer Spotify</h3><p class="muted">Log in met je Spotify Premium account wanneer de setup daarom vraagt.</p></div></li>
-          <li><div><h3>Pair het device</h3><p class="muted">Voer de code in die op het SpotifyDJ device verschijnt.</p></div></li>
+          <li><div><h3>Pair het device</h3><p class="muted">Voer de code in die op het DJConnect device verschijnt.</p></div></li>
           <li><div><h3>Druk en praat</h3><p class="muted">Druk op de middelste knop en zeg bijvoorbeeld: “Speel het nieuwste album van Pearl Jam”.</p></div></li>
         </ol>
       </div>
@@ -633,7 +638,7 @@
           <div class="req"><span class="tag">Aanbevolen</span><h3>Nabu Casa HTTPS</h3><p class="muted">Maakt Spotify autorisatie het makkelijkst.</p></div>
           <div class="req"><span class="tag">Aanbevolen</span><h3>mDNS werkend</h3><p class="muted">Helpt Home Assistant het device automatisch te vinden.</p></div>
           <div class="req optional"><span class="tag">Optioneel</span><h3>Bluetooth proxy</h3><p class="muted">Handig om WiFi naar het device te sturen tijdens setup.</p></div>
-          <div class="req warning"><span class="tag">Let op</span><h3>Muziekuitvoer</h3><p class="muted">Muziek speelt op je Spotify/huismuziekapparaat, niet op de kleine SpotifyDJ speaker.</p></div>
+          <div class="req warning"><span class="tag">Let op</span><h3>Muziekuitvoer</h3><p class="muted">Muziek speelt op je Spotify/huismuziekapparaat, niet op de kleine DJConnect speaker.</p></div>
           <div class="req warning"><span class="tag">Let op</span><h3>HA restart na update</h3><p class="muted">Na HACS updates is een Home Assistant restart meestal nodig.</p></div>
           <div class="req"><span class="tag">Inbegrepen</span><h3>OTA updates</h3><p class="muted">Gekoppelde devices kunnen firmware updates via HA ontvangen.</p></div>
           <div class="req"><span class="tag">Privacy</span><h3>Geen secrets in logs</h3><p class="muted">Tokens en wachtwoorden worden niet bewust gelogd en diagnostics redacteren secrets.</p></div>
@@ -646,7 +651,7 @@
         <article class="card">
           <div class="icon">🧠</div>
           <h3>Voice via HA</h3>
-          <p>SpotifyDJ gebruikt de voice setup die je in Home Assistant configureert.</p>
+          <p>DJConnect gebruikt de voice setup die je in Home Assistant configureert.</p>
         </article>
         <article class="card">
           <div class="icon">🔐</div>
@@ -656,7 +661,7 @@
         <article class="card">
           <div class="icon">✨</div>
           <h3>DJ personality</h3>
-          <p>SpotifyDJ geeft korte antwoorden op het scherm en via de eigen speaker.</p>
+          <p>DJConnect geeft korte antwoorden op het scherm en via de eigen speaker.</p>
         </article>
       </div>
     </section>
@@ -669,7 +674,7 @@
         </div>
         <div class="quick">
           <div class="card"><h3>Moet ik firmware flashen?</h3><p class="muted">Nee. Ga uit van pre-flashed devices. Firmware updates lopen later via Home Assistant OTA.</p></div>
-          <div class="card"><h3>Speelt DJ audio via Spotify Connect?</h3><p class="muted">Nee. DJ responses spelen op de speaker/display van het SpotifyDJ device.</p></div>
+          <div class="card"><h3>Speelt DJ audio via Spotify Connect?</h3><p class="muted">Nee. DJ responses spelen op de speaker/display van het DJConnect device.</p></div>
           <div class="card"><h3>Zit er echt Pong in?</h3><p class="muted">Ja. Als kleine bonus zit er een eenvoudige Pong game in de firmware.</p></div>
           <div class="card"><h3>Kan ik private playlists gebruiken?</h3><p class="muted">Ja, zolang Spotify in Home Assistant goed geautoriseerd is.</p></div>
         </div>
@@ -688,8 +693,8 @@
   </main>
 
   <footer class="wrap legal">
-    <p>Copyright © 2026 Peter van Tol. All rights reserved. SpotifyDJ firmware is proprietary software. The Home Assistant integration may be distributed separately for use with SpotifyDJ devices.</p>
-    <p>Spotify is a trademark of Spotify AB. SpotifyDJ is not affiliated with, endorsed by, or sponsored by Spotify AB. Home Assistant and HACS are referenced for integration compatibility.</p>
+    <p>Copyright © 2026 Peter van Tol. All rights reserved. DJConnect firmware is proprietary software. The Home Assistant integration may be distributed separately for use with DJConnect devices.</p>
+    <p>Spotify is a trademark of Spotify AB. DJConnect is not affiliated with, endorsed by, or sponsored by Spotify AB. Home Assistant and HACS are referenced for integration compatibility.</p>
   </footer>
 </body>
 </html>

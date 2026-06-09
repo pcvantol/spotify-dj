@@ -95,11 +95,11 @@ class TtsHelperTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         install_integration_stubs()
-        sys.modules.pop("custom_components.spotify_dj", None)
-        cls.integration = importlib.import_module("custom_components.spotify_dj")
-        cls.const = importlib.import_module("custom_components.spotify_dj.const")
-        cls.dj_response = importlib.import_module("custom_components.spotify_dj.dj_response")
-        cls.http = importlib.import_module("custom_components.spotify_dj.http")
+        sys.modules.pop("custom_components.djconnect", None)
+        cls.integration = importlib.import_module("custom_components.djconnect")
+        cls.const = importlib.import_module("custom_components.djconnect.const")
+        cls.dj_response = importlib.import_module("custom_components.djconnect.dj_response")
+        cls.http = importlib.import_module("custom_components.djconnect.http")
 
     def test_device_command_posts_to_local_command_api(self) -> None:
         class Response:
@@ -123,12 +123,12 @@ class TtsHelperTest(unittest.TestCase):
                 return Response()
 
         entry = types.SimpleNamespace(
-            data={self.const.CONF_DEVICE_ID: "spotifydj-90B70990A994"},
+            data={self.const.CONF_DEVICE_ID: "djconnect-90B70990A994"},
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
         runtime.device_token = "device-token"
-        runtime.device_status["local_url"] = "http://spotifydj.local"
+        runtime.device_status["local_url"] = "http://djconnect.local"
         session = Session()
         original_session = self.integration.async_get_clientsession
         self.integration.async_get_clientsession = lambda hass: session
@@ -142,7 +142,7 @@ class TtsHelperTest(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertEqual(
             session.calls[0]["url"],
-            "http://spotifydj.local/api/device/command",
+            "http://djconnect.local/api/device/command",
         )
         self.assertEqual(session.calls[0]["headers"]["Authorization"], "Bearer device-token")
         self.assertEqual(
@@ -161,7 +161,7 @@ class TtsHelperTest(unittest.TestCase):
             },
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
 
         payload = runtime.spotify_payload()
 
@@ -181,7 +181,7 @@ class TtsHelperTest(unittest.TestCase):
             },
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
         runtime.latest_spotify_refresh_token = "new-token"
 
         payload = runtime.get_current_spotify_credentials()
@@ -193,10 +193,10 @@ class TtsHelperTest(unittest.TestCase):
         entry = types.SimpleNamespace(
             entry_id="entry-1",
             data={
-                self.const.CONF_DEVICE_ID: "spotifydj-90B70990A994",
+                self.const.CONF_DEVICE_ID: "djconnect-90B70990A994",
                 self.const.CONF_PAIR_CODE: "981032",
                 self.const.CONF_DEVICE_TOKEN: "device-token",
-                self.const.CONF_LOCAL_URL: "http://spotifydj-90B70990A994.local",
+                self.const.CONF_LOCAL_URL: "http://djconnect-90B70990A994.local",
             },
             options={},
         )
@@ -205,21 +205,21 @@ class TtsHelperTest(unittest.TestCase):
         runtime = self.integration._restore_runtime(hass, entry)
 
         self.assertEqual(runtime.device_token, "device-token")
-        self.assertEqual(runtime.pairing_device_id, "spotifydj-90B70990A994")
+        self.assertEqual(runtime.pairing_device_id, "djconnect-90B70990A994")
         self.assertEqual(runtime.pairing_code, "981032")
-        self.assertEqual(runtime.device_status["device_id"], "spotifydj-90B70990A994")
+        self.assertEqual(runtime.device_status["device_id"], "djconnect-90B70990A994")
         self.assertEqual(
             runtime.device_status["local_url"],
-            "http://spotifydj-90B70990A994.local",
+            "http://djconnect-90B70990A994.local",
         )
 
     def test_restore_runtime_ignores_obsolete_pair_code_local_url(self) -> None:
         entry = types.SimpleNamespace(
             entry_id="entry-1",
             data={
-                self.const.CONF_DEVICE_ID: "spotifydj-981032",
+                self.const.CONF_DEVICE_ID: "djconnect-981032",
                 self.const.CONF_DEVICE_TOKEN: "device-token",
-                self.const.CONF_LOCAL_URL: "http://spotifydj-981032.local",
+                self.const.CONF_LOCAL_URL: "http://djconnect-981032.local",
             },
             options={},
         )
@@ -299,7 +299,7 @@ class TtsHelperTest(unittest.TestCase):
             last_error = None
 
             async def pair_device(self, hass):
-                raise RuntimeError("SpotifyDJ device local_url is unknown")
+                raise RuntimeError("DJConnect device local_url is unknown")
 
             def update(self, **kwargs):
                 for key, value in kwargs.items():
@@ -352,20 +352,20 @@ class TtsHelperTest(unittest.TestCase):
         self.http._persist_paired_device(
             hass,
             runtime,
-            "spotifydj-90B70990A994",
-            "http://spotifydj-90B70990A994.local",
+            "djconnect-90B70990A994",
+            "http://djconnect-90B70990A994.local",
             "device-token",
         )
 
         self.assertEqual(config_entries.calls[0][1][self.const.CONF_PAIR_CODE], "981032")
         self.assertEqual(
             entry.data[self.const.CONF_DEVICE_ID],
-            "spotifydj-90B70990A994",
+            "djconnect-90B70990A994",
         )
         self.assertEqual(entry.data[self.const.CONF_DEVICE_TOKEN], "device-token")
         self.assertEqual(
             entry.data[self.const.CONF_LOCAL_URL],
-            "http://spotifydj-90B70990A994.local",
+            "http://djconnect-90B70990A994.local",
         )
 
     def test_pair_device_payload_omits_spotify_credentials(self) -> None:
@@ -391,7 +391,7 @@ class TtsHelperTest(unittest.TestCase):
 
         entry = types.SimpleNamespace(
             data={
-                self.const.CONF_DEVICE_ID: "spotifydj-123456",
+                self.const.CONF_DEVICE_ID: "djconnect-123456",
                 self.const.CONF_PAIR_CODE: "123456",
                 self.const.CONF_DEVICE_LANGUAGE: "nl",
                 self.const.CONF_SPOTIFY_CLIENT_ID: "client-id",
@@ -399,9 +399,9 @@ class TtsHelperTest(unittest.TestCase):
             },
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
         runtime.latest_spotify_refresh_token = "rotated-token"
-        runtime.device_status["local_url"] = "http://spotifydj.local"
+        runtime.device_status["local_url"] = "http://djconnect.local"
         session = Session()
         original_session = self.integration.async_get_clientsession
         self.integration.async_get_clientsession = lambda hass: session
@@ -424,51 +424,51 @@ class TtsHelperTest(unittest.TestCase):
         entry = types.SimpleNamespace(
             entry_id="entry-1",
             data={
-                self.const.CONF_DEVICE_ID: "spotifydj-328823",
+                self.const.CONF_DEVICE_ID: "djconnect-328823",
                 self.const.CONF_DEVICE_TOKEN: "token-new",
             },
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
         runtime.device_token = "token-new"
-        runtime.pairing_device_id = "spotifydj-328823"
-        runtime.device_status["device_id"] = "spotifydj-328823"
+        runtime.pairing_device_id = "djconnect-328823"
+        runtime.device_status["device_id"] = "djconnect-328823"
 
         headers = {
             "Authorization": " Bearer token-new ",
-            "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+            "X-DJConnect-Device-ID": "djconnect-90B70990A994",
         }
         with self.assertLogs(self.integration._LOGGER, level="DEBUG") as captured:
             allowed = runtime.authorize_device_request(
                 headers,
-                "spotifydj-90B70990A994",
+                "djconnect-90B70990A994",
             )
 
         self.assertTrue(allowed)
-        self.assertEqual(runtime.pairing_device_id, "spotifydj-90B70990A994")
-        self.assertEqual(runtime.device_status["device_id"], "spotifydj-90B70990A994")
+        self.assertEqual(runtime.pairing_device_id, "djconnect-90B70990A994")
+        self.assertEqual(runtime.device_status["device_id"], "djconnect-90B70990A994")
         logs = "\n".join(captured.output)
         self.assertIn("token_match=True", logs)
         self.assertNotIn("token-new", logs)
 
     def test_repair_replaces_old_token_for_device_auth(self) -> None:
         entry = types.SimpleNamespace(entry_id="entry-1", data={}, options={})
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
         runtime.device_token = "token-new"
-        runtime.pairing_device_id = "spotifydj-90B70990A994"
-        runtime.device_status["device_id"] = "spotifydj-90B70990A994"
-        headers = {"X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994"}
+        runtime.pairing_device_id = "djconnect-90B70990A994"
+        runtime.device_status["device_id"] = "djconnect-90B70990A994"
+        headers = {"X-DJConnect-Device-ID": "djconnect-90B70990A994"}
 
         self.assertTrue(
             runtime.authorize_device_request(
                 {**headers, "Authorization": "Bearer token-new"},
-                "spotifydj-90B70990A994",
+                "djconnect-90B70990A994",
             )
         )
         self.assertFalse(
             runtime.authorize_device_request(
                 {**headers, "Authorization": "Bearer token-old"},
-                "spotifydj-90B70990A994",
+                "djconnect-90B70990A994",
             )
         )
 
@@ -477,15 +477,15 @@ class TtsHelperTest(unittest.TestCase):
         entry = types.SimpleNamespace(
             entry_id="entry-1",
             data={
-                const.CONF_DEVICE_ID: "spotifydj-328823",
+                const.CONF_DEVICE_ID: "djconnect-328823",
                 const.CONF_DEVICE_TOKEN: "token-shared",
             },
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
         runtime.device_token = "token-shared"
-        runtime.pairing_device_id = "spotifydj-328823"
-        runtime.device_status["device_id"] = "spotifydj-328823"
+        runtime.pairing_device_id = "djconnect-328823"
+        runtime.device_status["device_id"] = "djconnect-328823"
 
         class ConfigEntries:
             def async_update_entry(self, entry, *, data):
@@ -497,7 +497,7 @@ class TtsHelperTest(unittest.TestCase):
         )
         headers = {
             "Authorization": "Bearer token-shared",
-            "X-SpotifyDJ-Device-ID": "spotifydj-90B70990A994",
+            "X-DJConnect-Device-ID": "djconnect-90B70990A994",
             "Content-Type": "application/json",
         }
 
@@ -507,7 +507,7 @@ class TtsHelperTest(unittest.TestCase):
                 self.headers = headers
 
             async def json(self):
-                return {"device_id": "spotifydj-90B70990A994"}
+                return {"device_id": "djconnect-90B70990A994"}
 
         async def command_handler(hass, runtime, command, value=None, *, play=None):
             return {"success": True, "playback": {"has_playback": False}}
@@ -522,7 +522,7 @@ class TtsHelperTest(unittest.TestCase):
 
             async def json(self):
                 return {
-                    "device_id": "spotifydj-90B70990A994",
+                    "device_id": "djconnect-90B70990A994",
                     "command": "status",
                 }
 
@@ -539,9 +539,9 @@ class TtsHelperTest(unittest.TestCase):
         self.http.handle_spotify_command = command_handler
         self.http.async_send_dj_response_best_effort = dj_response_handler
         try:
-            status_response = asyncio.run(self.http.SpotifyDJStatusView(None).post(StatusRequest()))
-            command_response = asyncio.run(self.http.SpotifyDJCommandView(None).post(CommandRequest()))
-            voice_response = asyncio.run(self.http.SpotifyDJVoiceView(None).post(VoiceRequest()))
+            status_response = asyncio.run(self.http.DJConnectStatusView(None).post(StatusRequest()))
+            command_response = asyncio.run(self.http.DJConnectCommandView(None).post(CommandRequest()))
+            voice_response = asyncio.run(self.http.DJConnectVoiceView(None).post(VoiceRequest()))
         finally:
             self.http.handle_spotify_command = original_command
             self.http.async_send_dj_response_best_effort = original_dj_response
@@ -554,16 +554,16 @@ class TtsHelperTest(unittest.TestCase):
         const = self.const
         stale = types.SimpleNamespace(
             device_token="old-token",
-            pairing_device_id="spotifydj-90B70990A994",
-            device_status={"device_id": "spotifydj-90B70990A994"},
-            config={const.CONF_DEVICE_ID: "spotifydj-90B70990A994"},
+            pairing_device_id="djconnect-90B70990A994",
+            device_status={"device_id": "djconnect-90B70990A994"},
+            config={const.CONF_DEVICE_ID: "djconnect-90B70990A994"},
             authorize_device_request=lambda headers, body_device_id=None: False,
         )
         active = types.SimpleNamespace(
             device_token="new-token",
-            pairing_device_id="spotifydj-90B70990A994",
-            device_status={"device_id": "spotifydj-90B70990A994"},
-            config={const.CONF_DEVICE_ID: "spotifydj-90B70990A994"},
+            pairing_device_id="djconnect-90B70990A994",
+            device_status={"device_id": "djconnect-90B70990A994"},
+            config={const.CONF_DEVICE_ID: "djconnect-90B70990A994"},
             authorize_device_request=lambda headers, body_device_id=None: True,
         )
         hass = types.SimpleNamespace(
@@ -578,7 +578,7 @@ class TtsHelperTest(unittest.TestCase):
 
         resolved = self.http._runtime(
             hass,
-            "spotifydj-90B70990A994",
+            "djconnect-90B70990A994",
             {"Authorization": "Bearer new-token"},
         )
 
@@ -607,20 +607,20 @@ class TtsHelperTest(unittest.TestCase):
 
         entry = types.SimpleNamespace(
             data={
-                self.const.CONF_DEVICE_ID: "spotifydj-90B70990A994",
+                self.const.CONF_DEVICE_ID: "djconnect-90B70990A994",
                 self.const.CONF_DEVICE_TOKEN: "device-token",
             },
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
         runtime.device_token = "device-token"
-        runtime.device_status["local_url"] = "http://spotifydj-90B70990A994.local"
+        runtime.device_status["local_url"] = "http://djconnect-90B70990A994.local"
         release = types.SimpleNamespace(
             version="2.7.0",
-            firmware_url="https://example/spotifydj-device-v2.7.0.bin",
+            firmware_url="https://example/djconnect-device-v2.7.0.bin",
             sha256="a" * 64,
             device="lilygo-t-embed-s3",
-            firmware_asset="spotifydj-device-v2.7.0.bin",
+            firmware_asset="djconnect-device-v2.7.0.bin",
         )
         session = Session()
         original_session = self.integration.async_get_clientsession
@@ -631,16 +631,16 @@ class TtsHelperTest(unittest.TestCase):
             self.integration.async_get_clientsession = original_session
 
         call = session.calls[0]
-        self.assertEqual(call["url"], "http://spotifydj-90B70990A994.local/api/device/ota")
+        self.assertEqual(call["url"], "http://djconnect-90B70990A994.local/api/device/ota")
         self.assertEqual(call["headers"]["Authorization"], "Bearer device-token")
         self.assertEqual(
             call["json"],
             {
                 "version": "2.7.0",
-                "url": "https://example/spotifydj-device-v2.7.0.bin",
+                "url": "https://example/djconnect-device-v2.7.0.bin",
                 "sha256": "a" * 64,
                 "device": "lilygo-t-embed-s3",
-                "asset": "spotifydj-device-v2.7.0.bin",
+                "asset": "djconnect-device-v2.7.0.bin",
             },
         )
 
@@ -662,17 +662,17 @@ class TtsHelperTest(unittest.TestCase):
                 return Response()
 
         entry = types.SimpleNamespace(
-            data={self.const.CONF_DEVICE_ID: "spotifydj-90B70990A994"},
+            data={self.const.CONF_DEVICE_ID: "djconnect-90B70990A994"},
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
-        runtime.device_status["local_url"] = "http://spotifydj-90B70990A994.local"
+        runtime = self.integration.DJConnectRuntime(entry=entry)
+        runtime.device_status["local_url"] = "http://djconnect-90B70990A994.local"
         release = types.SimpleNamespace(
             version="2.7.0",
-            firmware_url="https://example/spotifydj-device-v2.7.0.bin",
+            firmware_url="https://example/djconnect-device-v2.7.0.bin",
             sha256="a" * 64,
-            device="spotifydj-device",
-            firmware_asset="spotifydj-device-v2.7.0.bin",
+            device="djconnect-device",
+            firmware_asset="djconnect-device-v2.7.0.bin",
         )
         original_session = self.integration.async_get_clientsession
         self.integration.async_get_clientsession = lambda hass: Session()
@@ -686,63 +686,63 @@ class TtsHelperTest(unittest.TestCase):
 
     def test_url_from_service_info_matches_device_id(self) -> None:
         entry = types.SimpleNamespace(
-            data={self.const.CONF_DEVICE_ID: "spotifydj-123456"},
+            data={self.const.CONF_DEVICE_ID: "djconnect-123456"},
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
         info = types.SimpleNamespace(
-            name="spotifydj-123456._spotifydj._tcp.local.",
-            server="spotifydj-123456.local.",
+            name="djconnect-123456._djconnect._tcp.local.",
+            server="djconnect-123456.local.",
             port=8080,
         )
 
         url = self.integration._url_from_service_info(info, runtime)
 
-        self.assertEqual(url, "http://spotifydj-123456.local:8080")
+        self.assertEqual(url, "http://djconnect-123456.local:8080")
 
     def test_async_get_mdns_service_info_uses_ha_zeroconf_getter(self) -> None:
         class AsyncZeroconf:
             async def async_get_service_info(self, service_type, service_name):
                 return types.SimpleNamespace(
                     name=service_name,
-                    server="spotifydj-90B70990A994.local.",
+                    server="djconnect-90B70990A994.local.",
                     port=80,
                 )
 
         info = asyncio.run(
             self.integration._async_get_mdns_service_info(
                 AsyncZeroconf(),
-                "SpotifyDJ 90B70990A994._spotifydj._tcp.local.",
+                "DJConnect 90B70990A994._djconnect._tcp.local.",
             )
         )
 
-        self.assertEqual(info.server, "spotifydj-90B70990A994.local.")
+        self.assertEqual(info.server, "djconnect-90B70990A994.local.")
 
     def test_url_from_service_info_matches_friendly_mdns_name(self) -> None:
         entry = types.SimpleNamespace(
-            data={self.const.CONF_DEVICE_ID: "spotifydj-123456"},
+            data={self.const.CONF_DEVICE_ID: "djconnect-123456"},
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
         info = types.SimpleNamespace(
-            name="SpotifyDJ 123456._spotifydj._tcp.local.",
-            server="spotifydj-123456.local.",
+            name="DJConnect 123456._djconnect._tcp.local.",
+            server="djconnect-123456.local.",
             port=80,
         )
 
         url = self.integration._url_from_service_info(info, runtime)
 
-        self.assertEqual(url, "http://spotifydj-123456.local")
+        self.assertEqual(url, "http://djconnect-123456.local")
 
     def test_url_from_service_info_ignores_other_devices(self) -> None:
         entry = types.SimpleNamespace(
-            data={self.const.CONF_DEVICE_ID: "spotifydj-123456"},
+            data={self.const.CONF_DEVICE_ID: "djconnect-123456"},
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
         info = types.SimpleNamespace(
-            name="spotifydj-other._spotifydj._tcp.local.",
-            server="spotifydj-other.local.",
+            name="djconnect-other._djconnect._tcp.local.",
+            server="djconnect-other.local.",
             port=80,
         )
 
@@ -750,33 +750,33 @@ class TtsHelperTest(unittest.TestCase):
 
     def test_mdns_service_name_candidates_include_device_and_friendly_names(self) -> None:
         entry = types.SimpleNamespace(
-            data={self.const.CONF_DEVICE_ID: "spotifydj-123456"},
+            data={self.const.CONF_DEVICE_ID: "djconnect-123456"},
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
 
         names = self.integration._mdns_service_name_candidates(runtime)
 
-        self.assertIn("spotifydj-123456._spotifydj._tcp.local.", names)
-        self.assertIn("SpotifyDJ 123456._spotifydj._tcp.local.", names)
+        self.assertIn("djconnect-123456._djconnect._tcp.local.", names)
+        self.assertIn("DJConnect 123456._djconnect._tcp.local.", names)
 
     def test_device_local_url_falls_back_to_mdns_hostname(self) -> None:
         entry = types.SimpleNamespace(
-            data={self.const.CONF_DEVICE_ID: "spotifydj-90B70990A994"},
+            data={self.const.CONF_DEVICE_ID: "djconnect-90B70990A994"},
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
 
         url = asyncio.run(runtime.async_device_local_url(hass=object()))
 
-        self.assertEqual(url, "http://spotifydj-90B70990A994.local")
+        self.assertEqual(url, "http://djconnect-90B70990A994.local")
 
     def test_device_local_url_does_not_fallback_to_pair_code_hostname(self) -> None:
         entry = types.SimpleNamespace(
-            data={self.const.CONF_DEVICE_ID: "spotifydj-981032"},
+            data={self.const.CONF_DEVICE_ID: "djconnect-981032"},
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
 
         url = asyncio.run(runtime.async_device_local_url(hass=object()))
 
@@ -785,12 +785,12 @@ class TtsHelperTest(unittest.TestCase):
     def test_device_local_url_ignores_stored_pair_code_hostname(self) -> None:
         entry = types.SimpleNamespace(
             data={
-                self.const.CONF_DEVICE_ID: "spotifydj-981032",
-                self.const.CONF_LOCAL_URL: "http://spotifydj-981032.local",
+                self.const.CONF_DEVICE_ID: "djconnect-981032",
+                self.const.CONF_LOCAL_URL: "http://djconnect-981032.local",
             },
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
 
         url = asyncio.run(runtime.async_device_local_url(hass=object()))
 
@@ -798,13 +798,13 @@ class TtsHelperTest(unittest.TestCase):
 
     def test_device_local_url_uses_mdns_browse_for_pair_code_entry(self) -> None:
         entry = types.SimpleNamespace(
-            data={self.const.CONF_DEVICE_ID: "spotifydj-981032"},
+            data={self.const.CONF_DEVICE_ID: "djconnect-981032"},
             options={},
         )
-        runtime = self.integration.SpotifyDJRuntime(entry=entry)
+        runtime = self.integration.DJConnectRuntime(entry=entry)
 
         async def discover(hass, runtime):
-            return "http://spotifydj-90B70990A994.local"
+            return "http://djconnect-90B70990A994.local"
 
         original_discover = self.integration.async_discover_device_url
         self.integration.async_discover_device_url = discover
@@ -813,7 +813,7 @@ class TtsHelperTest(unittest.TestCase):
         finally:
             self.integration.async_discover_device_url = original_discover
 
-        self.assertEqual(url, "http://spotifydj-90B70990A994.local")
+        self.assertEqual(url, "http://djconnect-90B70990A994.local")
 
     def test_tts_audio_store_returns_wav_and_unknown_404(self) -> None:
         hass = types.SimpleNamespace(data={})

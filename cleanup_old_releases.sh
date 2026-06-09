@@ -45,8 +45,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ ! -d ".git" || ! -f "custom_components/spotify_dj/manifest.json" ]]; then
-  echo "Run this script from the spotify-dj repository root." >&2
+if [[ ! -d ".git" || ! -f "custom_components/djconnect/manifest.json" ]]; then
+  echo "Run this script from the djconnect repository root." >&2
   exit 1
 fi
 

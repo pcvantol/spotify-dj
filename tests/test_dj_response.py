@@ -73,7 +73,7 @@ class Runtime:
         self.updated = {}
 
     async def async_device_local_url(self, hass):
-        return "http://spotifydj.local"
+        return "http://djconnect.local"
 
     def device_headers(self):
         return {"Authorization": "Bearer token", "Content-Type": "application/json"}
@@ -86,8 +86,8 @@ class DjResponseTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         install_stubs()
-        cls.const = importlib.import_module("custom_components.spotify_dj.const")
-        cls.dj_response = importlib.import_module("custom_components.spotify_dj.dj_response")
+        cls.const = importlib.import_module("custom_components.djconnect.const")
+        cls.dj_response = importlib.import_module("custom_components.djconnect.dj_response")
 
     def tearDown(self) -> None:
         self.dj_response.create_tts_audio = lambda hass, text, conf: None
@@ -112,9 +112,9 @@ class DjResponseTest(unittest.TestCase):
         )
 
         payload = session.calls[0]["json"]
-        self.assertEqual(session.calls[0]["url"], "http://spotifydj.local/api/device/dj_response")
+        self.assertEqual(session.calls[0]["url"], "http://djconnect.local/api/device/dj_response")
         self.assertEqual(payload["text"], "Daar gaan we")
-        self.assertIn("/api/spotify_dj/tts/", payload["audio_url"])
+        self.assertIn("/api/djconnect/tts/", payload["audio_url"])
         self.assertTrue(payload["audio_url"].endswith(".wav"))
         self.assertTrue(result["spoken"])
         self.assertTrue(runtime.updated["last_dj_spoken"])

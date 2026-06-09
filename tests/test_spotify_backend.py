@@ -5,6 +5,7 @@ import importlib
 import sys
 import types
 import unittest
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,9 +39,9 @@ def install_backend_stubs() -> list[dict]:
     helpers.issue_registry = issue_registry
     sys.modules["homeassistant.helpers.issue_registry"] = issue_registry
 
-    package = types.ModuleType("custom_components.spotify_dj")
-    package.__path__ = [str(ROOT / "custom_components" / "spotify_dj")]
-    sys.modules.setdefault("custom_components.spotify_dj", package)
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
+    sys.modules.setdefault("custom_components.djconnect", package)
     return issues
 
 
@@ -48,8 +49,8 @@ class SpotifyBackendTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.issues = install_backend_stubs()
-        cls.backend = importlib.import_module("custom_components.spotify_dj.spotify_backend")
-        cls.oauth = importlib.import_module("custom_components.spotify_dj.spotify_oauth")
+        cls.backend = importlib.import_module("custom_components.djconnect.spotify_backend")
+        cls.oauth = importlib.import_module("custom_components.djconnect.spotify_oauth")
 
     def setUp(self) -> None:
         self.issues.clear()
@@ -79,10 +80,217 @@ class SpotifyBackendTest(unittest.TestCase):
         finally:
             self.backend.refresh_access_token = original
 
-        self.assertIn("Reauthorize SpotifyDJ", str(captured.exception))
+        self.assertIn("Reauthorize DJConnect", str(captured.exception))
         self.assertEqual(runtime.last_update["last_error"], str(captured.exception))
         self.assertEqual(self.issues[0]["translation_key"], "spotify_refresh_token_revoked")
         self.assertNotIn("secret-refresh", str(captured.exception))
+
+    def test_access_token_cache_avoids_unnecessary_refresh(self) -> None:
+        calls = []
+
+        async def refresh(*args, **kwargs):
+            calls.append(kwargs)
+            return {"access_token": "new-access", "expires_in": 3600}
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={"spotify_client_id": "client-id", "spotify_refresh_token": "refresh"},
+            options={},
+        )
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            latest_spotify_refresh_token=None,
+            spotify_access_token="cached-access",
+            spotify_access_token_expires_at=time.time() + 1800,
+        )
+        runtime.config = dict(entry.data)
+        runtime.update = lambda **kwargs: setattr(runtime, "last_update", kwargs)
+        backend = self.backend.SpotifyBackend(object(), runtime)
+
+        original = self.backend.refresh_access_token
+        self.backend.refresh_access_token = refresh
+        try:
+            token = asyncio.run(backend._access_token())
+        finally:
+            self.backend.refresh_access_token = original
+
+        self.assertEqual(token, "cached-access")
+        self.assertEqual(calls, [])
+
+    def test_spotify_api_401_refreshes_access_token_once_without_repair(self) -> None:
+        refreshes = []
+
+        async def refresh(*args, **kwargs):
+            refreshes.append(kwargs)
+            return {"access_token": f"access-{len(refreshes)}", "expires_in": 3600}
+
+        class Response:
+            def __init__(self, status, payload):
+                self.status = status
+                self.payload = payload
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def json(self, content_type=None):
+                return self.payload
+
+            async def text(self):
+                return str(self.payload)
+
+        class Session:
+            def __init__(self):
+                self.calls = []
+
+            def request(self, method, url, **kwargs):
+                self.calls.append({"method": method, "url": url, **kwargs})
+                if len(self.calls) == 1:
+                    return Response(401, {"error": {"message": "The access token expired"}})
+                return Response(
+                    200,
+                    {
+                        "is_playing": True,
+                        "item": {"name": "Song", "artists": [], "album": {}},
+                        "device": {"name": "iPhone", "volume_percent": 30},
+                    },
+                )
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={"spotify_client_id": "client-id", "spotify_refresh_token": "refresh"},
+            options={},
+        )
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            latest_spotify_refresh_token=None,
+            spotify_access_token="expired-access",
+            spotify_access_token_expires_at=time.time() + 1800,
+            device_status={},
+        )
+        runtime.config = dict(entry.data)
+        runtime.update = lambda **kwargs: setattr(runtime, "last_update", kwargs)
+        backend = self.backend.SpotifyBackend(object(), runtime)
+        session = Session()
+        backend.session = session
+
+        original = self.backend.refresh_access_token
+        self.backend.refresh_access_token = refresh
+        try:
+            playback = asyncio.run(backend.playback_state())
+        finally:
+            self.backend.refresh_access_token = original
+
+        self.assertTrue(playback["has_playback"])
+        self.assertEqual(len(session.calls), 2)
+        self.assertEqual(len(refreshes), 1)
+        self.assertEqual(session.calls[0]["headers"]["Authorization"], "Bearer expired-access")
+        self.assertEqual(session.calls[1]["headers"]["Authorization"], "Bearer access-1")
+        self.assertEqual(self.issues, [])
+
+    def test_shuffle_and_repeat_commands_map_to_spotify_endpoints(self) -> None:
+        class Response:
+            def __init__(self, status, payload=None):
+                self.status = status
+                self.payload = payload or {}
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def json(self, content_type=None):
+                return self.payload
+
+            async def text(self):
+                return str(self.payload)
+
+        class Session:
+            def __init__(self):
+                self.calls = []
+
+            def request(self, method, url, **kwargs):
+                self.calls.append({"method": method, "url": url, **kwargs})
+                if method == "GET":
+                    return Response(
+                        200,
+                        {
+                            "is_playing": True,
+                            "shuffle_state": True,
+                            "repeat_state": "context",
+                            "item": {"name": "Song", "artists": [], "album": {}},
+                            "device": {"name": "iPhone", "volume_percent": 30},
+                        },
+                    )
+                return Response(204)
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={"spotify_client_id": "client-id", "spotify_refresh_token": "refresh"},
+            options={},
+        )
+        updates = []
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            latest_spotify_refresh_token=None,
+            spotify_access_token="access",
+            spotify_access_token_expires_at=time.time() + 1800,
+            device_status={},
+            update=lambda **kwargs: updates.append(kwargs),
+        )
+        runtime.config = dict(entry.data)
+        session = Session()
+
+        original_clientsession = self.backend.async_get_clientsession
+        self.backend.async_get_clientsession = lambda hass: session
+        try:
+            shuffle = asyncio.run(
+                self.backend.handle_spotify_command(
+                    object(),
+                    runtime,
+                    "set_shuffle",
+                    True,
+                )
+            )
+            repeat = asyncio.run(
+                self.backend.handle_spotify_command(
+                    object(),
+                    runtime,
+                    "set_repeat",
+                    "context",
+                )
+            )
+        finally:
+            self.backend.async_get_clientsession = original_clientsession
+
+        urls = [call["url"] for call in session.calls]
+        self.assertIn(
+            "https://api.spotify.com/v1/me/player/shuffle?state=true",
+            urls,
+        )
+        self.assertIn(
+            "https://api.spotify.com/v1/me/player/repeat?state=context",
+            urls,
+        )
+        self.assertTrue(shuffle["playback"]["shuffle"])
+        self.assertEqual(repeat["playback"]["repeat_state"], "context")
+        self.assertEqual(runtime.device_status["shuffle"], True)
+        self.assertEqual(runtime.device_status["repeat_state"], "context")
+
+    def test_set_play_mode_is_no_longer_supported(self) -> None:
+        runtime = types.SimpleNamespace(config={})
+        with self.assertRaises(ValueError):
+            asyncio.run(
+                self.backend.handle_spotify_command(
+                    object(),
+                    runtime,
+                    "set_play_mode",
+                    "shuffle",
+                )
+            )
 
 
 if __name__ == "__main__":
