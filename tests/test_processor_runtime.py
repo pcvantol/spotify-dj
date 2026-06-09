@@ -95,7 +95,14 @@ class ProcessorRuntimeTest(unittest.TestCase):
             self.processor.process_text_with_assist = original_assist
             self.processor.play_from_intent = original_play
 
-        self.assertEqual(runtime.updates[0], {"last_text": "Speel Black", "last_error": None})
+        self.assertEqual(
+            runtime.updates[0],
+            {
+                "last_text": "Speel Black",
+                "last_stt_text": "Speel Black",
+                "last_error": None,
+            },
+        )
         self.assertEqual(runtime.last_intent["type"], "search")
         self.assertEqual(
             runtime.last_dj_text,

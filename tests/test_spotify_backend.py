@@ -203,6 +203,13 @@ class SpotifyBackendTest(unittest.TestCase):
         )
         self.assertEqual(runtime.last_resolved_media["title"], "")
         self.assertEqual(runtime.last_resolved_media["uri"], "spotify:track:pearl-jam")
+        self.assertEqual(runtime.last_spotify_search["query"], "ik wil pearl jam starten")
+        self.assertEqual(runtime.last_spotify_search["type"], "track")
+        self.assertEqual(runtime.last_spotify_search["returned"], 1)
+        self.assertEqual(
+            runtime.last_spotify_search["selected"]["uri"],
+            "spotify:track:pearl-jam",
+        )
 
     def test_play_recovers_no_active_device_by_transferring_to_configured_source(self) -> None:
         class Response:

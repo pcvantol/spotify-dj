@@ -53,6 +53,7 @@ _LOGGER = logging.getLogger(__name__)
 _LOGO_DATA_URI: str | None = None
 VOICE_DEBUG_KEY = "last_voice_debug"
 VOICE_DEBUG_URL = "/api/djconnect/debug/last_voice.wav"
+CONF_LAST_DEVICE_STATUS = "last_device_status"
 
 
 def _djconnect_logo_data_uri() -> str:
@@ -635,10 +636,48 @@ def _persist_paired_device(
     new_data[CONF_DEVICE_ID] = device_id
     new_data[CONF_DEVICE_TOKEN] = device_token
     new_data[CONF_CLIENT_TYPE] = str(client_type or _runtime_client_type(runtime))
+    new_data[CONF_LAST_DEVICE_STATUS] = _persistable_device_status(
+        getattr(runtime, "device_status", {}) or {}
+    )
     cleaned_url = str(local_url or "").strip()
     if cleaned_url:
         new_data[CONF_LOCAL_URL] = cleaned_url
     updater(entry, data=new_data)
+
+
+def _persistable_device_status(status: dict[str, Any]) -> dict[str, Any]:
+    """Return a compact status cache that is safe to store in the config entry."""
+    if not isinstance(status, dict):
+        return {}
+    result: dict[str, Any] = {}
+    for key, value in status.items():
+        normalized = str(key).lower()
+        if any(secret in normalized for secret in ("token", "password", "secret")):
+            continue
+        if value is None:
+            continue
+        if isinstance(value, (str, int, float, bool)):
+            result[key] = value
+        elif isinstance(value, list):
+            result[key] = value[:10]
+        elif isinstance(value, dict):
+            result[key] = _persistable_nested_status(value)
+    return result
+
+
+def _persistable_nested_status(value: dict[str, Any]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, item in value.items():
+        normalized = str(key).lower()
+        if any(secret in normalized for secret in ("token", "password", "secret")):
+            continue
+        if isinstance(item, (str, int, float, bool)) or item is None:
+            result[key] = item
+        elif isinstance(item, list):
+            result[key] = item[:10]
+        elif isinstance(item, dict):
+            result[key] = _persistable_nested_status(item)
+    return result
 
 
 def _device_language(runtime: Any) -> str:

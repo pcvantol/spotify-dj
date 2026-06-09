@@ -19,6 +19,7 @@ def install_sensor_stubs() -> None:
     config_entries = types.ModuleType("homeassistant.config_entries")
     const = types.ModuleType("homeassistant.const")
     core = types.ModuleType("homeassistant.core")
+    aiohttp = sys.modules.setdefault("aiohttp", types.ModuleType("aiohttp"))
     helpers = sys.modules.setdefault("homeassistant.helpers", types.ModuleType("homeassistant.helpers"))
     device_registry = types.ModuleType("homeassistant.helpers.device_registry")
     entity_platform = types.ModuleType("homeassistant.helpers.entity_platform")
@@ -27,6 +28,12 @@ def install_sensor_stubs() -> None:
         def async_write_ha_state(self):
             self.wrote_state = True
 
+    class ClientTimeout:
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+
+    aiohttp.ClientTimeout = ClientTimeout
     sensor.SensorEntity = SensorEntity
     sensor.SensorDeviceClass = types.SimpleNamespace(BATTERY="battery", SIGNAL_STRENGTH="signal_strength")
     sensor.SensorStateClass = types.SimpleNamespace(MEASUREMENT="measurement")
@@ -41,6 +48,9 @@ def install_sensor_stubs() -> None:
     helpers.device_registry = device_registry
     helpers.entity_platform = entity_platform
     homeassistant.components = components
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
+    sys.modules["custom_components.djconnect"] = package
 
     sys.modules["homeassistant.components.sensor"] = sensor
     sys.modules["homeassistant.config_entries"] = config_entries
@@ -102,13 +112,49 @@ class DJConnectSensorTest(unittest.TestCase):
         runtime = types.SimpleNamespace(
             entry=types.SimpleNamespace(entry_id="entry-1"),
             last_text="Speel Pearl Jam",
+            last_stt_text="ik wil pearl jam starten",
             last_intent={"action": "play"},
+            last_spotify_search={
+                "query": "ik wil pearl jam starten",
+                "selected": {"title": "Alive", "artist": "Pearl Jam"},
+            },
+            last_resolved_media={"title": "Alive", "artist": "Pearl Jam"},
             listeners=[],
         )
         entity = self.sensor.DJConnectLastTextSensor(runtime)
 
         self.assertEqual(entity.native_value, "Speel Pearl Jam")
+        self.assertEqual(entity.extra_state_attributes["last_stt_text"], "ik wil pearl jam starten")
         self.assertEqual(entity.extra_state_attributes["last_intent"], {"action": "play"})
+        self.assertEqual(
+            entity.extra_state_attributes["last_spotify_search"]["selected"]["title"],
+            "Alive",
+        )
+        self.assertEqual(
+            entity.extra_state_attributes["last_resolved_media"]["artist"],
+            "Pearl Jam",
+        )
+
+    def test_status_sensor_exposes_voice_and_spotify_debug_attributes(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            last_error=None,
+            last_stt_text="ik wil pearl jam starten",
+            last_spotify_search={"query": "pearl jam", "returned": 1},
+            last_resolved_media={"title": "Alive"},
+            last_dj_text="Daar is Pearl Jam",
+            last_playback={},
+            device_status={},
+            ota_in_progress=False,
+            ota_last_error=None,
+            listeners=[],
+        )
+        entity = self.sensor.DJConnectStatusSensor(runtime)
+
+        attrs = entity.extra_state_attributes
+        self.assertEqual(attrs["last_stt_text"], "ik wil pearl jam starten")
+        self.assertEqual(attrs["last_spotify_search"]["query"], "pearl jam")
+        self.assertEqual(attrs["last_resolved_media"]["title"], "Alive")
 
     def test_queue_sensor_reads_dict_items_and_context(self) -> None:
         runtime = types.SimpleNamespace(

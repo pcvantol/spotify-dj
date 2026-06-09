@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.0.23`
+- Home Assistant integration: `3.0.24`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -283,6 +283,11 @@ debug logging for `custom_components.djconnect` when you want to inspect the
 selected TTS engine, OAuth redirect URI, DJ response result, or
 command-processing result. Spotify refresh tokens and device tokens are not
 logged.
+For PTT/voice debugging, inspect the attributes on `sensor.djconnect_status` or
+`sensor.djconnect_last_command`: `last_stt_text` shows the text recognized by
+STT, `last_spotify_search` shows the Spotify Search query/type, selected result
+and a small candidate list, and `last_resolved_media` shows the media metadata
+used for the spoken DJ response.
 
 Example developer action data:
 
@@ -474,6 +479,10 @@ response.
 ## Native Home Assistant Entities
 
 The integration exposes native Home Assistant entities for device status, firmware OTA, screen/device settings, screen/LED state, DJ response tests and backend playback control. The `media_player.djconnect_playback_proxy` entity represents the current music backend session, not the ESP speaker. Music plays on the selected Spotify/output device; the DJConnect speaker is used for local cues and DJ/voice responses.
+DJConnect persists the last known ESP status in the Home Assistant config entry,
+so battery, firmware, pairing status, screen/LED state and sound output remain
+visible after a Home Assistant restart or integration reload while waiting for
+the next authenticated ESP `/api/djconnect/status` post.
 
 ## ESP Device Endpoints
 
@@ -516,12 +525,12 @@ Example manifest:
 
 ```json
 {
-  "version": "3.0.23",
+  "version": "3.0.24",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.23.bin",
+  "asset": "djconnect-device-v3.0.24.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "3.0.23"
+  "min_ha_integration": "3.0.24"
 }
 ```
 
@@ -536,7 +545,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.0.23
+./release.sh 3.0.24
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -547,7 +556,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.0.23 --dry-run
+./release.sh 3.0.24 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -605,11 +614,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.0.23"
-git tag v3.0.23
+git commit -m "Release DJConnect v3.0.24"
+git tag v3.0.24
 git push origin main
-git push origin v3.0.23
-gh release create v3.0.23 --title "DJConnect v3.0.23" --notes-file CHANGELOG.md
+git push origin v3.0.24
+gh release create v3.0.24 --title "DJConnect v3.0.24" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

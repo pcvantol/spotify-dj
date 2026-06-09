@@ -20,7 +20,7 @@ from .spotify import play_from_intent
 async def process_text_command(
     hass: HomeAssistant, runtime, user_text: str, play: bool = True
 ) -> dict[str, Any]:
-    runtime.update(last_text=user_text, last_error=None)
+    runtime.update(last_text=user_text, last_stt_text=user_text, last_error=None)
     conf = runtime.config
     intent = await process_text_with_assist(hass, user_text, conf)
     runtime.update(last_intent=intent)

@@ -377,8 +377,21 @@ class SpotifyBackend:
         item = _first_search_item(data, spotify_type)
         uri = str(item.get("uri") or "").strip()
         if not uri:
+            self.runtime.last_spotify_search = _spotify_search_debug(
+                query=query,
+                spotify_type=spotify_type,
+                data=data,
+                selected={},
+            )
             raise SpotifyBackendError(f"Spotify search found no {spotify_type} for: {query}")
-        self.runtime.last_resolved_media = _normalize_search_item(item, spotify_type, query)
+        resolved = _normalize_search_item(item, spotify_type, query)
+        self.runtime.last_resolved_media = resolved
+        self.runtime.last_spotify_search = _spotify_search_debug(
+            query=query,
+            spotify_type=spotify_type,
+            data=data,
+            selected=resolved,
+        )
         _LOGGER.debug(
             "DJConnect Spotify search resolved type=%s query=%s uri=%s",
             spotify_type,
@@ -514,6 +527,31 @@ def _normalize_search_item(item: dict[str, Any], spotify_type: str, query: str) 
         "artist_name": ", ".join(artist.get("name", "") for artist in artists if artist.get("name")),
         "album_name": album.get("name") or "",
         "owner": owner.get("display_name") or owner.get("id") or "",
+    }
+
+
+def _spotify_search_debug(
+    *,
+    query: str,
+    spotify_type: str,
+    data: dict[str, Any],
+    selected: dict[str, Any],
+) -> dict[str, Any]:
+    section = data.get(f"{spotify_type}s") or {}
+    items = section.get("items") or []
+    if not isinstance(items, list):
+        items = []
+    return {
+        "query": query,
+        "type": spotify_type,
+        "total": section.get("total"),
+        "returned": len(items),
+        "selected": selected,
+        "candidates": [
+            _normalize_search_item(item, spotify_type, query)
+            for item in items[:5]
+            if isinstance(item, dict)
+        ],
     }
 
 

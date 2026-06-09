@@ -74,6 +74,7 @@ DEFAULT_TEST_TTS_TEXT = (
 )
 MDNS_SERVICE_TYPE = "_djconnect._tcp.local."
 STATUS_SECRET_KEYS = {"device_token", "spotify_refresh_token", "refresh_token"}
+CONF_LAST_DEVICE_STATUS = "last_device_status"
 
 
 def _is_empty_status_value(value: Any) -> bool:
@@ -735,6 +736,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 def _restore_runtime(hass: HomeAssistant, entry: ConfigEntry) -> DJConnectRuntime:
     runtime = DJConnectRuntime(entry=entry)
+    cached_status = entry.data.get(CONF_LAST_DEVICE_STATUS)
+    if isinstance(cached_status, dict):
+        _merge_cached_device_status(
+            runtime.device_status,
+            cached_status,
+            source="persisted device status",
+        )
     if entry.data.get(CONF_SPOTIFY_REFRESH_TOKEN):
         runtime.latest_spotify_refresh_token = entry.data[CONF_SPOTIFY_REFRESH_TOKEN]
     if entry.data.get(CONF_DEVICE_TOKEN):

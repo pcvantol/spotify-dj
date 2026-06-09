@@ -73,6 +73,9 @@ class DJConnectStatusSensor(DJConnectBaseSensor):
     def extra_state_attributes(self):
         return {
             "last_error": self.runtime.last_error,
+            "last_stt_text": getattr(self.runtime, "last_stt_text", None),
+            "last_spotify_search": getattr(self.runtime, "last_spotify_search", None),
+            "last_resolved_media": getattr(self.runtime, "last_resolved_media", None),
             "last_dj_text": self.runtime.last_dj_text,
             "last_dj_spoken": getattr(self.runtime, "last_dj_spoken", None),
             "last_dj_displayed": getattr(self.runtime, "last_dj_displayed", None),
@@ -93,7 +96,12 @@ class DJConnectLastTextSensor(DJConnectBaseSensor):
 
     @property
     def extra_state_attributes(self):
-        return {"last_intent": self.runtime.last_intent}
+        return {
+            "last_stt_text": getattr(self.runtime, "last_stt_text", None) or self.runtime.last_text,
+            "last_intent": self.runtime.last_intent,
+            "last_spotify_search": getattr(self.runtime, "last_spotify_search", None),
+            "last_resolved_media": getattr(self.runtime, "last_resolved_media", None),
+        }
 
 class DJConnectBatterySensor(DJConnectBaseSensor):
     _attr_translation_key = "battery"

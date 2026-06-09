@@ -320,6 +320,15 @@ class TtsHelperTest(unittest.TestCase):
                 self.const.CONF_PAIR_CODE: "981032",
                 self.const.CONF_DEVICE_TOKEN: "device-token",
                 self.const.CONF_LOCAL_URL: "http://djconnect-lilygo-90B70990A994.local",
+                "last_device_status": {
+                    "ha_pairing_status": "paired",
+                    "battery_percent": 85,
+                    "wifi_rssi": -55,
+                    "firmware": "3.0.23",
+                    "sound_output": "Living room",
+                    "screen_state": "on",
+                    "led_state": "idle",
+                },
             },
             options={},
         )
@@ -331,6 +340,10 @@ class TtsHelperTest(unittest.TestCase):
         self.assertEqual(runtime.pairing_device_id, "djconnect-lilygo-90B70990A994")
         self.assertEqual(runtime.pairing_code, "981032")
         self.assertEqual(runtime.device_status["device_id"], "djconnect-lilygo-90B70990A994")
+        self.assertEqual(runtime.device_status["ha_pairing_status"], "paired")
+        self.assertEqual(runtime.device_status["battery_percent"], 85)
+        self.assertEqual(runtime.device_status["firmware"], "3.0.23")
+        self.assertEqual(runtime.device_status["sound_output"], "Living room")
         self.assertEqual(
             runtime.device_status["local_url"],
             "http://djconnect-lilygo-90B70990A994.local",

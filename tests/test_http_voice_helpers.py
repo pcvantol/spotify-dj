@@ -1452,6 +1452,53 @@ class VoiceHttpHelperTest(unittest.TestCase):
         )
         self.assertEqual(runtime.device_status["ha_pairing_status"], "paired")
 
+    def test_persist_paired_device_stores_last_known_status_without_secrets(self) -> None:
+        const = importlib.import_module("custom_components.djconnect.const")
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={const.CONF_DEVICE_ID: "old"},
+            options={},
+        )
+        updates = []
+
+        class ConfigEntries:
+            def async_update_entry(self, entry_arg, *, data):
+                updates.append(data)
+                entry_arg.data = data
+
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            device_status={
+                "device_id": "djconnect-lilygo-90B70990A994",
+                "client_type": "esp32",
+                "ha_pairing_status": "paired",
+                "battery_percent": 85,
+                "firmware": "3.0.23",
+                "sound_output": "Living room",
+                "device_token": "secret-device-token",
+                "nested": {"refresh_token": "secret-refresh", "state": "ok"},
+            },
+        )
+        hass = types.SimpleNamespace(config_entries=ConfigEntries())
+
+        self.http._persist_paired_device(
+            hass,
+            runtime,
+            "djconnect-lilygo-90B70990A994",
+            "http://djconnect-lilygo-90B70990A994.local",
+            "device-token",
+            "esp32",
+        )
+
+        status = updates[0]["last_device_status"]
+        self.assertEqual(status["ha_pairing_status"], "paired")
+        self.assertEqual(status["battery_percent"], 85)
+        self.assertEqual(status["firmware"], "3.0.23")
+        self.assertEqual(status["sound_output"], "Living room")
+        self.assertNotIn("device_token", status)
+        self.assertNotIn("refresh_token", status["nested"])
+        self.assertEqual(status["nested"]["state"], "ok")
+
     def test_status_view_accepts_same_major_minor_firmware(self) -> None:
         const = importlib.import_module("custom_components.djconnect.const")
 

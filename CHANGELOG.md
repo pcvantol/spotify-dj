@@ -1,7 +1,9 @@
 # Changelog
 
-## 3.0.23
+## 3.0.24
 
+- Persist the last known ESP device status in the Home Assistant config entry and restore it on integration reload/startup, so battery, firmware, sound output, screen/LED state and `ha_pairing_status=paired` do not fall back to unknown/pending while waiting for the next ESP status post.
+- Expose PTT debugging as entity attributes on `sensor.djconnect_status` and `sensor.djconnect_last_command`, including `last_stt_text`, `last_spotify_search` and `last_resolved_media`.
 - Generate the spoken PTT DJ response from resolved Spotify/playback metadata and the selected DJ style, so successful requests mention the actual track, artist, album or playlist instead of a generic “I’ll start it” fallback.
 - Store resolved Spotify Search metadata with playback responses so device TTS can describe what actually started playing.
 - Resolve plain Assist/voice search text through Spotify Search before starting playback, so commands like `ik wil Pearl Jam starten` are converted to a playable Spotify URI instead of being sent to `/me/player/play` as arbitrary text.
