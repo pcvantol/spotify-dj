@@ -17,12 +17,18 @@
       <stop offset="62%" stop-color="#070b12"/>
       <stop offset="100%" stop-color="#050608"/>
     </linearGradient>
-    <linearGradient id="iconAccent" x1="170" y1="154" x2="406" y2="376" gradientUnits="userSpaceOnUse">
+    <linearGradient id="djAccent" x1="126" y1="190" x2="266" y2="330" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#66e0ff"/>
-      <stop offset="50%" stop-color="#7b5cff"/>
+      <stop offset="48%" stop-color="#7b5cff"/>
       <stop offset="100%" stop-color="#db5cff"/>
     </linearGradient>
-    <radialGradient id="iconVinyl" cx="42%" cy="30%" r="74%">
+    <linearGradient id="djMetal" x1="210" y1="190" x2="270" y2="275" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f2f7ff"/>
+      <stop offset="28%" stop-color="#aebdde"/>
+      <stop offset="58%" stop-color="#343b54"/>
+      <stop offset="100%" stop-color="#e4ecff"/>
+    </linearGradient>
+    <radialGradient id="djVinyl" cx="42%" cy="32%" r="76%">
       <stop offset="0%" stop-color="#343047"/>
       <stop offset="48%" stop-color="#13111d"/>
       <stop offset="100%" stop-color="#030207"/>
@@ -43,6 +49,9 @@
     <clipPath id="screenClip">
       <rect x="96" y="154" width="484" height="252" rx="34"/>
     </clipPath>
+    <clipPath id="djIconClip">
+      <rect x="130" y="196" width="124" height="124" rx="24"/>
+    </clipPath>
   </defs>
   <rect width="980" height="560" fill="url(#glow)"/>
   <g filter="url(#shadow)">
@@ -50,13 +59,20 @@
     <rect x="96" y="154" width="484" height="252" rx="34" fill="url(#screen)" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
 
     <g clip-path="url(#screenClip)">
-      <g filter="url(#iconGlow)">
-        <path d="M176 288c-12-32-6-74 21-99 28-25 72-28 102-6 27 21 36 60 23 91" fill="none" stroke="url(#iconAccent)" stroke-width="6" stroke-linecap="round"/>
-        <circle cx="217" cy="257" r="42" fill="url(#iconVinyl)"/>
-        <circle cx="217" cy="257" r="13" fill="#151023" stroke="url(#iconAccent)" stroke-width="5"/>
-        <path d="M261 216c9-5 21 2 21 12 0 9-9 16-18 13-7 27-16 50-33 68-8 8-16 13-24 16" fill="none" stroke="#dbe6ff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="268" cy="228" r="11" fill="#131522" stroke="url(#iconAccent)" stroke-width="4"/>
-        <text x="178" y="313" fill="#f7f9ff" stroke="url(#iconAccent)" stroke-width="3" stroke-linejoin="round" font-family="Avenir Next, Arial Black, Impact, sans-serif" font-style="italic" font-weight="900" font-size="52" letter-spacing="-5">DJ</text>
+      <g clip-path="url(#djIconClip)" filter="url(#iconGlow)">
+        <rect x="130" y="196" width="124" height="124" rx="24" fill="#0b0815"/>
+        <circle cx="154" cy="214" r="34" fill="#7d5cff" opacity="0.15"/>
+        <circle cx="238" cy="303" r="38" fill="#3ce1ff" opacity="0.08"/>
+        <path d="M143 288c-10-26-5-62 17-82 24-22 60-24 86-5 23 17 31 50 20 78" fill="none" stroke="url(#djAccent)" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="188" cy="258" r="43" fill="url(#djVinyl)"/>
+        <circle cx="188" cy="258" r="31" fill="none" stroke="#fff" stroke-opacity="0.07" stroke-width="1.5"/>
+        <circle cx="188" cy="258" r="21" fill="none" stroke="#8fa0ff" stroke-opacity="0.13" stroke-width="1.6"/>
+        <circle cx="188" cy="258" r="13" fill="#151023" stroke="url(#djAccent)" stroke-width="5"/>
+        <path d="M237 207c10-6 23 2 23 14 0 10-10 18-20 15-8 31-18 56-38 77-9 9-18 15-27 18" fill="none" stroke="url(#djMetal)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="246" cy="221" r="14" fill="#131522" stroke="url(#djAccent)" stroke-width="4"/>
+        <path d="M240 216h12M238 221h16M241 226h10" stroke="#dbe6ff" stroke-opacity="0.78" stroke-width="2" stroke-linecap="round"/>
+        <text x="148" y="302" fill="#080711" stroke="#080711" stroke-width="11" stroke-linejoin="round" font-family="Avenir Next, Arial Black, Impact, sans-serif" font-style="italic" font-weight="900" font-size="62" letter-spacing="-7">DJ</text>
+        <text x="148" y="302" fill="#f7f9ff" stroke="url(#djAccent)" stroke-width="3.5" stroke-linejoin="round" font-family="Avenir Next, Arial Black, Impact, sans-serif" font-style="italic" font-weight="900" font-size="62" letter-spacing="-7">DJ</text>
       </g>
 
       <text x="430" y="230" text-anchor="middle" fill="#f7f7fb" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="900">DJConnect</text>
