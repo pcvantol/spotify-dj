@@ -390,6 +390,9 @@ class DJConnectRuntime:
         reported_device_id = str(pairing_info.get("device_id") or "").strip()
         if reported_device_id:
             self._learn_device_id(reported_device_id)
+        reported_local_url = str(pairing_info.get("local_url") or "").strip()
+        if reported_local_url:
+            self.device_status["local_url"] = reported_local_url
         token = self.ensure_device_token()
         url = local_url.rstrip("/") + "/api/device/pair"
         payload = {

@@ -7,6 +7,7 @@ import inspect
 import logging
 import re
 import secrets
+from types import SimpleNamespace
 from typing import Any
 from urllib.parse import urlparse
 
@@ -776,6 +777,35 @@ def _voice_errors(user_input: dict[str, Any]) -> dict[str, str]:
     return {}
 
 
+async def _async_pair_before_create(hass: Any, data: dict[str, Any]) -> None:
+    """Pair the ESP before HA creates a successful config entry."""
+    from custom_components.djconnect import DJConnectRuntime
+
+    entry = SimpleNamespace(
+        entry_id="config-flow-pairing",
+        data=data,
+        options={},
+    )
+    runtime = DJConnectRuntime(entry=entry)
+    runtime.device_token = data.get(CONF_DEVICE_TOKEN)
+    runtime.pairing_code = data.get(CONF_PAIR_CODE)
+    runtime.pairing_device_id = data.get(CONF_DEVICE_ID)
+    if data.get(CONF_DEVICE_ID):
+        runtime.device_status["device_id"] = data[CONF_DEVICE_ID]
+    if data.get(CONF_LOCAL_URL):
+        runtime.device_status["local_url"] = data[CONF_LOCAL_URL]
+
+    await runtime.pair_device(hass)
+
+    data[CONF_DEVICE_TOKEN] = runtime.device_token
+    real_device_id = runtime.device_status.get("device_id") or runtime.pairing_device_id
+    if real_device_id:
+        data[CONF_DEVICE_ID] = real_device_id
+    local_url = runtime.device_status.get("local_url")
+    if local_url:
+        data[CONF_LOCAL_URL] = local_url
+
+
 class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle the DJConnect config flow."""
 
@@ -1098,6 +1128,20 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         _voice_defaults(user_input),
                     )
                 )
+                try:
+                    await _async_pair_before_create(self.hass, data)
+                except Exception as exc:  # noqa: BLE001
+                    _LOGGER.warning("DJConnect initial device pairing failed: %s", exc)
+                    errors["base"] = "repair_pairing_failed"
+                    return self.async_show_form(
+                        step_id="voice",
+                        data_schema=await _voice_schema(
+                            self.hass,
+                            _voice_defaults(user_input),
+                            include_advanced=_advanced_enabled(self),
+                        ),
+                        errors=errors,
+                    )
                 return self.async_create_entry(
                     title=data.get(CONF_DEVICE_NAME, DEFAULT_DEVICE_NAME),
                     data=data,

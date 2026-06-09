@@ -44,6 +44,9 @@ def install_homeassistant_stubs() -> None:
         def async_external_step_done(self, **kwargs):
             return {"type": "external_done", **kwargs}
 
+        def async_create_entry(self, **kwargs):
+            return {"type": "create_entry", **kwargs}
+
     class OptionsFlow:
         @property
         def config_entry(self):
@@ -532,6 +535,70 @@ class ConfigFlowHelperTest(unittest.TestCase):
 
         self.assertEqual(result["type"], "external")
         self.assertEqual(result["title"], "DJConnect autoriseren bij Spotify")
+
+    def test_voice_step_pairs_device_before_creating_entry(self) -> None:
+        package = sys.modules["custom_components.djconnect"]
+        original_runtime = getattr(package, "DJConnectRuntime", None)
+        calls = []
+
+        class Runtime:
+            def __init__(self, entry):
+                self.entry = entry
+                self.device_token = None
+                self.pairing_code = None
+                self.pairing_device_id = None
+                self.device_status = {}
+
+            async def pair_device(self, hass):
+                calls.append(
+                    {
+                        "pairing_code": self.pairing_code,
+                        "pairing_device_id": self.pairing_device_id,
+                        "device_token": self.device_token,
+                    }
+                )
+                self.device_status["device_id"] = "djconnect-lilygo-90B70990A994"
+                self.device_status["local_url"] = "http://djconnect-lilygo-90B70990A994.local"
+
+        package.DJConnectRuntime = Runtime
+        try:
+            flow = self.config_flow.DJConnectConfigFlow()
+            flow.hass = types.SimpleNamespace(states=None)
+            flow._pairing = {
+                self.const.CONF_PAIR_CODE: "123456",
+                self.const.CONF_DEVICE_ID: "djconnect-123456",
+                self.const.CONF_DEVICE_NAME: "DJConnect",
+                self.const.CONF_DEVICE_TOKEN: "device-token",
+                self.const.CONF_LOCAL_URL: "http://djconnect.local",
+            }
+            flow._spotify = {
+                self.const.CONF_SPOTIFY_CLIENT_ID: "client-id",
+                self.const.CONF_SPOTIFY_REFRESH_TOKEN: "refresh-token",
+                self.const.CONF_SPOTIFY_MARKET: "NL",
+                self.const.CONF_SPOTIFY_SCOPES: self.const.DEFAULT_SPOTIFY_SCOPES,
+                self.const.CONF_HA_EXTERNAL_URL: "https://example.ui.nabu.casa",
+            }
+
+            result = asyncio.run(flow.async_step_voice({}))
+        finally:
+            if original_runtime is None:
+                delattr(package, "DJConnectRuntime")
+            else:
+                package.DJConnectRuntime = original_runtime
+
+        self.assertEqual(result["type"], "create_entry")
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0]["pairing_code"], "123456")
+        self.assertEqual(calls[0]["pairing_device_id"], "djconnect-123456")
+        self.assertEqual(calls[0]["device_token"], "device-token")
+        self.assertEqual(
+            result["data"][self.const.CONF_DEVICE_ID],
+            "djconnect-lilygo-90B70990A994",
+        )
+        self.assertEqual(
+            result["data"][self.const.CONF_LOCAL_URL],
+            "http://djconnect-lilygo-90B70990A994.local",
+        )
 
     def test_default_external_url_prefers_network_helper(self) -> None:
         from homeassistant.helpers import network
