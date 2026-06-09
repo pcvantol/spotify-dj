@@ -36,6 +36,10 @@
     <filter id="purpleGlow" x="-45%" y="-45%" width="190%" height="190%">
       <feDropShadow dx="0" dy="0" stdDeviation="14" flood-color="#c084fc" flood-opacity="0.78"/>
     </filter>
+    <filter id="iconGlow" x="-45%" y="-45%" width="190%" height="190%">
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#7b5cff" flood-opacity="0.62"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="18" flood-color="#66e0ff" flood-opacity="0.24"/>
+    </filter>
     <clipPath id="screenClip">
       <rect x="96" y="154" width="484" height="252" rx="34"/>
     </clipPath>
@@ -46,7 +50,7 @@
     <rect x="96" y="154" width="484" height="252" rx="34" fill="url(#screen)" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
 
     <g clip-path="url(#screenClip)">
-      <g filter="url(#greenGlow)">
+      <g filter="url(#iconGlow)">
         <path d="M170 294c-15-39-8-90 25-120 34-30 86-34 122-7 33 25 44 73 28 110" fill="none" stroke="url(#iconAccent)" stroke-width="7" stroke-linecap="round"/>
         <circle cx="220" cy="255" r="50" fill="url(#iconVinyl)"/>
         <circle cx="220" cy="255" r="16" fill="#151023" stroke="url(#iconAccent)" stroke-width="5"/>
