@@ -33,6 +33,32 @@ FIXABLE_SPOTIFY_ISSUES = {
     "missing_spotify_oauth_scopes",
     "spotify_refresh_token_revoked",
 }
+SPOTIFY_REPAIR_EXTERNAL_TEXT = {
+    "missing_spotify_oauth_scopes": {
+        "title": "DJConnect autoriseren bij Spotify",
+        "description": (
+            "DJConnect heeft opnieuw Spotify toestemming nodig om je playlists "
+            "te kunnen lezen. Open Spotify, geef akkoord en keer daarna terug "
+            "naar Home Assistant."
+        ),
+    },
+    "missing_spotify_refresh_token": {
+        "title": "DJConnect autoriseren bij Spotify",
+        "description": (
+            "DJConnect heeft Spotify toestemming nodig om muziek namens jou te "
+            "bedienen. Open Spotify, geef akkoord en keer daarna terug naar "
+            "Home Assistant."
+        ),
+    },
+    "spotify_refresh_token_revoked": {
+        "title": "DJConnect opnieuw autoriseren bij Spotify",
+        "description": (
+            "De Spotify toestemming voor DJConnect is verlopen of ingetrokken. "
+            "Open Spotify, geef opnieuw akkoord en keer daarna terug naar "
+            "Home Assistant."
+        ),
+    },
+}
 
 
 async def async_create_fixable_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -119,11 +145,19 @@ class SpotifyOAuthRepairFlow(RepairsFlow):
             self._authorize_url = await _prepare_spotify_repair_oauth(self.hass, entry)
             external_step = getattr(self, "async_external_step", None)
             if callable(external_step):
-                return external_step(
+                issue_key = _issue_key(self.issue_id)
+                text = SPOTIFY_REPAIR_EXTERNAL_TEXT.get(
+                    issue_key,
+                    SPOTIFY_REPAIR_EXTERNAL_TEXT["spotify_refresh_token_revoked"],
+                )
+                result = external_step(
                     step_id="authorize",
                     url=self._authorize_url,
                     description_placeholders={"authorize_url": self._authorize_url},
                 )
+                result["title"] = text["title"]
+                result["description"] = text["description"]
+                return result
             return self.async_show_form(
                 step_id="init",
                 data_schema=vol.Schema({}),

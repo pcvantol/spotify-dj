@@ -194,6 +194,8 @@ class RepairsTest(unittest.TestCase):
 
         self.assertEqual(result["type"], "external")
         self.assertEqual(result["step_id"], "authorize")
+        self.assertEqual(result["title"], "DJConnect opnieuw autoriseren bij Spotify")
+        self.assertIn("Spotify toestemming", result["description"])
         self.assertIn("https://accounts.spotify.com/authorize", result["url"])
         self.assertIn("authorize_url", result["description_placeholders"])
         self.assertEqual(len(hass.data["djconnect"]["spotify_oauth_pending"]), 1)
