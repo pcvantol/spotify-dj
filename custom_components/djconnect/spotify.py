@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -67,6 +68,8 @@ def _media_from_intent(
         return (intent.get("playlist") or media_content_id).strip(), "playlist"
     if media_type == "latest_album":
         return _artist_media(intent, media_content_id)
+    if media_type in {"artist", "album", "track", "search", "music"}:
+        return _artist_media(intent, media_content_id)
     return media_content_id, MEDIA_CONTENT_TYPES.get(media_type, "music")
 
 
@@ -82,5 +85,32 @@ def _artist_media(
     fallback_query: str,
 ) -> tuple[str, str]:
     artist = (intent.get("artist") or "").strip()
-    query = artist if artist else fallback_query
+    query = artist if artist else _extract_artist_query(fallback_query)
     return query, "artist"
+
+
+_ARTIST_QUERY_PATTERNS = (
+    r"^\s*ik\s+heb\s+(?:wel\s+)?(?:zin|trek)\s+in\s+(.+?)\s*$",
+    r"^\s*ik\s+wil\s+(?:wel\s+|graag\s+)?(.+?)\s+(?:horen|luisteren|starten|opzetten|spelen)\s*$",
+    r"^\s*(?:zet|speel|start|draai)\s+(?:eens\s+|even\s+|maar\s+|graag\s+)?(?:af\s+|op\s+|aan\s+)?(.+?)\s*(?:op|af|aan)?\s*$",
+    r"^\s*(?:play|start|put\s+on)\s+(.+?)\s*$",
+    r"^\s*i\s+(?:feel\s+like|want\s+to\s+hear|want)\s+(.+?)\s*$",
+)
+
+
+def _extract_artist_query(text: str) -> str:
+    """Extract the likely artist from a spoken music request."""
+    query = _clean_artist_query(text)
+    for pattern in _ARTIST_QUERY_PATTERNS:
+        match = re.match(pattern, query, flags=re.IGNORECASE)
+        if match:
+            candidate = _clean_artist_query(match.group(1))
+            if candidate:
+                return candidate
+    return query
+
+
+def _clean_artist_query(text: str) -> str:
+    value = " ".join(str(text or "").strip().split())
+    value = re.sub(r"[.!?]+$", "", value).strip()
+    return value.strip(" \"'")

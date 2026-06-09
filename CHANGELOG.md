@@ -1,7 +1,11 @@
 # Changelog
 
-## 3.0.29
+## 3.0.30
 
+- Add a deterministic artist fallback extractor for spoken STT commands before Spotify artist search.
+- Extract artists from natural Dutch/English phrases such as `ik heb wel zin in Nirvana`, `ik wil wel Metallica horen`, `speel maar af Above & Beyond`, `zet heavn aan` and `zet london grammer op`.
+- Keep explicit Assist-provided `artist` values authoritative while cleaning only fallback free-text queries.
+- Add focused tests for spoken artist extraction variants.
 - Make `sensor.djconnect_last_command` show the actual DJ response text that is spoken/displayed on the device, while keeping the original STT/user command available as attributes.
 - Persist the latest DJ response text in the existing device-status cache so `Laatste opdracht` survives Home Assistant reloads/restarts instead of returning to unknown.
 - Mirror non-empty runtime last command, DJ response and last track values into cached device status so sparse updates cannot erase them.
