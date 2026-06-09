@@ -1,97 +1,25 @@
 # Changelog
 
-## 2.9.33
+## 3.0.0
 
-- Prevent repeated ESP `/api/device/pair` callbacks during normal startup, status sync and playback commands when Home Assistant already has a stored device token.
-- Split backend playback shuffle and repeat into canonical `set_shuffle` and `set_repeat` commands with separate Home Assistant switch/select entities; `set_play_mode` is no longer used.
-- Keep HA pairing status pending until ESP status confirms pairing, clear OTA updating from `ota_state` or `update_state`, and expose ESP screen/LED states as native sensors.
-- Cache Spotify access tokens in Home Assistant, refresh them on demand, and retry once after Spotify API `401` so normal one-hour access-token expiry does not trigger a Repair flow.
-- Ask HA Assist DJ announcements to include one short fun fact about the artist and/or song, and clear stale TTS voices when changing TTS engine in the options flow.
-- Replace the manual `oauth_result` setup field with a Home Assistant external OAuth step.
-- Open the Spotify authorize website from the config flow and complete setup from the HTTPS callback.
-- Keep the Nabu Casa callback path `/api/djconnect/spotify/callback` supported.
-- Keep voice and AI settings in the config flow and options flow with safe defaults.
-- Route test parse/command services through HA Assist instead of the previous direct AI parser.
-- Ignore generic HA Assist smart-home refusal text as `dj_announcement` when no explicit DJConnect intent data is returned.
-- Route DJ responses to the DJConnect device through HA-generated temporary WAV/MP3 URLs and `/api/device/dj_response`.
-- Refactor the voice HTTP endpoint to accept authenticated raw WAV uploads and developer text commands.
-- Return controlled JSON errors for missing/oversized/unsupported audio uploads.
-- Include `assist_pipeline_id`, `ha_url`, and `device_token` in ESP provisioning/status payloads where applicable.
-- Add DJConnect device UI language selection during pairing and provision `device_language`/`language` to the ESP.
-- Remove direct STT/TTS calls from active HTTP voice handling.
-- Remove previous direct external AI client code from the Home Assistant integration.
-- Store the config-flow pair code and reject ESP pairing attempts with a different code.
-- Require a Spotify media player in config-flow/options-flow.
-- Keep manual DJConnect device URL hidden unless Home Assistant advanced options are enabled.
-- Default `allow_ota_on_battery` to enabled in advanced options.
-- Use one stable HA device identifier for sensors, button, and update entities.
-- Replace user-facing board/vendor wording with DJConnect device wording.
-- Add Home Assistant populated dropdowns for supported config-flow fields.
-- Add complete readable config-flow/options-flow labels, descriptions, titles and error messages in Dutch and English.
-- Improve developer test action docs, responses and safe debug logging.
-- Harden diagnostics redaction for token/password/secret aliases and avoid logging full ESP event payloads.
-- Refactor setup/service helpers to reduce handler complexity and improve testability.
-- Add optional BLE WiFi provisioning in the config flow using the DJConnect setup service UUID.
-- Add Bluetooth manifest matcher and dependencies for HA Bluetooth adapters/proxies.
-- Add bundled Spotify Client ID as default, with advanced override in the config flow.
-- Fix opening the options flow on newer Home Assistant versions where `config_entry` is read-only.
-- Add temporary `GET /api/djconnect/tts/{token}.wav` audio hosting with 404/410 handling.
-- Add lightweight unit tests for OAuth helpers, config-flow helpers and translation coverage.
-- Refresh README and AGENTS instructions for the current HACS release workflow.
-- Accept 12-character device suffixes in the config flow and use the resulting `djconnect-[device-suffix].local` mDNS fallback.
-- Align OTA discovery with firmware assets named `djconnect-device-vX.Y.Z.bin` and manifests named `firmware_manifest.json`.
-- Use the firmware manifest `device` value, such as `lilygo-t-embed-s3`, as the ESP OTA target instead of the generic asset prefix.
-- Parse GitHub firmware manifests even when release assets are served as `application/octet-stream`.
-- Ignore obsolete `djconnect-[6-digit-code].local` fallbacks so provisioning can use the real device-reported `djconnect-[device-suffix].local` URL.
-- Discover a single visible `_djconnect._tcp` mDNS device when setup only has a short 6-digit pairing code.
-- Replace HA's deprecated `show_advanced_options` property with an integration-local advanced-options checkbox.
-- Treat unknown HA TTS audio output as a quiet text-only DJ-response fallback instead of a warning.
-- Restore mDNS service info lookup after the 2.7.3 discovery regression so pairing can resolve the real device URL.
-- Keep `number.djconnect_volume` within Home Assistant's 0–60 range and expose unknown `-1` values as unavailable.
-- Send MP3 DJ response audio URLs to ESP firmware that supports MP3 playback instead of falling back to text-only.
-- Refresh `info.md` and examples to remove old branding/AI/WAV-only references and document current DJConnect endpoints.
-- Add a dry-run-first cleanup helper for old semantic-version GitHub releases and tags.
-- Move voice STT back into the Home Assistant integration backend so ESP devices can upload raw WAV audio without Home Assistant websocket auth.
-- Treat ESP `spotify_configured=false` as a compatibility/status hint only; Spotify credentials stay in Home Assistant.
-- Replace the unavailable Assist audio pipeline helper with Home Assistant's supported STT stream helper and return a clear no-provider error.
-- Fix Assist pipeline detection so Home Assistant Cloud/default STT pipelines are selected instead of falsely reporting no STT provider.
-- Treat text-only `/api/djconnect/voice` requests as direct DJ-response tests instead of Spotify playback commands.
-- Add `stt_engine` voice option and prefer it for raw WAV PTT STT before Assist pipeline fallback.
-- Fall back to the first Home Assistant `stt.*` entity, such as `stt.openai_stt`, when no explicit STT option or pipeline provider is resolved.
-- Use Home Assistant's official Assist audio pipeline helper as a final STT fallback before returning 503.
-- Call Home Assistant STT engines through `async_get_speech_to_text_engine` instead of a non-existent module-level stream helper.
-- Promote DJConnect WAV/STT/Assist route diagnostics to normal logs while keeping secrets and audio bodies out of logs.
-- Add STT result diagnostics for provider result type/state, Assist event types and WAV metadata without logging transcripts or audio.
-- Restore persisted ESP pairing state at startup so HA keeps the real `djconnect-XXXXXXXXXXXX` device identity and local URL after restart.
-- Skip automatic ESP re-pairing on HA startup when a device token already exists; Spotify credential provisioning now defers quietly until the paired device is reachable.
-- Persist the real device identity and reported local URL from `/api/djconnect/status`, allowing already-paired devices to repair old setup-code based entries automatically.
-- Remove obsolete external message-bus configuration/provisioning from config flow, options flow and ESP pair/status payloads for firmware v2.9.12 and newer.
-- Route backend playback through Home Assistant and reserve the authenticated ESP local `/api/device/command` endpoint for device settings/status/display commands.
-- Add native HA controls for next/previous/play-pause, device info refresh, reboot, volume, speaker volume, screen brightness, timeouts, language, theme, log level and sound output.
-- Add a native DJConnect playback-proxy `media_player` entity for play/pause, next/previous, volume, source selection and playlist/media start.
-- Add a lightweight DataUpdateCoordinator hook for explicit local device-info refreshes without continuous polling.
-- Refresh local device info after OTA reconnect and clear the updating state when the ESP reports back in.
-- Add a static `website/index.html` marketing onepager and document it in the repository handoff, release checklist and backlog.
-- Add `POST /api/djconnect/command` so ESP firmware can send generic playback commands to Home Assistant.
-- Keep Spotify OAuth client ID and refresh tokens in Home Assistant only; pair/status responses no longer include Spotify OAuth secrets.
-- Stop using the removed ESP `/api/device/provision_spotify` endpoint.
-- Route current Spotify playback through a Home Assistant backend adapter so future backends can be added without firmware changes.
-- Simplify the product website copy and add DJConnect logo plus a LilyGO T-Embed style device illustration.
-- Add hard timeouts around BLE discovery/provisioning so the config flow can continue to WiFi pairing instead of hanging on Bluetooth status reads.
-- Add a BLE provisioning rescan control so users can retry Bluetooth discovery from the same setup screen.
-- Add a BLE setup shortcut to continue directly to pairing when WiFi was configured through the device captive portal.
-- Replace separate BLE retry/continue checkboxes with one mutually exclusive BLE action selector.
-- Keep HA pairing status pending until the ESP confirms pairing, and retry the device pair call when confirmation is missing.
-- Prefill the Spotify OAuth Home Assistant external URL from Home Assistant's configured external/Nabu Casa URL when available.
-- Add an options-flow action to re-pair the DJConnect device with a fresh device token.
-- Prevent GitHub firmware release rate limits from crashing the firmware update entity and expose the temporary error in update attributes.
-- Split options-flow pairing recovery into a quick retry with the current code and a full re-pair flow that asks for a new pairing code.
-- Prefill the Spotify OAuth external Home Assistant URL from the Nabu Casa/Cloud remote UI URL when HA's Network external URL helper is empty.
-- Fix pairing-token synchronization so ESP commands using the real `djconnect-XXXXXXXXXXXX` device ID are accepted after setup-code based direct pairing.
-- Show Spotify refresh-token revocation as a friendly reauthorization error and Home Assistant repair issue instead of raw `invalid_grant` tracebacks.
-- Keep initial DJConnect theme and log-level select entities on safe defaults instead of `unknown`.
-- Add a native Home Assistant Repairs Fix flow for Spotify reauthorization, opening Spotify OAuth and clearing the repair issue after a new refresh token is stored.
-- Add Spotify reauthorization as an explicit options-flow action.
-- Include cached playback in ESP `/api/djconnect/status` responses and harden HA number entities for firmware setting aliases such as brightness, cue volume and millisecond timeouts.
-- Return playback backend failures from `/api/djconnect/command` as HTTP 200 JSON failures so ESP pairing is not cleared by Spotify/backend outages.
-- Keep Spotify options-flow OAuth callbacks successful when the Home Assistant options flow is already closed, and log pairing exceptions with their type when the message is empty.
+- Rename the integration, repository references, brands, examples, website assets and user-facing documentation from SpotifyDJ to DJConnect.
+- Publish DJConnect as the clean `v3.0.0` release line after removing old SpotifyDJ GitHub releases and tags from the renamed repository.
+- Keep the Home Assistant integration domain on `djconnect` and align HACS metadata, README, AGENTS instructions, ESP sync prompt and handoff notes with the new release.
+- Preserve the split licensing model: MIT-licensed Home Assistant integration, proprietary ESP firmware source, public firmware binaries covered by `FIRMWARE-LICENSE.md`, and visible Spotify trademark/non-affiliation notices.
+- Harden pairing so Home Assistant only calls `/api/device/pair` during initial pairing, explicit re-pair/token rotation or stale-pairing recovery, and never during normal startup, status sync, settings sync or playback commands.
+- Keep Home Assistant pairing status pending until the ESP confirms `ha_pairing_status=paired`, while accepting the real `djconnect-lilygo-XXXXXXXXXXXX` device ID after setup-code based pairing.
+- Move backend playback fully behind the Home Assistant integration and expose it through the optional DJConnect playback proxy `media_player`.
+- Replace the old combined `set_play_mode` flow with canonical `set_shuffle` and `set_repeat` backend commands plus native Home Assistant switch/select entities.
+- Cache Spotify access tokens in Home Assistant, refresh them on demand, retry once after Spotify API `401`, and show revoked refresh tokens through user-friendly reauthorization/Repair flows.
+- Keep Spotify OAuth credentials HA-internal; pair/status responses and BLE provisioning never send Spotify client IDs, access tokens or refresh tokens to the ESP.
+- Use Home Assistant external OAuth with PKCE and the `/api/djconnect/spotify/callback` redirect path, preferring Nabu Casa HTTPS URLs when available.
+- Route physical PTT through authenticated raw WAV uploads to `/api/djconnect/voice`, process STT through Home Assistant providers/pipelines, and keep text-only voice requests as developer DJ-response tests.
+- Deliver DJ responses to the DJConnect device via `/api/device/dj_response` with response text and optional temporary WAV/MP3 `audio_url`; never route DJ responses through Spotify Connect.
+- Add DJConnect device language selection, HA-populated dropdowns where reliable, safer options-flow defaults, and explicit re-pair/retry/Spotify reauthorize actions.
+- Expose native device entities for playback controls, firmware update, screen/LED state, brightness, volume, timeouts, language, theme, log level and status diagnostics under one stable Home Assistant device.
+- Treat unknown or invalid device values such as volume `-1` as unavailable instead of publishing out-of-range Home Assistant states.
+- Prefer device-reported `local_url`, exact `_djconnect._tcp` mDNS matches and then a single visible DJConnect mDNS service; avoid old `djconnect-[6-digit-code].local` fallbacks.
+- Align OTA discovery with public firmware assets named `djconnect-device-vX.Y.Z.bin`, manifests named `firmware_manifest.json`, and manifest `device` targets such as `lilygo-t-embed-s3`.
+- Add and document the release helper/cleanup flow for dry-run-first version bumps, GitHub release creation and old release/tag cleanup.
+- Refresh README, website, examples, diagnostics metadata, handoff notes and ESP synchronization prompt for the DJConnect architecture.
+- Expand lightweight tests for OAuth helpers, config-flow defaults, diagnostics redaction/legal metadata, translations, playback backend behavior, voice helpers, native entities and update handling.

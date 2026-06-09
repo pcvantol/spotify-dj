@@ -175,7 +175,8 @@ Payload voorbeelden:
 {"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"set_volume","value":35}
 {"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"start_liked_proxy","play":true}
 {"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"start_playlist","value":"spotify:playlist:...","play":true}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"set_play_mode","value":"shuffle"}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"set_shuffle","value":true}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","command":"set_repeat","value":"context"}
 ```
 
 Verwachte response shapes:
@@ -317,11 +318,11 @@ Controleer:
 
 ```json
 {
-  "version": "2.9.x",
+  "version": "3.0.x",
   "url": "https://...",
   "sha256": "...",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v2.9.x.bin"
+  "asset": "djconnect-device-v3.0.x.bin"
 }
 ```
 

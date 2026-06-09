@@ -4,8 +4,8 @@
 
 - Repository: `pcvantol/djconnect`.
 - Integration domain: `djconnect`.
-- Current released integration version: `2.9.30`.
-- Next expected release after current pending fixes: `2.9.32`.
+- Current target integration release: `3.0.0`.
+- Release status: publish the first clean DJConnect release after the SpotifyDJ rename.
 - Home Assistant integration is HACS-distributed and MIT-licensed.
 - ESP firmware source remains proprietary in `pcvantol/djconnect-app`.
 - Public firmware release assets live in `pcvantol/djconnect-firmware`.
@@ -113,8 +113,10 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - Secrets must not appear in logs, diagnostics or state attributes.
 - Spotify trademark/non-affiliation notice remains in docs/UI/diagnostics.
 
-## Current Pending HA Fixes
+## Current Release Notes
 
+- Repository, integration assets, examples, website copy and user-facing documentation have been renamed from SpotifyDJ to DJConnect.
+- Old SpotifyDJ GitHub releases and tags have been removed before publishing the clean `v3.0.0` release.
 - Spotify OAuth callback now stores tokens even if an options flow is already closed and `UnknownFlow` occurs.
 - Spotify OAuth Repair flow now starts an external Spotify OAuth step and does not mark the issue fixed until a new token is stored.
 - Pairing/provisioning logs now include exception class/repr for empty-message failures.
@@ -136,7 +138,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 
 ## Next Tasks
 
-1. Release the pending HA fixes as `2.9.30` when release execution is available.
+1. Release DJConnect `3.0.0` after tests pass.
 2. Install via HACS and restart Home Assistant.
 3. Test Repair flow for revoked Spotify token.
 4. Test options-flow Spotify reauthorize action.
