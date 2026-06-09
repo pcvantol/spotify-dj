@@ -102,6 +102,10 @@ class DJConnectLastTextSensor(DJConnectBaseSensor):
         return self._last_value
 
     @property
+    def available(self) -> bool:
+        return True
+
+    @property
     def extra_state_attributes(self):
         return {
             "last_stt_text": getattr(self.runtime, "last_stt_text", None) or self._last_value,
@@ -156,6 +160,10 @@ class DJConnectLastTrackSensor(DJConnectBaseSensor):
         if value not in (None, ""):
             self._last_value = value
         return self._last_value
+
+    @property
+    def available(self) -> bool:
+        return True
 
     @property
     def extra_state_attributes(self):

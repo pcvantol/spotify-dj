@@ -119,6 +119,7 @@ class DJConnectSensorTest(unittest.TestCase):
         )
         entity = self.sensor.DJConnectLastTrackSensor(runtime)
 
+        self.assertTrue(entity.available)
         self.assertEqual(entity.native_value, "Alive")
         runtime.device_status = {}
         runtime.last_playback = {}
@@ -144,6 +145,7 @@ class DJConnectSensorTest(unittest.TestCase):
         )
         entity = self.sensor.DJConnectLastTextSensor(runtime)
 
+        self.assertTrue(entity.available)
         self.assertEqual(entity.native_value, "Daar is Pearl Jam")
         self.assertEqual(entity.extra_state_attributes["last_text"], "Speel Pearl Jam")
         self.assertEqual(entity.extra_state_attributes["last_dj_text"], "Daar is Pearl Jam")

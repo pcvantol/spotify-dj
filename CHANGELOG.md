@@ -1,7 +1,10 @@
 # Changelog
 
-## 3.0.30
+## 3.0.31
 
+- Persist `last_track`, `last_command` and `last_dj_text` after voice/playback response handling, not only before processing starts, so Home Assistant reloads keep the actual latest values.
+- Keep the `Laatste nummer` and `Laatste opdracht` sensors available even when the device/backend is temporarily unreachable; with cached values they stay visible instead of switching to unavailable.
+- Add tests for runtime status persistence and last-value sensor availability.
 - Add a deterministic artist fallback extractor for spoken STT commands before Spotify artist search.
 - Extract artists from natural Dutch/English phrases such as `ik heb wel zin in Nirvana`, `ik wil wel Metallica horen`, `speel maar af Above & Beyond`, `zet heavn aan` and `zet london grammer op`.
 - Keep explicit Assist-provided `artist` values authoritative while cleaning only fallback free-text queries.

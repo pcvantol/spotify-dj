@@ -1499,6 +1499,39 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertNotIn("refresh_token", status["nested"])
         self.assertEqual(status["nested"]["state"], "ok")
 
+    def test_persist_runtime_device_status_stores_last_track_and_dj_text(self) -> None:
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={"device_id": "djconnect-lilygo-90B70990A994"},
+            options={},
+        )
+        updates = []
+
+        class ConfigEntries:
+            def async_update_entry(self, entry_arg, *, data):
+                updates.append(data)
+                entry_arg.data = data
+
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            device_status={
+                "device_id": "djconnect-lilygo-90B70990A994",
+                "last_track": "Nirvana",
+                "last_command": "Daar is Nirvana",
+                "last_dj_text": "Daar is Nirvana",
+                "device_token": "secret-device-token",
+            },
+        )
+        hass = types.SimpleNamespace(config_entries=ConfigEntries())
+
+        self.http._persist_runtime_device_status(hass, runtime)
+
+        status = updates[0]["last_device_status"]
+        self.assertEqual(status["last_track"], "Nirvana")
+        self.assertEqual(status["last_command"], "Daar is Nirvana")
+        self.assertEqual(status["last_dj_text"], "Daar is Nirvana")
+        self.assertNotIn("device_token", status)
+
     def test_status_view_accepts_same_major_minor_firmware(self) -> None:
         const = importlib.import_module("custom_components.djconnect.const")
 

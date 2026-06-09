@@ -645,6 +645,20 @@ def _persist_paired_device(
     updater(entry, data=new_data)
 
 
+def _persist_runtime_device_status(hass: Any, runtime: Any) -> None:
+    """Persist the latest cached device status without rotating pairing data."""
+    entry = getattr(runtime, "entry", None)
+    config_entries = getattr(hass, "config_entries", None)
+    updater = getattr(config_entries, "async_update_entry", None)
+    if entry is None or not callable(updater):
+        return
+    new_data = dict(getattr(entry, "data", {}) or {})
+    new_data[CONF_LAST_DEVICE_STATUS] = _persistable_device_status(
+        getattr(runtime, "device_status", {}) or {}
+    )
+    updater(entry, data=new_data)
+
+
 def _persistable_device_status(status: dict[str, Any]) -> dict[str, Any]:
     """Return a compact status cache that is safe to store in the config entry."""
     if not isinstance(status, dict):
@@ -1106,6 +1120,7 @@ class DJConnectVoiceView(HomeAssistantView):
                     runtime,
                     dj_text,
                 )
+                _persist_runtime_device_status(hass, runtime)
                 audio_url = dj_response.get("audio_url_value")
                 _set_device_state(runtime, "idle")
                 return self.json(
@@ -1135,6 +1150,7 @@ class DJConnectVoiceView(HomeAssistantView):
                     runtime,
                     dj_text,
                 )
+                _persist_runtime_device_status(hass, runtime)
                 audio_url = dj_response.get("audio_url_value")
                 _set_device_state(runtime, "idle")
                 return self.json(
@@ -1157,6 +1173,7 @@ class DJConnectVoiceView(HomeAssistantView):
                 runtime,
                 result.get("dj_text") or "",
             )
+            _persist_runtime_device_status(hass, runtime)
             audio_url = result.get("dj_response", {}).get("audio_url_value")
             _set_device_state(runtime, "idle")
             _LOGGER.debug(
