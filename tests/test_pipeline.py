@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import asyncio
 from pathlib import Path
 import sys
 import types
@@ -52,27 +53,54 @@ class AssistPipelineTest(unittest.TestCase):
         self.assertEqual(intent["spotify_search_query"], "Pearl Jam Black")
         self.assertEqual(intent["dj_announcement"], "Pearl Jam staat klaar.")
 
-    def test_djconnect_assist_prompt_requests_fun_fact(self) -> None:
+    def test_djconnect_assist_prompt_focuses_on_command_parsing(self) -> None:
         prompt = self.pipeline._djconnect_assist_prompt(
             "Speel Black van Pearl Jam",
             "nl-NL",
         )
 
-        self.assertIn("leuk feitje", prompt)
-        self.assertIn("DJ response prompt", prompt)
+        self.assertIn("Bepaal de artiest", prompt)
         self.assertIn("artiest", prompt)
-        self.assertIn("nummer", prompt)
         self.assertIn("Speel Black van Pearl Jam", prompt)
+        self.assertNotIn("Noem waar mogelijk", prompt)
+        self.assertNotIn("leuk feitje", prompt)
 
-    def test_djconnect_assist_prompt_applies_custom_response_prompt(self) -> None:
+    def test_djconnect_assist_prompt_does_not_include_custom_response_prompt(self) -> None:
         prompt = self.pipeline._djconnect_assist_prompt(
             "Play Pearl Jam",
             "en",
-            "Sound like a pirate DJ.",
         )
 
-        self.assertIn("Sound like a pirate DJ.", prompt)
+        self.assertNotIn("DJ response prompt", prompt)
         self.assertIn("Play Pearl Jam", prompt)
+
+    def test_generate_dj_response_with_assist_uses_custom_response_prompt(self) -> None:
+        calls = []
+
+        class Services:
+            async def async_call(self, domain, service, data, **kwargs):
+                calls.append((domain, service, data, kwargs))
+                return {
+                    "response": {
+                        "speech": {"plain": {"speech": "Arrr, Pearl Jam op de draaitafel!"}}
+                    }
+                }
+
+        hass = types.SimpleNamespace(services=Services())
+        text = asyncio.run(
+            self.pipeline.generate_dj_response_with_assist(
+                hass,
+                media={"artist": "Pearl Jam", "uri": "spotify:artist:pearl-jam"},
+                fallback_text="Daar is Pearl Jam.",
+                conf={
+                    "dj_response_prompt": "Sound like a pirate DJ.",
+                    "tts_language": "nl-NL",
+                },
+            )
+        )
+
+        self.assertEqual(text, "Arrr, Pearl Jam op de draaitafel!")
+        self.assertIn("Sound like a pirate DJ.", calls[0][2]["text"])
 
     def test_intent_from_djconnect_data_uses_speech_as_dj_response(self) -> None:
         intent = self.pipeline._intent_from_assist_response(
@@ -148,6 +176,27 @@ class AssistPipelineTest(unittest.TestCase):
         self.assertEqual(intent["type"], "search")
         self.assertEqual(intent["spotify_search_query"], "Speel Black van Pearl Jam")
         self.assertEqual(intent["dj_announcement"], "Daar gaan we. Ik zet hem voor je klaar.")
+
+    def test_prompt_leak_device_lookup_error_falls_back_to_original_command(self) -> None:
+        intent = self.pipeline._intent_from_assist_response(
+            {
+                "response": {
+                    "response_type": "error",
+                    "speech": {
+                        "plain": {
+                            "speech": (
+                                "Sorry, ik kan Nederlands Noem waar mogelijk de artiest "
+                                "en/of het nummer Opdracht Metallica niet vinden"
+                            )
+                        }
+                    },
+                }
+            },
+            "Metallica",
+        )
+
+        self.assertEqual(intent["type"], "search")
+        self.assertEqual(intent["spotify_search_query"], "Metallica")
 
 
 if __name__ == "__main__":

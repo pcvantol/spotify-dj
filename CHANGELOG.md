@@ -1,7 +1,9 @@
 # Changelog
 
-## 3.0.26
+## 3.0.27
 
+- Keep the editable `dj_response_prompt` out of the Assist command-parser prompt, so text such as "Noem waar mogelijk..." can no longer leak into Spotify artist search queries like `Opdracht Metallica`.
+- Broaden Assist device-lookup fallback handling so errors such as "Opdracht Metallica niet vinden" fall back to the original spoken command instead of failing playback.
 - Replace the four fixed DJ style choices with one editable `dj_response_prompt` in the config/options flow; old `dj_style` and `dj_profile` compatibility paths are removed.
 - Keep `sensor.djconnect_last_track` and `sensor.djconnect_last_command` stable by caching their last non-empty value at entity level, so temporary empty runtime/playback/status updates no longer make them unavailable or unknown.
 - Restrict plain Spotify text searches to artists only; PTT/Assist music requests now resolve text to `type=artist` and start the artist context instead of selecting arbitrary track or album results.

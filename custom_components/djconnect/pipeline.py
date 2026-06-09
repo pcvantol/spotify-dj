@@ -34,7 +34,6 @@ def _assist_context(hass: HomeAssistant, conf: dict[str, Any]) -> dict[str, Any]
     pipeline_id = (conf.get(CONF_ASSIST_PIPELINE_ID) or "").strip()
     context: dict[str, Any] = {
         "language": conf.get(CONF_TTS_LANGUAGE) or DEFAULT_TTS_LANGUAGE,
-        "dj_response_prompt": conf.get(CONF_DJ_RESPONSE_PROMPT) or DEFAULT_DJ_RESPONSE_PROMPT,
     }
     if not pipeline_id:
         return context
@@ -73,9 +72,8 @@ async def _conversation_process(
     assist_context: dict[str, Any],
 ) -> dict[str, Any]:
     language = assist_context.get("language") or DEFAULT_TTS_LANGUAGE
-    dj_response_prompt = assist_context.get("dj_response_prompt") or DEFAULT_DJ_RESPONSE_PROMPT
     data = {
-        "text": _djconnect_assist_prompt(user_text, str(language), str(dj_response_prompt)),
+        "text": _djconnect_assist_prompt(user_text, str(language)),
         "language": language,
     }
     if assist_context.get("agent_id"):
@@ -98,22 +96,20 @@ async def _conversation_process(
 def _djconnect_assist_prompt(
     user_text: str,
     language: str,
-    dj_response_prompt: str = DEFAULT_DJ_RESPONSE_PROMPT,
 ) -> str:
     """Add DJConnect-specific DJ response guidance to the Assist text request."""
-    response_instruction = str(dj_response_prompt or DEFAULT_DJ_RESPONSE_PROMPT).strip()
     if str(language or "").lower().startswith("nl"):
         return (
-            "Verwerk deze DJConnect muziekopdracht en maak waar mogelijk "
-            "djconnect intentdata. Als je een dj_announcement geeft, vertel "
-            "ook één kort leuk feitje over de artiest en/of het nummer. "
-            f"DJ response prompt: {response_instruction}. "
+            "Analyseer alleen deze DJConnect muziekopdracht. Bepaal de artiest "
+            "of playlist voor Spotify. Geef waar mogelijk djconnect intentdata terug. "
+            "Gebruik geen apparaatbediening en interpreteer de instructietekst niet "
+            "als apparaatnaam. "
             f"Opdracht: {user_text}"
         )
     return (
-        "Handle this DJConnect music request and return djconnect intent data "
-        "when possible. If you provide a dj_announcement, also include one short "
-        f"fun fact about the artist and/or song. DJ response prompt: {response_instruction}. "
+        "Analyze only this DJConnect music request. Determine the artist or playlist "
+        "for Spotify. Return djconnect intent data when possible. Do not control "
+        "Home Assistant devices and do not treat the instruction text as a device name. "
         f"Request: {user_text}"
     )
 
@@ -207,8 +203,11 @@ def _assist_treated_prompt_as_ha_command(speech: str) -> bool:
     return (
         "djconnect muziekopdracht" in normalized
         or "djconnect music request" in normalized
+        or "opdracht " in normalized
+        or "request " in normalized
     ) and (
         "geen apparaat vinden" in normalized
+        or "niet vinden" in normalized
         or "can't find" in normalized
         or "cannot find" in normalized
         or "no device" in normalized
