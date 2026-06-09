@@ -479,6 +479,12 @@ def _is_voice_only_payload(data: Any) -> bool:
     return bool(keys & voice_keys) and keys <= voice_keys | identity_keys
 
 
+def _is_command_payload(data: Any) -> bool:
+    return isinstance(data, dict) and (
+        data.get("payload_type") == "command" or bool(data.get("command"))
+    )
+
+
 def _set_device_state(runtime: Any, state: str) -> None:
     status = getattr(runtime, "device_status", None)
     if isinstance(status, dict):
@@ -526,6 +532,10 @@ def _validate_required_client_type(data: dict[str, Any]) -> str | None:
 
 def _merge_status_update(status: dict[str, Any], update: dict[str, Any]) -> None:
     """Merge ESP status without letting sparse heartbeats erase known values."""
+    if not update:
+        _LOGGER.debug("Ignoring empty ESP status payload for device sensor update")
+        return
+    _LOGGER.debug("Merging ESP status payload without resetting missing fields")
     for key, value in update.items():
         if _is_empty_status_value(value) and key in status:
             continue
@@ -780,7 +790,12 @@ class DJConnectStatusView(HomeAssistantView):
             )
             return _json_error(self, "invalid_client_type", 400)
         status_update[CONF_CLIENT_TYPE] = client_type
-        _merge_status_update(runtime.device_status, status_update)
+        if _is_command_payload(status_update):
+            _LOGGER.debug("Ignoring command payload for device sensor update")
+        elif _is_voice_only_payload(status_update):
+            _LOGGER.debug("Ignoring voice-only payload for device sensor update")
+        else:
+            _merge_status_update(runtime.device_status, status_update)
         if not _runtime_versions_compatible(runtime):
             runtime.update(
                 last_error=(
@@ -854,7 +869,7 @@ class DJConnectCommandView(HomeAssistantView):
         client_type = _validate_required_client_type(data)
         if client_type is None:
             return _json_error(self, "invalid_client_type", 400)
-        if data.get("payload_type") == "command" or data.get("command"):
+        if _is_command_payload(data):
             _LOGGER.debug("Ignoring command payload for device sensor update")
         runtime.device_status[CONF_CLIENT_TYPE] = client_type
         if not _runtime_versions_compatible(runtime):

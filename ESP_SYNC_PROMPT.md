@@ -4,7 +4,7 @@ Werk in de bestaande proprietary ESP firmware repo `pcvantol/djconnect-app`.
 
 ## Doel
 
-Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.16`.
+Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.17`.
 
 De HA integration is de trusted backend voor:
 
@@ -221,6 +221,14 @@ Gebruik aliases waar makkelijk, want de HA integration accepteert meerdere namen
 - `theme`;
 - `log_level`.
 
+Belangrijk statuscontract:
+
+- `POST /api/djconnect/status` is de enige authoritative bron voor ESP device-status in HA.
+- Stuur actuele devicewaarden via `/status`; gebruik `/command` alleen voor playback/backend commands.
+- Command/voice payloads mogen geen lege of partial device-status snapshot voorstellen.
+- Als een statusveld onbekend is, laat het liever weg dan `null`, lege string of lege array te sturen.
+- `ha_pairing_status` moet na succesvol pairen expliciet `paired` blijven in statusposts; laat dit veld niet wegvallen naar `pending`.
+
 Versiecontract:
 
 - Stuur `firmware` bij elke boot/status post.
@@ -325,6 +333,7 @@ Belangrijk:
 - Dit is geen pairing failure.
 - Toon een backend/playback fout in UI.
 - Wis pairing niet.
+- Behandel command responses niet als device-statusbron; ze mogen playback indicators bijwerken maar niet batterij, firmware, RSSI, pairingstatus, scherm/LED of sound-output leegmaken.
 - `command=status` moet direct na ESP boot snel kunnen antwoorden; ESP mag deze poll gebruiken om de playback indicator groen/grijs/rood te zetten.
 - `command=devices`, `command=queue` en `command=playlists` moeten bij bereikbare backend `success:true` met lege arrays kunnen teruggeven; maak daar geen HTTP 503 van.
 - `command=queue` kan top-level `context_uri` en `contextUri` teruggeven. Gebruik die context voor `play_context_at` vanuit Up Next.

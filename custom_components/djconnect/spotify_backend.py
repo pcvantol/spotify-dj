@@ -237,7 +237,8 @@ class SpotifyBackend:
     async def playback_state(self) -> dict[str, Any]:
         data = await self._request("GET", "/me/player")
         playback = _normalize_playback(data)
-        self.runtime.device_status.update(
+        _merge_playback_status(
+            self.runtime.device_status,
             {
                 "spotify_status": "playing" if playback.get("is_playing") else "idle",
                 "volume": playback.get("volume_percent"),
@@ -245,7 +246,7 @@ class SpotifyBackend:
                 "sound_output": (playback.get("device") or {}).get("name"),
                 "shuffle": playback.get("shuffle"),
                 "repeat_state": playback.get("repeat_state"),
-            }
+            },
         )
         self.runtime.update(last_playback=playback, last_error=None)
         return playback
@@ -411,6 +412,14 @@ def _normalize_playback(data: dict[str, Any]) -> dict[str, Any]:
         "repeat_state": data.get("repeat_state") or "off",
         "device": _normalize_device(data.get("device") or {}),
     }
+
+
+def _merge_playback_status(device_status: dict[str, Any], update: dict[str, Any]) -> None:
+    """Merge backend playback status without erasing cached device sensor values."""
+    for key, value in update.items():
+        if value in (None, "", [], {}) and key in device_status:
+            continue
+        device_status[key] = value
 
 
 def _normalize_context(context: dict[str, Any]) -> dict[str, str]:

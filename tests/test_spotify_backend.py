@@ -87,6 +87,57 @@ class SpotifyBackendTest(unittest.TestCase):
             {"type": "", "uri": "spotify:playlist:abc", "href": ""},
         )
 
+    def test_empty_playback_does_not_clear_cached_sensor_fields(self) -> None:
+        class Response:
+            status = 200
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def json(self, content_type=None):
+                return {}
+
+            async def text(self):
+                return "{}"
+
+        class Session:
+            def request(self, method, url, **kwargs):
+                return Response()
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={"spotify_client_id": "client-id", "spotify_refresh_token": "refresh"},
+            options={},
+        )
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            latest_spotify_refresh_token=None,
+            spotify_access_token="access",
+            spotify_access_token_expires_at=time.time() + 1800,
+            device_status={
+                "volume": 35,
+                "last_track": "Alive",
+                "sound_output": "Living room",
+                "ha_pairing_status": "paired",
+            },
+            update=lambda **kwargs: setattr(runtime, "last_update", kwargs),
+        )
+        runtime.config = dict(entry.data)
+        backend = self.backend.SpotifyBackend(object(), runtime)
+        backend.session = Session()
+
+        playback = asyncio.run(backend.playback_state())
+
+        self.assertFalse(playback["has_playback"])
+        self.assertEqual(runtime.device_status["spotify_status"], "idle")
+        self.assertEqual(runtime.device_status["volume"], 35)
+        self.assertEqual(runtime.device_status["last_track"], "Alive")
+        self.assertEqual(runtime.device_status["sound_output"], "Living room")
+        self.assertEqual(runtime.device_status["ha_pairing_status"], "paired")
+
     def test_invalid_grant_creates_reauth_issue_and_friendly_error(self) -> None:
         async def revoked(*args, **kwargs):
             raise self.oauth.SpotifyTokenRefreshError(

@@ -151,6 +151,103 @@ class TtsHelperTest(unittest.TestCase):
         )
         self.assertEqual(runtime.device_status["volume"], 35)
 
+    def test_device_command_sparse_status_does_not_clear_cached_sensors(self) -> None:
+        class Response:
+            status = 200
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def text(self):
+                return (
+                    '{"success": true, "status": {'
+                    '"firmware": null, "battery_percent": null, "wifi_rssi": null, '
+                    '"ha_pairing_status": "", "sound_output": ""'
+                    '}, "sound_output": ""}'
+                )
+
+        class Session:
+            def post(self, url, **kwargs):
+                return Response()
+
+        entry = types.SimpleNamespace(data={}, options={})
+        runtime = self.integration.DJConnectRuntime(entry=entry)
+        runtime.device_token = "device-token"
+        runtime.device_status.update(
+            {
+                "local_url": "http://djconnect.local",
+                "firmware": "3.0.16",
+                "battery_percent": 85,
+                "wifi_rssi": -55,
+                "ha_pairing_status": "paired",
+                "sound_output": "Living room",
+            }
+        )
+        original_session = self.integration.async_get_clientsession
+        self.integration.async_get_clientsession = lambda hass: Session()
+        try:
+            asyncio.run(runtime.async_device_command(object(), "status"))
+        finally:
+            self.integration.async_get_clientsession = original_session
+
+        self.assertEqual(runtime.device_status["firmware"], "3.0.16")
+        self.assertEqual(runtime.device_status["battery_percent"], 85)
+        self.assertEqual(runtime.device_status["wifi_rssi"], -55)
+        self.assertEqual(runtime.device_status["ha_pairing_status"], "paired")
+        self.assertEqual(runtime.device_status["sound_output"], "Living room")
+
+    def test_device_info_sparse_refresh_does_not_clear_cached_sensors(self) -> None:
+        class Response:
+            status = 200
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def text(self):
+                return (
+                    '{"success": true, "firmware": null, "battery_percent": null, '
+                    '"wifi_rssi": null, "screen_state": "", "led_state": "", '
+                    '"ha_pairing_status": null}'
+                )
+
+        class Session:
+            def get(self, url, **kwargs):
+                return Response()
+
+        entry = types.SimpleNamespace(data={}, options={})
+        runtime = self.integration.DJConnectRuntime(entry=entry)
+        runtime.device_token = "device-token"
+        runtime.device_status.update(
+            {
+                "local_url": "http://djconnect.local",
+                "firmware": "3.0.16",
+                "battery_percent": 85,
+                "wifi_rssi": -55,
+                "screen_state": "on",
+                "led_state": "idle",
+                "ha_pairing_status": "paired",
+            }
+        )
+        original_session = self.integration.async_get_clientsession
+        self.integration.async_get_clientsession = lambda hass: Session()
+        try:
+            asyncio.run(runtime.async_refresh_device_info(object()))
+        finally:
+            self.integration.async_get_clientsession = original_session
+
+        self.assertEqual(runtime.device_status["firmware"], "3.0.16")
+        self.assertEqual(runtime.device_status["battery_percent"], 85)
+        self.assertEqual(runtime.device_status["wifi_rssi"], -55)
+        self.assertEqual(runtime.device_status["screen_state"], "on")
+        self.assertEqual(runtime.device_status["led_state"], "idle")
+        self.assertEqual(runtime.device_status["ha_pairing_status"], "paired")
+
     def test_service_text_accepts_ui_specific_aliases_and_legacy_text(self) -> None:
         self.assertEqual(
             self.integration._service_text(

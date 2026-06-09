@@ -73,6 +73,34 @@ DEFAULT_TEST_TTS_TEXT = (
     "en ik sta klaar voor je volgende plaat."
 )
 MDNS_SERVICE_TYPE = "_djconnect._tcp.local."
+STATUS_SECRET_KEYS = {"device_token", "spotify_refresh_token", "refresh_token"}
+
+
+def _is_empty_status_value(value: Any) -> bool:
+    return value is None or value == "" or value == [] or value == {}
+
+
+def _merge_cached_device_status(
+    device_status: dict[str, Any],
+    update: dict[str, Any],
+    *,
+    source: str,
+    allow_empty_keys: set[str] | None = None,
+) -> None:
+    """Merge device status without erasing known values from sparse payloads."""
+    allow_empty_keys = allow_empty_keys or set()
+    if not update:
+        _LOGGER.debug("Ignoring empty %s payload for device sensor update", source)
+        return
+    _LOGGER.debug("Merging %s payload without resetting missing fields", source)
+    for key, value in update.items():
+        if key in STATUS_SECRET_KEYS:
+            continue
+        if key == "ha_pairing_status" and value in (None, "", "unknown"):
+            continue
+        if _is_empty_status_value(value) and key in device_status and key not in allow_empty_keys:
+            continue
+        device_status[key] = value
 
 
 @dataclass
@@ -309,13 +337,19 @@ class DJConnectRuntime:
         if isinstance(result, dict):
             status = result.get("status") or result.get("device_status")
             if isinstance(status, dict):
-                self.device_status.update(status)
-            self.device_status.update(
+                _merge_cached_device_status(
+                    self.device_status,
+                    status,
+                    source="ESP command status",
+                )
+            _merge_cached_device_status(
+                self.device_status,
                 {
                     key: result[key]
                     for key in ("spotify_status", "ha_pairing_status", "sound_output")
                     if key in result
-                }
+                },
+                source="ESP command response",
             )
         self.update(last_error=None)
         return result
@@ -325,14 +359,20 @@ class DJConnectRuntime:
         data = await self.async_device_get(hass, "/api/device/info")
         status = data.get("status") if isinstance(data, dict) else None
         if isinstance(status, dict):
-            self.device_status.update(status)
+            _merge_cached_device_status(
+                self.device_status,
+                status,
+                source="ESP device info status",
+            )
         if isinstance(data, dict):
-            self.device_status.update(
+            _merge_cached_device_status(
+                self.device_status,
                 {
                     key: value
                     for key, value in data.items()
-                    if key not in {"device_token", "spotify_refresh_token", "refresh_token"}
-                }
+                    if key not in STATUS_SECRET_KEYS
+                },
+                source="ESP device info",
             )
         self.update(last_error=None)
         return data
