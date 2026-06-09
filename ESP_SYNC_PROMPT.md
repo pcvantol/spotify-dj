@@ -4,7 +4,7 @@ Werk in de bestaande proprietary ESP firmware repo `pcvantol/djconnect-app`.
 
 ## Doel
 
-Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.5`.
+Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.6`.
 
 De HA integration is de trusted backend voor:
 
@@ -212,7 +212,7 @@ Gebruik aliases waar makkelijk, want de HA integration accepteert meerdere namen
 Versiecontract:
 
 - Stuur `firmware` bij elke boot/status post.
-- Firmwareversie moet semver-achtig zijn, bijvoorbeeld `3.0.5` of `v3.0.5`.
+- Firmwareversie moet semver-achtig zijn, bijvoorbeeld `3.0.6` of `v3.0.6`.
 - Als HA `/api/djconnect/status`, `/api/djconnect/command`, `/api/djconnect/voice` of `/api/djconnect/event` HTTP `426` teruggeeft met `error:"version_mismatch"`, stop verdere command/voice retries totdat de gebruiker firmware of HA integration heeft bijgewerkt.
 - Gebruik responsevelden `ha_version`, `ha_major_minor`, `firmware` en `firmware_major_minor` voor UI/logs.
 - Toon iets als: `Update DJConnect firmware/integration: HA 3.1.x requires firmware 3.1.x`.
@@ -294,7 +294,7 @@ Version mismatch:
   "message": "DJConnect Home Assistant integration and device firmware major.minor versions must match.",
   "ha_version": "3.1.0",
   "ha_major_minor": "3.1",
-  "firmware": "3.0.5",
+  "firmware": "3.0.6",
   "firmware_major_minor": "3.0"
 }
 ```

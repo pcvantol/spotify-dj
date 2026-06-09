@@ -1261,7 +1261,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
                 return {
                     "device_id": "djconnect-lilygo-90B70990A994",
                     "update_state": "idle",
-                    "firmware": "3.0.5",
+                    "firmware": "3.0.6",
                     "settings": {
                         "screen_brightness_percent": 91,
                         "screen_off_timeout_ms": 60000,
