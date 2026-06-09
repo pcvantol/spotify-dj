@@ -49,6 +49,7 @@ class DJConnectFirmwareUpdate(UpdateEntity):
         self._installed = None
         self._update_error = None
         self._next_update_check = 0.0
+        self._last_runtime_update_state: tuple[Any, ...] | None = None
         runtime.listeners.append(self._handle_runtime_update)
 
     @property
@@ -103,7 +104,21 @@ class DJConnectFirmwareUpdate(UpdateEntity):
             self.runtime.listeners.remove(self._handle_runtime_update)
 
     def _handle_runtime_update(self) -> None:
+        current = self._runtime_update_state()
+        if current == self._last_runtime_update_state:
+            return
+        self._last_runtime_update_state = current
         self.async_write_ha_state()
+
+    def _runtime_update_state(self) -> tuple[Any, ...]:
+        status = self.runtime.device_status
+        return (
+            status.get("firmware"),
+            status.get("ota_state"),
+            status.get("update_state"),
+            self.runtime.ota_in_progress,
+            self.runtime.ota_last_error,
+        )
 
     async def async_update(self, *, force: bool = False) -> None:
         now = time.monotonic()

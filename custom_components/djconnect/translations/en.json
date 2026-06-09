@@ -47,7 +47,7 @@
       },
       "spotify": {
         "title": "Connect Spotify",
-        "description": "Enter the HTTPS Home Assistant external URL. DJConnect uses a bundled Spotify Client ID by default; you can override it in advanced options. PKCE does not require a client secret. The Spotify redirect URI must be the external URL plus /api/djconnect/spotify/callback.",
+        "description": "Confirm the external Home Assistant URL Spotify should return to after authorization. Prefer your Nabu Casa HTTPS URL. DJConnect fills in the default Spotify Client ID automatically; use advanced options only if you want to use your own Client ID.",
         "data": {
           "spotify_client_id": "Spotify Client ID",
           "ha_external_url": "Home Assistant external URL",

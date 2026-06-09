@@ -51,10 +51,10 @@ _LOGO_DATA_URI: str | None = None
 
 
 def _djconnect_logo_data_uri() -> str:
-    """Return the embedded DJConnect logo for standalone OAuth callback pages."""
+    """Return the embedded DJConnect app icon for standalone OAuth callback pages."""
     global _LOGO_DATA_URI
     if _LOGO_DATA_URI is None:
-        logo = Path(__file__).with_name("logo.png").read_bytes()
+        logo = Path(__file__).with_name("icon.png").read_bytes()
         _LOGO_DATA_URI = f"data:image/png;base64,{base64.b64encode(logo).decode()}"
     return _LOGO_DATA_URI
 
@@ -117,18 +117,25 @@ def _spotify_oauth_html_response(
       box-shadow: 0 28px 90px rgba(0,0,0,.45);
       text-align: center;
     }}
+    .logo-wrap {{
+      position: relative;
+      display: inline-block;
+    }}
     img {{
       width: 112px;
       height: 112px;
       border-radius: 24px;
+      object-fit: cover;
       box-shadow: 0 12px 38px rgba(0,0,0,.34);
     }}
     .badge {{
-      display: inline-grid;
+      position: absolute;
+      right: -22px;
+      bottom: -16px;
+      display: grid;
       place-items: center;
       width: 44px;
       height: 44px;
-      margin-top: 22px;
       border-radius: 999px;
       background: var(--accent);
       color: #051008;
@@ -179,8 +186,10 @@ def _spotify_oauth_html_response(
 </head>
 <body>
   <main>
-    <img src="{_djconnect_logo_data_uri()}" alt="DJConnect logo">
-    <div class="badge" aria-hidden="true">{icon}</div>
+    <div class="logo-wrap">
+      <img src="{_djconnect_logo_data_uri()}" alt="DJConnect app icon">
+      <div class="badge" aria-hidden="true">{icon}</div>
+    </div>
     <h1>{html.escape(title)}</h1>
     <p>{html.escape(message)}</p>
     <div class="actions">
@@ -1101,8 +1110,8 @@ class DJConnectSpotifyCallbackView(HomeAssistantView):
                 return _spotify_oauth_html_response(
                     title="DJConnect is gekoppeld",
                     message=(
-                        "DJConnect Spotify OAuth is gelukt. De refresh token is opgeslagen in Home Assistant. "
-                        "Je kunt dit venster sluiten; Home Assistant beheert Spotify playback nu zelf."
+                        "Spotify is gekoppeld met DJConnect. Je kunt dit venster sluiten en teruggaan naar "
+                        "Home Assistant om je DJConnect setup af te maken."
                     ),
                     base_url=ctx.get("ha_external_url") or ctx.get("redirect_uri", "").split(API_SPOTIFY_CALLBACK)[0],
                 )
@@ -1163,8 +1172,8 @@ class DJConnectSpotifyCallbackView(HomeAssistantView):
             return _spotify_oauth_html_response(
                 title="DJConnect is opnieuw geautoriseerd",
                 message=(
-                    "DJConnect Spotify OAuth is gelukt. De refresh token is opgeslagen in Home Assistant. "
-                    "Je kunt dit venster sluiten; Home Assistant beheert Spotify playback nu zelf."
+                    "Spotify is opnieuw gekoppeld met DJConnect. Je kunt dit venster sluiten en teruggaan naar "
+                    "Home Assistant."
                 ),
                 base_url=ctx.get("ha_external_url") or ctx.get("redirect_uri", "").split(API_SPOTIFY_CALLBACK)[0],
             )

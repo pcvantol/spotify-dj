@@ -47,7 +47,7 @@
       },
       "spotify": {
         "title": "Spotify koppelen",
-        "description": "Koppel Spotify via PKCE en de Home Assistant externe URL. De Spotify Client ID is standaard ingevuld en alleen geavanceerd te overriden.",
+        "description": "Bevestig de externe Home Assistant URL die Spotify na autorisatie terug naar DJConnect gebruikt. Gebruik bij voorkeur je Nabu Casa HTTPS URL. DJConnect vult de standaard Spotify Client ID automatisch in; alleen onder geavanceerde opties kun je een eigen Client ID gebruiken.",
         "data": {
           "spotify_client_id": "Spotify Client ID",
           "ha_external_url": "Home Assistant externe URL",

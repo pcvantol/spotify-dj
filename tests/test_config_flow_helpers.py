@@ -38,6 +38,12 @@ def install_homeassistant_stubs() -> None:
         def async_show_form(self, **kwargs):
             return {"type": "form", **kwargs}
 
+        def async_external_step(self, **kwargs):
+            return {"type": "external", **kwargs}
+
+        def async_external_step_done(self, **kwargs):
+            return {"type": "external_done", **kwargs}
+
     class OptionsFlow:
         @property
         def config_entry(self):
@@ -514,6 +520,19 @@ class ConfigFlowHelperTest(unittest.TestCase):
 
         self.assertEqual(marker.default, "https://api.ui.nabu.casa")
 
+    def test_spotify_oauth_external_step_has_title(self) -> None:
+        flow = self.config_flow.DJConnectConfigFlow()
+        flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="nl-NL"))
+        flow._oauth = {
+            "authorize_url": "https://accounts.spotify.com/authorize",
+            "redirect_uri": "https://example.ui.nabu.casa/api/djconnect/spotify/callback",
+        }
+
+        result = asyncio.run(flow.async_step_spotify_oauth())
+
+        self.assertEqual(result["type"], "external")
+        self.assertEqual(result["title"], "DJConnect autoriseren bij Spotify")
+
     def test_default_external_url_prefers_network_helper(self) -> None:
         from homeassistant.helpers import network
 
@@ -586,6 +605,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
         external = asyncio.run(flow.async_step_spotify_reauth())
         self.assertEqual(external["type"], "external")
         self.assertEqual(external["step_id"], "spotify_reauth")
+        self.assertEqual(external["title"], "Reauthorize Spotify")
         self.assertIn("https://accounts.spotify.com/authorize", external["url"])
         self.assertIn(
             flow._oauth["state"],

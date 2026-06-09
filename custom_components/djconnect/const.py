@@ -92,10 +92,10 @@ DJ_STYLES = [
 ]
 
 DJ_STYLE_NAMES = {
-    DJ_STYLE_CLASSIC_DUTCH_RADIO: "Classic Dutch radio",
-    DJ_STYLE_CALM_EVENING: "Calm evening",
-    DJ_STYLE_FESTIVAL: "Festival",
-    DJ_STYLE_MINIMAL: "Minimal",
+    DJ_STYLE_CLASSIC_DUTCH_RADIO: "Classic Dutch radio - warm radio-DJ",
+    DJ_STYLE_CALM_EVENING: "Calm evening - rustig en kort",
+    DJ_STYLE_FESTIVAL: "Festival - energiek en enthousiast",
+    DJ_STYLE_MINIMAL: "Minimal - alleen het nodige",
 }
 
 SPOTIFY_SCOPES = [

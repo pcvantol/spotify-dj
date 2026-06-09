@@ -23,6 +23,7 @@ def install_update_stubs() -> None:
 
     class UpdateEntity:
         def async_write_ha_state(self):
+            self.write_count = getattr(self, "write_count", 0) + 1
             self.wrote_state = True
 
     class Feature:
@@ -131,6 +132,24 @@ class DJConnectUpdateEntityTest(unittest.TestCase):
 
         self.assertEqual(calls, 2)
         self.assertEqual(entity.latest_version, "3.0.6")
+
+    def test_runtime_updates_only_write_when_firmware_state_changes(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={},
+            device_status={"firmware": "3.0.6"},
+            ota_in_progress=False,
+            ota_last_error=None,
+            listeners=[],
+        )
+        entity = self.update.DJConnectFirmwareUpdate(runtime, object())
+
+        entity._handle_runtime_update()
+        entity._handle_runtime_update()
+        runtime.device_status["firmware"] = "3.0.7"
+        entity._handle_runtime_update()
+
+        self.assertEqual(entity.write_count, 2)
 
 
 if __name__ == "__main__":

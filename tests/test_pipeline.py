@@ -59,9 +59,20 @@ class AssistPipelineTest(unittest.TestCase):
         )
 
         self.assertIn("leuk feitje", prompt)
+        self.assertIn("klassieke Nederlandse radio-DJ", prompt)
         self.assertIn("artiest", prompt)
         self.assertIn("nummer", prompt)
         self.assertIn("Speel Black van Pearl Jam", prompt)
+
+    def test_djconnect_assist_prompt_applies_dj_style(self) -> None:
+        prompt = self.pipeline._djconnect_assist_prompt(
+            "Play Pearl Jam",
+            "en",
+            "minimal",
+        )
+
+        self.assertIn("very short and functional", prompt)
+        self.assertIn("Play Pearl Jam", prompt)
 
     def test_intent_from_djconnect_data_uses_speech_as_dj_response(self) -> None:
         intent = self.pipeline._intent_from_assist_response(

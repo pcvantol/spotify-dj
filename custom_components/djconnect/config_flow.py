@@ -205,6 +205,14 @@ def _options_action_names(hass: Any) -> dict[str, str]:
     return OPTIONS_ACTION_NAMES_NL if language.startswith("nl") else OPTIONS_ACTION_NAMES_EN
 
 
+def _spotify_oauth_title(hass: Any, *, reauth: bool = False) -> str:
+    """Return a localized title for Home Assistant external OAuth steps."""
+    language = str(getattr(getattr(hass, "config", None), "language", "") or "").lower()
+    if language.startswith("nl"):
+        return "Spotify opnieuw autoriseren" if reauth else "DJConnect autoriseren bij Spotify"
+    return "Reauthorize Spotify" if reauth else "Authorize DJConnect with Spotify"
+
+
 def _advanced_enabled(flow: Any) -> bool:
     """Return the flow-local advanced toggle without HA deprecated properties."""
     return bool(getattr(flow, "_show_advanced_options", False))
@@ -1008,13 +1016,15 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors={"base": "oauth_setup_failed"},
             )
 
-        return self.async_external_step(
+        result = self.async_external_step(
             step_id="spotify_oauth",
             url=self._oauth["authorize_url"],
             description_placeholders={
                 "redirect_uri": self._oauth.get("redirect_uri", ""),
             },
         )
+        result["title"] = _spotify_oauth_title(self.hass)
+        return result
 
     def _handle_spotify_oauth_result(self, user_input: dict[str, Any]) -> dict[str, str]:
         """Read the callback result stored by the HTTP OAuth callback."""
@@ -1196,11 +1206,13 @@ class DJConnectOptionsFlow(config_entries.OptionsFlow):
             "market": current.get(CONF_SPOTIFY_MARKET, DEFAULT_SPOTIFY_MARKET),
             "scopes": DEFAULT_SPOTIFY_SCOPES,
         }
-        return self.async_external_step(
+        result = self.async_external_step(
             step_id="spotify_reauth",
             url=self._oauth["authorize_url"],
             description_placeholders={"redirect_uri": redirect_uri},
         )
+        result["title"] = _spotify_oauth_title(self.hass, reauth=True)
+        return result
 
     async def async_step_spotify_reauth_done(
         self,

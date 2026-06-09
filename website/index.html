@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DJConnect — Your Personal AI DJ for Home Assistant</title>
-  <meta name="description" content="DJConnect is een pre-flashed personal AI DJ remote voor Home Assistant, Spotify Premium en HA Assist. Press, speak, connect." />
+  <meta name="description" content="DJConnect is een vooraf geflashte persoonlijke AI-DJ remote voor Home Assistant, Spotify Premium en HA Assist. Druk, praat, luister." />
   <link rel="icon" href="assets/djconnect/icon.svg" type="image/svg+xml" />
   <link rel="icon" href="assets/djconnect/favicon-32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="assets/djconnect/favicon-16.png" sizes="16x16" type="image/png" />
@@ -99,6 +99,39 @@
     }
 
     .nav-links a:hover { color: var(--text); }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .lang-toggle {
+      display: inline-grid;
+      grid-template-columns: repeat(2, 1fr);
+      min-width: 86px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .lang-toggle button {
+      min-height: 34px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    .lang-toggle button[aria-pressed="true"] {
+      background: rgba(102, 224, 255, 0.18);
+      color: var(--text);
+    }
 
     .btn {
       display: inline-flex;
@@ -358,6 +391,14 @@
 
     .card p, .muted { color: var(--muted); margin: 0; }
 
+    .text-link {
+      color: var(--accent-cyan);
+      font-weight: 800;
+      text-decoration: underline;
+      text-decoration-color: rgba(102, 224, 255, 0.45);
+      text-underline-offset: 4px;
+    }
+
     .flow {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -514,6 +555,8 @@
       .floating { display: none; }
       .device { width: 88%; }
       .callout { padding: 24px; }
+      .nav-inner { gap: 10px; }
+      .nav-controls .btn { display: none; }
     }
   </style>
 </head>
@@ -524,13 +567,19 @@
         <img class="logo" src="assets/djconnect/icon.svg" alt="" aria-hidden="true" />
         <span>DJConnect</span>
       </a>
-      <div class="nav-links" aria-label="Navigatie">
-        <a href="#experience">Experience</a>
-        <a href="#quickstart">Quick start</a>
-        <a href="#requirements">Benodigdheden</a>
-        <a href="#faq">FAQ</a>
+      <div class="nav-links" aria-label="Navigatie" data-i18n-attr="aria-label:navLabel">
+        <a href="#experience" data-i18n="navExperience">Ervaring</a>
+        <a href="#quickstart" data-i18n="navQuickstart">Snel starten</a>
+        <a href="#requirements" data-i18n="navRequirements">Benodigdheden</a>
+        <a href="#faq" data-i18n="navFaq">FAQ</a>
       </div>
-      <a class="btn primary" href="#quickstart">Start setup</a>
+      <div class="nav-controls">
+        <div class="lang-toggle" aria-label="Taalkeuze" data-i18n-attr="aria-label:languageToggle">
+          <button type="button" data-lang="nl" aria-pressed="true">NL</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+        <a class="btn primary" href="#quickstart" data-i18n="navStartSetup">Start installatie</a>
+      </div>
     </div>
   </nav>
 
@@ -538,25 +587,26 @@
     <header class="hero">
       <div class="wrap hero-grid">
         <div>
-          <div class="eyebrow"><span class="dot"></span> Pre-flashed • Wake word "Okay Nabu" • Home Assistant</div>
-          <h1>Your music. One button away.</h1>
-          <p class="lead">DJConnect is een fysieke voice remote voor je muziek. Pak het device uit, koppel het met Home Assistant en vraag met één druk op de knop om de muziek die je wilt horen.</p>
+          <div class="eyebrow"><span class="dot"></span> <span data-i18n="heroEyebrow">Vooraf geflasht • Wake word "Okay Nabu" • Home Assistant</span></div>
+          <h1 data-i18n="heroTitle">Je muziek. Met één knop.</h1>
+          <p class="lead" data-i18n="heroLead">DJConnect is een fysieke voice remote voor je muziek. Pak het device uit, koppel het met Home Assistant en vraag met één druk op de knop om de muziek die je wilt horen.</p>
           <div class="hero-actions">
-            <a class="btn primary" href="#quickstart">Bekijk quick start</a>
-            <a class="btn" href="#requirements">Check benodigdheden</a>
+            <a class="btn primary" href="#quickstart" data-i18n="heroPrimary">Bekijk quick start</a>
+            <a class="btn" href="#requirements" data-i18n="heroSecondary">Check benodigdheden</a>
           </div>
-          <p class="note">Out of the box: geen firmware flashen, geen technisch geknutsel. Devices komen pre-flashed.</p>
+          <p class="note" data-i18n="heroNote">Direct uit de doos: geen firmware flashen, geen technisch geknutsel. Devices komen vooraf geflasht.</p>
         </div>
 
-        <div class="device-card" aria-label="DJConnect device visualisatie">
-          <div class="floating f1"><strong>Push to talk</strong>Vraag muziek met één knop</div>
-          <div class="floating f2"><strong>Home Assistant</strong>Regelt muziek en stem</div>
-          <div class="floating f3"><strong>DJ response</strong>Antwoord op het device</div>
-          <div class="floating f4"><strong>Remote control</strong>Bedien je muziek op afstand</div>
+        <div class="device-card" aria-label="DJConnect device visualisatie" data-i18n-attr="aria-label:deviceVisualLabel">
+          <div class="floating f1"><strong data-i18n="float1Title">Druk om te praten</strong><span data-i18n="float1Text">Vraag muziek met één knop</span></div>
+          <div class="floating f2"><strong data-i18n="float2Title">Home Assistant</strong><span data-i18n="float2Text">Regelt muziek en stem</span></div>
+          <div class="floating f3"><strong data-i18n="float3Title">DJ-reactie</strong><span data-i18n="float3Text">Antwoord op het device</span></div>
+          <div class="floating f4"><strong data-i18n="float4Title">Afstandsbediening</strong><span data-i18n="float4Text">Bedien je muziek op afstand</span></div>
           <img
             class="device-img"
             src="assets/lilygo-t-embed-djconnect.svg"
             alt="DJConnect device op basis van de LilyGO T-Embed vormfactor"
+            data-i18n-attr="alt:deviceImageAlt,src:deviceImageSrc"
           />
         </div>
       </div>
@@ -566,40 +616,40 @@
       <div class="wrap">
         <div class="section-head">
           <div>
-            <h2>De ervaring uit de doos</h2>
+            <h2 data-i18n="experienceTitle">De ervaring uit de doos</h2>
           </div>
-          <p>DJConnect is ontworpen als een product, niet als een bouwpakket. De firmware staat al op het device; jij installeert de Home Assistant integration en koppelt het device.</p>
+          <p data-i18n="experienceLead">DJConnect is ontworpen als een product, niet als een bouwpakket. De firmware staat al op het device; jij installeert de Home Assistant integration en koppelt het device.</p>
         </div>
         <div class="grid-3">
           <article class="card">
             <div class="icon">📦</div>
-            <h3>Pre-flashed geleverd</h3>
-            <p>Geen USB flash, geen firmware build. Het device komt klaar voor setup in Home Assistant.</p>
+            <h3 data-i18n="experiencePreTitle">Vooraf geflasht geleverd</h3>
+            <p data-i18n="experiencePreText">Geen USB flash, geen firmware build. Het device komt klaar voor setup in Home Assistant.</p>
           </article>
           <article class="card">
             <div class="icon">🏠</div>
-            <h3>Home Assistant native</h3>
-            <p>Home Assistant regelt pairing, updates, voice verwerking en muziekbediening.</p>
+            <h3 data-i18n="experienceHaTitle">Home Assistant-native</h3>
+            <p data-i18n="experienceHaText">Home Assistant regelt pairing, updates, voice verwerking en muziekbediening.</p>
           </article>
           <article class="card">
             <div class="icon">🎙️</div>
-            <h3>Push-to-talk muziek</h3>
-            <p>Druk op de knop, spreek je verzoek in en DJConnect helpt je muziek starten.</p>
+            <h3 data-i18n="experiencePttTitle">Push-to-talk muziek</h3>
+            <p data-i18n="experiencePttText">Druk op de knop, spreek je verzoek in en DJConnect helpt je muziek starten.</p>
           </article>
           <article class="card">
             <div class="icon">🗣️</div>
-            <h3>Wake word detectie</h3>
-            <p>Start handsfree met "Okay Nabu" wanneer je Home Assistant voice setup dit ondersteunt.</p>
+            <h3 data-i18n="experienceWakeTitle">Wake-worddetectie</h3>
+            <p data-i18n="experienceWakeText">Start handsfree met "Okay Nabu" wanneer je Home Assistant voice setup dit ondersteunt.</p>
           </article>
           <article class="card">
             <div class="icon">🎧</div>
-            <h3>Persoonlijke DJ response</h3>
-            <p>Je krijgt een korte voice based DJ response terug op het device, afgestemd op je verzoek en muziek.</p>
+            <h3 data-i18n="experienceResponseTitle">Persoonlijke DJ-reactie</h3>
+            <p data-i18n="experienceResponseText">Je krijgt een korte gesproken DJ-reactie terug op het device, afgestemd op je verzoek en muziek.</p>
           </article>
           <article class="card">
             <div class="icon">🏓</div>
-            <h3>Bonus games</h3>
-            <p>Even geen muziek kiezen? De firmware bevat ook kleine games zoals Pong, Asteroids en Fly op het device.</p>
+            <h3 data-i18n="experienceGamesTitle">Bonus games</h3>
+            <p data-i18n="experienceGamesText">Even geen muziek kiezen? De firmware bevat ook kleine games zoals Pong, Asteroids en Fly op het device.</p>
           </article>
         </div>
       </div>
@@ -609,16 +659,16 @@
       <div class="wrap">
         <div class="section-head">
           <div>
-            <h2>Hoe het werkt</h2>
+            <h2 data-i18n="howTitle">Hoe het werkt</h2>
           </div>
-          <p>Je hoeft dit niet te onthouden, maar het idee is simpel: het device luistert lokaal, Home Assistant doet het slimme werk.</p>
+          <p data-i18n="howLead">Je hoeft dit niet te onthouden, maar het idee is simpel: het device luistert lokaal, Home Assistant doet het slimme werk.</p>
         </div>
         <div class="flow">
-          <div class="flow-step"><div class="num">01</div><h3>Druk</h3><p class="muted">Gebruik de middelste knop.</p></div>
-          <div class="flow-step"><div class="num">02</div><h3>Spreek</h3><p class="muted">Vraag via push-to-talk of wake word "Okay Nabu" om een artiest, album, playlist of sfeer.</p></div>
-          <div class="flow-step"><div class="num">03</div><h3>Home Assistant</h3><p class="muted">Herkent je stem en stuurt muziek aan.</p></div>
-          <div class="flow-step"><div class="num">04</div><h3>Muziek</h3><p class="muted">Playback loopt via je gekozen muziekapparaat.</p></div>
-          <div class="flow-step"><div class="num">05</div><h3>Antwoord</h3><p class="muted">DJConnect toont en spreekt een korte DJ response.</p></div>
+          <div class="flow-step"><div class="num">01</div><h3 data-i18n="flow1Title">Druk</h3><p class="muted" data-i18n="flow1Text">Gebruik de middelste knop.</p></div>
+          <div class="flow-step"><div class="num">02</div><h3 data-i18n="flow2Title">Spreek</h3><p class="muted" data-i18n="flow2Text">Vraag via push-to-talk of wake word "Okay Nabu" om een artiest, album, playlist of sfeer.</p></div>
+          <div class="flow-step"><div class="num">03</div><h3 data-i18n="flow3Title">Home Assistant</h3><p class="muted" data-i18n="flow3Text">Herkent je stem en stuurt muziek aan.</p></div>
+          <div class="flow-step"><div class="num">04</div><h3 data-i18n="flow4Title">Muziek</h3><p class="muted" data-i18n="flow4Text">Playback loopt via je gekozen muziekapparaat.</p></div>
+          <div class="flow-step"><div class="num">05</div><h3 data-i18n="flow5Title">Antwoord</h3><p class="muted" data-i18n="flow5Text">DJConnect toont en spreekt een korte DJ-reactie.</p></div>
         </div>
       </div>
     </section>
@@ -626,15 +676,15 @@
     <section id="quickstart">
       <div class="wrap grid-2">
         <div>
-          <h2>Quick start</h2>
-          <p class="lead">Setup is bedoeld als: integration installeren, Spotify autoriseren, device pairen, klaar.</p>
+          <h2 data-i18n="quickTitle">Snel starten</h2>
+          <p class="lead" data-i18n="quickLead">Setup is bedoeld als: integration installeren, Spotify autoriseren, device pairen, klaar.</p>
         </div>
         <ol class="quick">
-          <li><div><h3>Installeer via HACS</h3><p class="muted">Voeg de DJConnect custom integration toe in HACS en restart Home Assistant.</p></div></li>
-          <li><div><h3>Voeg DJConnect toe</h3><p class="muted">Ga naar Settings → Devices & services → Add integration → DJConnect.</p></div></li>
-          <li><div><h3>Autoriseer Spotify</h3><p class="muted">Log in met je Spotify Premium account wanneer de setup daarom vraagt.</p></div></li>
-          <li><div><h3>Pair het device</h3><p class="muted">Voer de code in die op het DJConnect device verschijnt.</p></div></li>
-          <li><div><h3>Druk en praat</h3><p class="muted">Druk op de middelste knop en zeg bijvoorbeeld: “Speel het nieuwste album van Pearl Jam”.</p></div></li>
+          <li><div><h3 data-i18n="quick1Title">Installeer via HACS</h3><p class="muted" data-i18n="quick1Text">Voeg de DJConnect custom integration toe in HACS en restart Home Assistant.</p><p><a class="text-link" href="https://my.home-assistant.io/redirect/hacs_repository/?owner=pcvantol&repository=djconnect&category=integration" data-i18n="quick1Link">Open de DJConnect repository in HACS</a></p></div></li>
+          <li><div><h3 data-i18n="quick2Title">Voeg DJConnect toe</h3><p class="muted" data-i18n="quick2Text">Ga naar Settings → Devices & services → Add integration → DJConnect.</p></div></li>
+          <li><div><h3 data-i18n="quick3Title">Autoriseer Spotify</h3><p class="muted" data-i18n="quick3Text">Log in met je Spotify Premium-account wanneer de setup daarom vraagt.</p></div></li>
+          <li><div><h3 data-i18n="quick4Title">Pair het device</h3><p class="muted" data-i18n="quick4Text">Voer de code in die op het DJConnect device verschijnt.</p></div></li>
+          <li><div><h3 data-i18n="quick5Title">Druk en praat</h3><p class="muted" data-i18n="quick5Text">Druk op de middelste knop en zeg bijvoorbeeld: “Speel het nieuwste album van Pearl Jam”.</p></div></li>
         </ol>
       </div>
     </section>
@@ -643,22 +693,22 @@
       <div class="wrap">
         <div class="section-head">
           <div>
-            <h2>Benodigdheden & randvoorwaarden</h2>
+            <h2 data-i18n="reqTitle">Benodigdheden & randvoorwaarden</h2>
           </div>
-          <p>Dit heb je nodig voor een soepele out-of-the-box ervaring.</p>
+          <p data-i18n="reqLead">Dit heb je nodig voor een soepele out-of-the-box ervaring.</p>
         </div>
         <div class="requirements">
-          <div class="req"><span class="tag">Verplicht</span><h3>Spotify Premium</h3><p class="muted">Nodig om muziek te kunnen starten en bedienen.</p></div>
-          <div class="req"><span class="tag">Verplicht</span><h3>Home Assistant</h3><p class="muted">Een werkende Home Assistant installatie met HACS.</p></div>
-          <div class="req"><span class="tag">Verplicht</span><h3>Assist voice setup</h3><p class="muted">Home Assistant moet spraak kunnen herkennen en antwoorden kunnen maken.</p></div>
-          <div class="req"><span class="tag">Verplicht</span><h3>2.4 GHz WiFi</h3><p class="muted">Het device gebruikt WiFi. Zorg voor bereik op de plek waar je muziek wilt bedienen.</p></div>
-          <div class="req"><span class="tag">Aanbevolen</span><h3>Nabu Casa HTTPS</h3><p class="muted">Maakt Spotify autorisatie het makkelijkst.</p></div>
-          <div class="req"><span class="tag">Aanbevolen</span><h3>mDNS werkend</h3><p class="muted">Helpt Home Assistant het device automatisch te vinden.</p></div>
-          <div class="req optional"><span class="tag">Optioneel</span><h3>Bluetooth proxy</h3><p class="muted">Handig om WiFi naar het device te sturen tijdens setup.</p></div>
-          <div class="req warning"><span class="tag">Let op</span><h3>Muziekuitvoer</h3><p class="muted">Muziek speelt op je Spotify/huismuziekapparaat, niet op de kleine DJConnect speaker.</p></div>
-          <div class="req warning"><span class="tag">Let op</span><h3>HA restart na update</h3><p class="muted">Na HACS updates is een Home Assistant restart meestal nodig.</p></div>
-          <div class="req"><span class="tag">Inbegrepen</span><h3>OTA updates</h3><p class="muted">Gekoppelde devices kunnen firmware updates via HA ontvangen.</p></div>
-          <div class="req"><span class="tag">Privacy</span><h3>Geen secrets in logs</h3><p class="muted">Tokens en wachtwoorden worden niet bewust gelogd en diagnostics redacteren secrets.</p></div>
+          <div class="req"><span class="tag" data-i18n="tagRequired">Verplicht</span><h3>Spotify Premium</h3><p class="muted" data-i18n="reqSpotifyText">Nodig om muziek te kunnen starten en bedienen.</p></div>
+          <div class="req"><span class="tag" data-i18n="tagRequired">Verplicht</span><h3>Home Assistant</h3><p class="muted" data-i18n="reqHaText">Een werkende Home Assistant installatie met HACS.</p></div>
+          <div class="req"><span class="tag" data-i18n="tagRequired">Verplicht</span><h3 data-i18n="reqAssistTitle">Assist-spraaksetup</h3><p class="muted" data-i18n="reqAssistText">Home Assistant moet spraak kunnen herkennen en antwoorden kunnen maken.</p></div>
+          <div class="req"><span class="tag" data-i18n="tagRequired">Verplicht</span><h3>2.4 GHz WiFi</h3><p class="muted" data-i18n="reqWifiText">Het device gebruikt WiFi. Zorg voor bereik op de plek waar je muziek wilt bedienen.</p></div>
+          <div class="req"><span class="tag" data-i18n="tagRecommended">Aanbevolen</span><h3>Nabu Casa HTTPS</h3><p class="muted" data-i18n="reqNabuText">Maakt Spotify autorisatie het makkelijkst.</p></div>
+          <div class="req"><span class="tag" data-i18n="tagRecommended">Aanbevolen</span><h3 data-i18n="reqMdnsTitle">mDNS werkend</h3><p class="muted" data-i18n="reqMdnsText">Helpt Home Assistant het device automatisch te vinden.</p></div>
+          <div class="req optional"><span class="tag" data-i18n="tagOptional">Optioneel</span><h3>Bluetooth proxy</h3><p class="muted" data-i18n="reqBleText">Handig om WiFi naar het device te sturen tijdens setup.</p></div>
+          <div class="req warning"><span class="tag" data-i18n="tagNote">Let op</span><h3 data-i18n="reqOutputTitle">Muziekuitvoer</h3><p class="muted" data-i18n="reqOutputText">Muziek speelt op je Spotify/huismuziekapparaat, niet op de kleine DJConnect speaker.</p></div>
+          <div class="req warning"><span class="tag" data-i18n="tagNote">Let op</span><h3 data-i18n="reqRestartTitle">HA restart na update</h3><p class="muted" data-i18n="reqRestartText">Na HACS updates is een Home Assistant restart meestal nodig.</p></div>
+          <div class="req"><span class="tag" data-i18n="tagIncluded">Inbegrepen</span><h3>OTA updates</h3><p class="muted" data-i18n="reqOtaText">Gekoppelde devices kunnen firmware updates via HA ontvangen.</p></div>
+          <div class="req"><span class="tag" data-i18n="tagPrivacy">Privacy</span><h3 data-i18n="reqPrivacyTitle">Geen secrets in logs</h3><p class="muted" data-i18n="reqPrivacyText">Tokens en wachtwoorden worden niet bewust gelogd en diagnostics redacteren secrets.</p></div>
         </div>
       </div>
     </section>
@@ -667,18 +717,18 @@
       <div class="wrap grid-3">
         <article class="card">
           <div class="icon">🧠</div>
-          <h3>Voice via HA</h3>
-          <p>DJConnect gebruikt de voice setup die je in Home Assistant configureert, inclusief wake word detectie met "Okay Nabu" waar beschikbaar.</p>
+          <h3 data-i18n="voiceTitle">Stem via HA</h3>
+          <p data-i18n="voiceText">DJConnect gebruikt de voice setup die je in Home Assistant configureert, inclusief wake word detectie met "Okay Nabu" waar beschikbaar.</p>
         </article>
         <article class="card">
           <div class="icon">🔐</div>
-          <h3>Veilig gekoppeld</h3>
-          <p>Het device krijgt geen Spotify wachtwoorden of refresh tokens. Die blijven in Home Assistant.</p>
+          <h3 data-i18n="secureTitle">Veilig gekoppeld</h3>
+          <p data-i18n="secureText">Het device krijgt geen Spotify wachtwoorden of refresh tokens. Die blijven in Home Assistant.</p>
         </article>
         <article class="card">
           <div class="icon">✨</div>
-          <h3>DJ personality</h3>
-          <p>DJConnect geeft korte antwoorden op het scherm en via de eigen speaker.</p>
+          <h3 data-i18n="personalityTitle">DJ-karakter</h3>
+          <p data-i18n="personalityText">DJConnect geeft korte antwoorden op het scherm en via de eigen speaker.</p>
         </article>
       </div>
     </section>
@@ -686,14 +736,13 @@
     <section id="faq">
       <div class="wrap grid-2">
         <div>
-          <h2>Veelgestelde vragen</h2>
-          <p class="lead">Korte antwoorden op de vragen die je waarschijnlijk als eerste hebt.</p>
+          <h2 data-i18n="faqTitle">Veelgestelde vragen</h2>
+          <p class="lead" data-i18n="faqLead">Korte antwoorden op de vragen die je waarschijnlijk als eerste hebt.</p>
         </div>
         <div class="quick">
-          <div class="card"><h3>Moet ik firmware flashen?</h3><p class="muted">Nee. Ga uit van pre-flashed devices. Firmware updates lopen later via Home Assistant OTA.</p></div>
-          <div class="card"><h3>Speelt DJ audio via Spotify Connect?</h3><p class="muted">Nee. DJ responses spelen op de speaker/display van het DJConnect device.</p></div>
-          <div class="card"><h3>Zit er echt Pong in?</h3><p class="muted">Ja. Als kleine bonus zit er een eenvoudige Pong game in de firmware.</p></div>
-          <div class="card"><h3>Kan ik private playlists gebruiken?</h3><p class="muted">Ja, zolang Spotify in Home Assistant goed geautoriseerd is.</p></div>
+          <div class="card"><h3 data-i18n="faqFlashTitle">Moet ik firmware flashen?</h3><p class="muted" data-i18n="faqFlashText">Nee. Ga uit van pre-flashed devices. Firmware updates lopen later via Home Assistant OTA.</p></div>
+          <div class="card"><h3 data-i18n="faqAudioTitle">Speelt DJ audio via Spotify Connect?</h3><p class="muted" data-i18n="faqAudioText">Nee. DJ responses spelen op de speaker/display van het DJConnect device.</p></div>
+          <div class="card"><h3 data-i18n="faqPlaylistTitle">Kan ik private playlists gebruiken?</h3><p class="muted" data-i18n="faqPlaylistText">Ja, zolang Spotify in Home Assistant goed geautoriseerd is.</p></div>
         </div>
       </div>
     </section>
@@ -701,17 +750,275 @@
     <section>
       <div class="wrap callout">
         <div>
-          <h2>Klaar voor je volgende plaat?</h2>
-          <p class="muted">Installeer de integration, pair het pre-flashed device en laat Home Assistant de rest doen.</p>
+          <h2 data-i18n="calloutTitle">Klaar voor je volgende plaat?</h2>
+          <p class="muted" data-i18n="calloutText">Installeer de integration, pair het pre-flashed device en laat Home Assistant de rest doen.</p>
         </div>
-        <a class="btn primary" href="#quickstart">Start quick start</a>
+        <a class="btn primary" href="#quickstart" data-i18n="calloutButton">Start quick start</a>
       </div>
     </section>
   </main>
 
   <footer class="wrap legal">
-    <p>Copyright © 2026 Peter van Tol. All rights reserved. DJConnect firmware is proprietary software. The Home Assistant integration may be distributed separately for use with DJConnect devices.</p>
-    <p>Spotify is a trademark of Spotify AB. DJConnect is not affiliated with, endorsed by, or sponsored by Spotify AB. Home Assistant and HACS are referenced for integration compatibility.</p>
+    <p data-i18n="legalCopyright">Copyright © 2026 Peter van Tol. All rights reserved. DJConnect firmware is proprietary software. The Home Assistant integration may be distributed separately for use with DJConnect devices.</p>
+    <p data-i18n="legalSpotify">Spotify is a trademark of Spotify AB. DJConnect is not affiliated with, endorsed by, or sponsored by Spotify AB. Home Assistant and HACS are referenced for integration compatibility.</p>
   </footer>
+  <script>
+    const translations = {
+      nl: {
+        title: "DJConnect — Your Personal AI DJ for Home Assistant",
+        metaDescription: "DJConnect is een vooraf geflashte persoonlijke AI-DJ remote voor Home Assistant, Spotify Premium en HA Assist. Druk, praat, luister.",
+        navLabel: "Navigatie",
+        languageToggle: "Taalkeuze",
+        navExperience: "Ervaring",
+        navQuickstart: "Snel starten",
+        navRequirements: "Benodigdheden",
+        navFaq: "FAQ",
+        navStartSetup: "Start installatie",
+        heroEyebrow: 'Vooraf geflasht • Wake word "Okay Nabu" • Home Assistant',
+        heroTitle: "Je muziek. Met één knop.",
+        heroLead: "DJConnect is een fysieke voice remote voor je muziek. Pak het device uit, koppel het met Home Assistant en vraag met één druk op de knop om de muziek die je wilt horen.",
+        heroPrimary: "Bekijk quick start",
+        heroSecondary: "Check benodigdheden",
+        heroNote: "Direct uit de doos: geen firmware flashen, geen technisch geknutsel. Devices komen vooraf geflasht.",
+        deviceVisualLabel: "DJConnect device visualisatie",
+        deviceImageAlt: "DJConnect device op basis van de LilyGO T-Embed vormfactor",
+        deviceImageSrc: "assets/lilygo-t-embed-djconnect.svg",
+        float1Title: "Druk om te praten",
+        float1Text: "Vraag muziek met één knop",
+        float2Title: "Home Assistant",
+        float2Text: "Regelt muziek en stem",
+        float3Title: "DJ-reactie",
+        float3Text: "Antwoord op het device",
+        float4Title: "Afstandsbediening",
+        float4Text: "Bedien je muziek op afstand",
+        experienceTitle: "De ervaring uit de doos",
+        experienceLead: "DJConnect is ontworpen als een product, niet als een bouwpakket. De firmware staat al op het device; jij installeert de Home Assistant integration en koppelt het device.",
+        experiencePreTitle: "Vooraf geflasht geleverd",
+        experiencePreText: "Geen USB flash, geen firmware build. Het device komt klaar voor setup in Home Assistant.",
+        experienceHaTitle: "Home Assistant-native",
+        experienceHaText: "Home Assistant regelt pairing, updates, voice verwerking en muziekbediening.",
+        experiencePttTitle: "Push-to-talk muziek",
+        experiencePttText: "Druk op de knop, spreek je verzoek in en DJConnect helpt je muziek starten.",
+        experienceWakeTitle: "Wake-worddetectie",
+        experienceWakeText: 'Start handsfree met "Okay Nabu" wanneer je Home Assistant-spraaksetup dit ondersteunt.',
+        experienceResponseTitle: "Persoonlijke DJ-reactie",
+        experienceResponseText: "Je krijgt een korte gesproken DJ-reactie terug op het device, afgestemd op je verzoek en muziek.",
+        experienceGamesTitle: "Bonus games",
+        experienceGamesText: "Even geen muziek kiezen? De firmware bevat ook kleine games zoals Pong, Asteroids en Fly op het device.",
+        howTitle: "Hoe het werkt",
+        howLead: "Je hoeft dit niet te onthouden, maar het idee is simpel: het device luistert lokaal, Home Assistant doet het slimme werk.",
+        flow1Title: "Druk",
+        flow1Text: "Gebruik de middelste knop.",
+        flow2Title: "Spreek",
+        flow2Text: 'Vraag via push-to-talk of wake word "Okay Nabu" om een artiest, album, playlist of sfeer.',
+        flow3Title: "Home Assistant",
+        flow3Text: "Herkent je stem en stuurt muziek aan.",
+        flow4Title: "Muziek",
+        flow4Text: "Playback loopt via je gekozen muziekapparaat.",
+        flow5Title: "Antwoord",
+        flow5Text: "DJConnect toont en spreekt een korte DJ-reactie.",
+        quickTitle: "Snel starten",
+        quickLead: "Setup is bedoeld als: integration installeren, Spotify autoriseren, device pairen, klaar.",
+        quick1Title: "Installeer via HACS",
+        quick1Text: "Voeg de custom repository https://github.com/pcvantol/djconnect toe aan HACS als integration en restart Home Assistant.",
+        quick1Link: "Open de DJConnect repository in HACS",
+        quick2Title: "Voeg DJConnect toe",
+        quick2Text: "Ga naar Settings → Devices & services → Add integration → DJConnect.",
+        quick3Title: "Autoriseer Spotify",
+        quick3Text: "Log in met je Spotify Premium-account wanneer de setup daarom vraagt.",
+        quick4Title: "Pair het device",
+        quick4Text: "Voer de code in die op het DJConnect device verschijnt.",
+        quick5Title: "Druk en praat",
+        quick5Text: "Druk op de middelste knop en zeg bijvoorbeeld: “Speel het nieuwste album van Pearl Jam”.",
+        reqTitle: "Benodigdheden & randvoorwaarden",
+        reqLead: "Dit heb je nodig voor een soepele out-of-the-box ervaring.",
+        tagRequired: "Verplicht",
+        tagRecommended: "Aanbevolen",
+        tagOptional: "Optioneel",
+        tagNote: "Let op",
+        tagIncluded: "Inbegrepen",
+        tagPrivacy: "Privacy",
+        reqSpotifyText: "Nodig om muziek te kunnen starten en bedienen.",
+        reqHaText: "Een werkende Home Assistant installatie met HACS.",
+        reqAssistTitle: "Assist-spraaksetup",
+        reqAssistText: "Home Assistant moet spraak kunnen herkennen en antwoorden kunnen maken.",
+        reqWifiText: "Het device gebruikt WiFi. Zorg voor bereik op de plek waar je muziek wilt bedienen.",
+        reqNabuText: "Maakt Spotify autorisatie het makkelijkst.",
+        reqMdnsTitle: "mDNS werkend",
+        reqMdnsText: "Helpt Home Assistant het device automatisch te vinden.",
+        reqBleText: "Handig om WiFi naar het device te sturen tijdens setup.",
+        reqOutputTitle: "Muziekuitvoer",
+        reqOutputText: "Muziek speelt op je Spotify/huismuziekapparaat, niet op de kleine DJConnect speaker.",
+        reqRestartTitle: "HA restart na update",
+        reqRestartText: "Na HACS updates is een Home Assistant restart meestal nodig.",
+        reqOtaText: "Gekoppelde devices kunnen firmware updates via HA ontvangen.",
+        reqPrivacyTitle: "Geen secrets in logs",
+        reqPrivacyText: "Tokens en wachtwoorden worden niet bewust gelogd en diagnostics redacteren secrets.",
+        voiceTitle: "Stem via HA",
+        voiceText: 'DJConnect gebruikt de voice setup die je in Home Assistant configureert, inclusief wake word detectie met "Okay Nabu" waar beschikbaar.',
+        secureTitle: "Veilig gekoppeld",
+        secureText: "Het device krijgt geen Spotify wachtwoorden of refresh tokens. Die blijven in Home Assistant.",
+        personalityTitle: "DJ-karakter",
+        personalityText: "DJConnect geeft korte antwoorden op het scherm en via de eigen speaker.",
+        faqTitle: "Veelgestelde vragen",
+        faqLead: "Korte antwoorden op de vragen die je waarschijnlijk als eerste hebt.",
+        faqFlashTitle: "Moet ik firmware flashen?",
+        faqFlashText: "Nee. Ga uit van pre-flashed devices. Firmware updates lopen later via Home Assistant OTA.",
+        faqAudioTitle: "Speelt DJ audio via Spotify Connect?",
+        faqAudioText: "Nee. DJ-reacties spelen op de speaker/display van het DJConnect device.",
+        faqPlaylistTitle: "Kan ik private playlists gebruiken?",
+        faqPlaylistText: "Ja, zolang Spotify in Home Assistant goed geautoriseerd is.",
+        calloutTitle: "Klaar voor je volgende plaat?",
+        calloutText: "Installeer de integration, pair het pre-flashed device en laat Home Assistant de rest doen.",
+        calloutButton: "Start quick start",
+        legalCopyright: "Copyright © 2026 Peter van Tol. All rights reserved. DJConnect firmware is proprietary software. The Home Assistant integration may be distributed separately for use with DJConnect devices.",
+        legalSpotify: "Spotify is a trademark of Spotify AB. DJConnect is not affiliated with, endorsed by, or sponsored by Spotify AB. Home Assistant and HACS are referenced for integration compatibility."
+      },
+      en: {
+        title: "DJConnect — Your Personal AI DJ for Home Assistant",
+        metaDescription: "DJConnect is a pre-flashed personal AI DJ remote for Home Assistant, Spotify Premium and HA Assist. Press, speak, connect.",
+        navLabel: "Navigation",
+        languageToggle: "Language",
+        navExperience: "Experience",
+        navQuickstart: "Quick start",
+        navRequirements: "Requirements",
+        navFaq: "FAQ",
+        navStartSetup: "Start setup",
+        heroEyebrow: 'Pre-flashed • Wake word "Okay Nabu" • Home Assistant',
+        heroTitle: "Your music. One button away.",
+        heroLead: "DJConnect is a physical voice remote for your music. Unbox the device, pair it with Home Assistant and ask for the music you want with one button.",
+        heroPrimary: "View quick start",
+        heroSecondary: "Check requirements",
+        heroNote: "Out of the box: no firmware flashing, no technical tinkering. Devices come pre-flashed.",
+        deviceVisualLabel: "DJConnect device visualization",
+        deviceImageAlt: "DJConnect device based on the LilyGO T-Embed form factor",
+        deviceImageSrc: "assets/lilygo-t-embed-djconnect-en.svg",
+        float1Title: "Push to talk",
+        float1Text: "Ask for music with one button",
+        float2Title: "Home Assistant",
+        float2Text: "Handles music and voice",
+        float3Title: "DJ response",
+        float3Text: "Answer on the device",
+        float4Title: "Remote control",
+        float4Text: "Control your music remotely",
+        experienceTitle: "The out-of-box experience",
+        experienceLead: "DJConnect is designed as a product, not a kit. The firmware is already on the device; you install the Home Assistant integration and pair the device.",
+        experiencePreTitle: "Delivered pre-flashed",
+        experiencePreText: "No USB flash, no firmware build. The device arrives ready for setup in Home Assistant.",
+        experienceHaTitle: "Home Assistant native",
+        experienceHaText: "Home Assistant handles pairing, updates, voice processing and music control.",
+        experiencePttTitle: "Push-to-talk music",
+        experiencePttText: "Press the button, speak your request and DJConnect helps start your music.",
+        experienceWakeTitle: "Wake word detection",
+        experienceWakeText: 'Start hands-free with "Okay Nabu" when your Home Assistant voice setup supports it.',
+        experienceResponseTitle: "Personal DJ response",
+        experienceResponseText: "You get a short voice-based DJ response back on the device, tailored to your request and music.",
+        experienceGamesTitle: "Bonus games",
+        experienceGamesText: "Not choosing music for a moment? The firmware also includes small games like Pong, Asteroids and Fly on the device.",
+        howTitle: "How it works",
+        howLead: "You do not have to remember this, but the idea is simple: the device listens locally, Home Assistant does the smart work.",
+        flow1Title: "Press",
+        flow1Text: "Use the middle button.",
+        flow2Title: "Speak",
+        flow2Text: 'Ask for an artist, album, playlist or mood through push-to-talk or the "Okay Nabu" wake word.',
+        flow3Title: "Home Assistant",
+        flow3Text: "Recognizes your voice and controls music.",
+        flow4Title: "Music",
+        flow4Text: "Playback runs through your selected music device.",
+        flow5Title: "Response",
+        flow5Text: "DJConnect shows and speaks a short DJ response.",
+        quickTitle: "Quick start",
+        quickLead: "Setup is meant to be simple: install the integration, authorize Spotify, pair the device, done.",
+        quick1Title: "Install through HACS",
+        quick1Text: "Add the custom repository https://github.com/pcvantol/djconnect to HACS as an integration and restart Home Assistant.",
+        quick1Link: "Open the DJConnect repository in HACS",
+        quick2Title: "Add DJConnect",
+        quick2Text: "Go to Settings → Devices & services → Add integration → DJConnect.",
+        quick3Title: "Authorize Spotify",
+        quick3Text: "Log in with your Spotify Premium account when setup asks for it.",
+        quick4Title: "Pair the device",
+        quick4Text: "Enter the code shown on the DJConnect device.",
+        quick5Title: "Press and talk",
+        quick5Text: "Press the middle button and say for example: “Play the newest Pearl Jam album”.",
+        reqTitle: "Requirements",
+        reqLead: "This is what you need for a smooth out-of-box experience.",
+        tagRequired: "Required",
+        tagRecommended: "Recommended",
+        tagOptional: "Optional",
+        tagNote: "Note",
+        tagIncluded: "Included",
+        tagPrivacy: "Privacy",
+        reqSpotifyText: "Required to start and control music.",
+        reqHaText: "A working Home Assistant installation with HACS.",
+        reqAssistTitle: "Assist voice setup",
+        reqAssistText: "Home Assistant needs to recognize speech and create responses.",
+        reqWifiText: "The device uses WiFi. Make sure it has coverage where you want to control music.",
+        reqNabuText: "Makes Spotify authorization easiest.",
+        reqMdnsTitle: "Working mDNS",
+        reqMdnsText: "Helps Home Assistant discover the device automatically.",
+        reqBleText: "Useful for writing WiFi to the device during setup.",
+        reqOutputTitle: "Music output",
+        reqOutputText: "Music plays on your Spotify/home music device, not on the small DJConnect speaker.",
+        reqRestartTitle: "HA restart after update",
+        reqRestartText: "After HACS updates, a Home Assistant restart is usually required.",
+        reqOtaText: "Paired devices can receive firmware updates through HA.",
+        reqPrivacyTitle: "No secrets in logs",
+        reqPrivacyText: "Tokens and passwords are not intentionally logged and diagnostics redact secrets.",
+        voiceTitle: "Voice via HA",
+        voiceText: 'DJConnect uses the voice setup you configure in Home Assistant, including wake word detection with "Okay Nabu" where available.',
+        secureTitle: "Secure pairing",
+        secureText: "The device does not receive Spotify passwords or refresh tokens. Those stay in Home Assistant.",
+        personalityTitle: "DJ personality",
+        personalityText: "DJConnect gives short responses on the screen and through its own speaker.",
+        faqTitle: "Frequently asked questions",
+        faqLead: "Short answers to the questions you will probably have first.",
+        faqFlashTitle: "Do I need to flash firmware?",
+        faqFlashText: "No. Assume pre-flashed devices. Firmware updates run later through Home Assistant OTA.",
+        faqAudioTitle: "Does DJ audio play through Spotify Connect?",
+        faqAudioText: "No. DJ responses play on the speaker/display of the DJConnect device.",
+        faqPlaylistTitle: "Can I use private playlists?",
+        faqPlaylistText: "Yes, as long as Spotify is properly authorized in Home Assistant.",
+        calloutTitle: "Ready for your next track?",
+        calloutText: "Install the integration, pair the pre-flashed device and let Home Assistant handle the rest.",
+        calloutButton: "Start quick start",
+        legalCopyright: "Copyright © 2026 Peter van Tol. All rights reserved. DJConnect firmware is proprietary software. The Home Assistant integration may be distributed separately for use with DJConnect devices.",
+        legalSpotify: "Spotify is a trademark of Spotify AB. DJConnect is not affiliated with, endorsed by, or sponsored by Spotify AB. Home Assistant and HACS are referenced for integration compatibility."
+      }
+    };
+
+    const getInitialLanguage = () => {
+      const stored = localStorage.getItem("djconnect-language");
+      if (stored === "nl" || stored === "en") return stored;
+      return navigator.language && navigator.language.toLowerCase().startsWith("nl") ? "nl" : "en";
+    };
+
+    const applyLanguage = (language) => {
+      const copy = translations[language] || translations.en;
+      document.documentElement.lang = language;
+      document.title = copy.title;
+      const metaDescription = document.querySelector('meta[name="description"]');
+      if (metaDescription) metaDescription.setAttribute("content", copy.metaDescription);
+      document.querySelectorAll("[data-i18n]").forEach((element) => {
+        const key = element.getAttribute("data-i18n");
+        if (copy[key]) element.textContent = copy[key];
+      });
+      document.querySelectorAll("[data-i18n-attr]").forEach((element) => {
+        element.getAttribute("data-i18n-attr").split(",").forEach((mapping) => {
+          const [attribute, key] = mapping.split(":").map((part) => part.trim());
+          if (attribute && key && copy[key]) element.setAttribute(attribute, copy[key]);
+        });
+      });
+      document.querySelectorAll("[data-lang]").forEach((button) => {
+        button.setAttribute("aria-pressed", button.getAttribute("data-lang") === language ? "true" : "false");
+      });
+      localStorage.setItem("djconnect-language", language);
+    };
+
+    document.querySelectorAll("[data-lang]").forEach((button) => {
+      button.addEventListener("click", () => applyLanguage(button.getAttribute("data-lang")));
+    });
+
+    applyLanguage(getInitialLanguage());
+  </script>
 </body>
 </html>
