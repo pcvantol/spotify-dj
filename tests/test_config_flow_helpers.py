@@ -239,7 +239,6 @@ class ConfigFlowHelperTest(unittest.TestCase):
         basic_keys = {marker.key for marker in basic_schema.schema}
         advanced_keys = {marker.key for marker in advanced_schema.schema}
         advanced_only = {
-            self.const.CONF_SPOTIFY_SOURCE,
             self.const.CONF_FIRMWARE_REPO,
             self.const.CONF_FIRMWARE_ASSET_PREFIX,
             self.const.CONF_FIRMWARE_DEVICE,
@@ -253,6 +252,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertTrue(advanced_only.isdisjoint(basic_keys))
         self.assertIn(self.const.CONF_STT_ENGINE, basic_keys)
         self.assertIn(self.const.CONF_TTS_ENGINE, basic_keys)
+        self.assertIn(self.const.CONF_SPOTIFY_SOURCE, basic_keys)
         self.assertTrue(advanced_only.issubset(advanced_keys))
         self.assertIn(self.const.CONF_DJ_RESPONSE_ENABLED, basic_keys)
 

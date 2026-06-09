@@ -1,7 +1,11 @@
 # Changelog
 
-## 3.0.21
+## 3.0.22
 
+- Resolve plain Assist/voice search text through Spotify Search before starting playback, so commands like `ik wil Pearl Jam starten` are converted to a playable Spotify URI instead of being sent to `/me/player/play` as arbitrary text.
+- Retry playback once when Spotify reports no active playback device: DJConnect now refreshes Spotify devices, selects the configured source by visible name or device ID when possible, transfers playback there and retries.
+- Show Spotify source override in the normal config/options flow again, because it is needed for reliable voice playback routing.
+- Preserve the parsed DJConnect intent when playback fails and include it in command-failed voice responses for easier Assist/Spotify debugging.
 - Prevent Nabu Casa/cloud URLs from being sent as `ha_local_url`; pairing now uses Home Assistant's local/network URL, LAN source-IP fallback, or `http://homeassistant.local:8123` for `ha_local_url`, and sends cloud only as `ha_remote_url`.
 - Keep the options-flow “re-pair with new pairing code” field empty instead of pre-filling the old stored pairing code.
 - Set the Spotify repair OAuth popup title and description directly on the Repairs external-step result, so Home Assistant no longer shows a blank dialog when translation lookup misses the dynamic repair issue id.

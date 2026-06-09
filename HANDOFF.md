@@ -127,6 +127,9 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 ## Current Release Notes
 
 - Current release line is `3.0.x`; only the latest GitHub release/tag should be kept after release cleanup.
+- Voice/Assist search text such as "ik wil Pearl Jam starten" must be resolved through Spotify Search before `/me/player/play`; do not send arbitrary text as `context_uri`.
+- If Spotify playback fails because there is no active device, refresh `/me/player/devices`, prefer configured `spotify_source` by id or visible name, transfer playback and retry once.
+- `spotify_source` is a normal options-flow field again because it is needed for reliable voice playback routing; firmware/OTA overrides remain hidden behind the local advanced checkbox.
 - `3.0.21` prevents Nabu Casa/cloud URLs from being sent as `ha_local_url` during pairing and falls back to HA network/source-IP local URL discovery, then `http://homeassistant.local:8123`.
 - `3.0.20` keeps the options-flow “re-pair with new pairing code” field empty instead of pre-filling the old stored pairing code.
 - `3.0.19` sets the Spotify repair OAuth popup title and description directly on the Repairs external-step result, so Home Assistant no longer shows a blank dialog when translation lookup misses a dynamic repair issue id.

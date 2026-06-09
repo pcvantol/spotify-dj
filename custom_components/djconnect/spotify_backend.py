@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 import logging
+from urllib.parse import urlencode
 from typing import Any
 
 from aiohttp import ClientTimeout
@@ -12,6 +13,7 @@ from .const import (
     CONF_LIKED_PROXY,
     CONF_SPOTIFY_CLIENT_ID,
     CONF_SPOTIFY_REFRESH_TOKEN,
+    CONF_SPOTIFY_SOURCE,
     DOMAIN,
     DEFAULT_SPOTIFY_MARKET,
 )
@@ -295,8 +297,15 @@ class SpotifyBackend:
     async def play(self, value: Any = None) -> None:
         body = None
         if value:
+            value = await self._playable_value(value)
             body = {"uris": [str(value)]} if str(value).startswith("spotify:track:") else {"context_uri": str(value)}
-        await self._request("PUT", "/me/player/play", json=body, expected_empty=True)
+        try:
+            await self._request("PUT", "/me/player/play", json=body, expected_empty=True)
+        except SpotifyBackendError as exc:
+            if not _looks_like_no_active_device(exc):
+                raise
+            await self._ensure_playback_device(play=False)
+            await self._request("PUT", "/me/player/play", json=body, expected_empty=True)
 
     async def play_context_at(self, value: Any) -> None:
         if not isinstance(value, dict):
@@ -333,12 +342,62 @@ class SpotifyBackend:
         uri = playlist_uri.strip()
         if not uri:
             raise ValueError("Provide a playlist URI")
-        await self._request(
-            "PUT",
-            "/me/player/play",
-            json={"context_uri": uri},
-            expected_empty=True,
+        if not uri.startswith("spotify:playlist:"):
+            uri = await self._search_uri(uri, "playlist")
+        body = {"context_uri": uri}
+        try:
+            await self._request("PUT", "/me/player/play", json=body, expected_empty=True)
+        except SpotifyBackendError as exc:
+            if not _looks_like_no_active_device(exc):
+                raise
+            await self._ensure_playback_device(play=False)
+            await self._request("PUT", "/me/player/play", json=body, expected_empty=True)
+
+    async def _playable_value(self, value: Any) -> str:
+        if isinstance(value, dict):
+            query = str(value.get("query") or value.get("value") or "").strip()
+            media_type = str(value.get("type") or "track").strip().lower()
+            if not query:
+                raise ValueError("Provide a Spotify URI or search query")
+            if query.startswith("spotify:"):
+                return query
+            return await self._search_uri(query, media_type)
+        text = str(value or "").strip()
+        if not text:
+            raise ValueError("Provide a Spotify URI or search query")
+        if text.startswith("spotify:"):
+            return text
+        return await self._search_uri(text, "track")
+
+    async def _search_uri(self, query: str, media_type: str) -> str:
+        spotify_type = _spotify_search_type(media_type)
+        market = str(self.conf.get("spotify_market") or DEFAULT_SPOTIFY_MARKET)
+        params = urlencode({"q": query, "type": spotify_type, "limit": 1, "market": market})
+        data = await self._request("GET", f"/search?{params}")
+        item = _first_search_item(data, spotify_type)
+        uri = str(item.get("uri") or "").strip()
+        if not uri:
+            raise SpotifyBackendError(f"Spotify search found no {spotify_type} for: {query}")
+        _LOGGER.debug(
+            "DJConnect Spotify search resolved type=%s query=%s uri=%s",
+            spotify_type,
+            query,
+            uri,
         )
+        return uri
+
+    async def _ensure_playback_device(self, *, play: bool) -> str:
+        devices = await self.devices()
+        configured = str(self.conf.get(CONF_SPOTIFY_SOURCE) or "").strip()
+        selected = _select_spotify_device(devices, configured)
+        device_id = str(selected.get("id") or "").strip()
+        if not device_id:
+            raise SpotifyBackendError(
+                "No Spotify playback device is available. Open Spotify on a phone, "
+                "desktop or speaker, or set Spotify source in DJConnect options."
+            )
+        await self._transfer_playback(device_id, play=play)
+        return device_id
 
     async def set_shuffle(self, value: Any) -> None:
         """Set Spotify shuffle state from the canonical DJConnect command."""
@@ -363,6 +422,14 @@ class SpotifyBackend:
     async def set_output(self, device_id: str, *, play: bool = False) -> None:
         if not device_id:
             raise ValueError("Provide an output device id")
+        devices = await self.devices()
+        selected = _select_spotify_device(devices, device_id)
+        device_id = str(selected.get("id") or device_id).strip()
+        if not device_id:
+            raise ValueError("Provide an output device id")
+        await self._transfer_playback(device_id, play=play)
+
+    async def _transfer_playback(self, device_id: str, *, play: bool = False) -> None:
         await self._request(
             "PUT",
             "/me/player",
@@ -412,6 +479,51 @@ def _normalize_playback(data: dict[str, Any]) -> dict[str, Any]:
         "repeat_state": data.get("repeat_state") or "off",
         "device": _normalize_device(data.get("device") or {}),
     }
+
+
+def _spotify_search_type(media_type: str) -> str:
+    normalized = str(media_type or "").strip().lower()
+    if normalized in {"album", "artist", "playlist", "track"}:
+        return normalized
+    return "track"
+
+
+def _first_search_item(data: dict[str, Any], spotify_type: str) -> dict[str, Any]:
+    section = data.get(f"{spotify_type}s") or {}
+    items = section.get("items") or []
+    if not isinstance(items, list):
+        return {}
+    for item in items:
+        if isinstance(item, dict):
+            return item
+    return {}
+
+
+def _select_spotify_device(devices: list[dict[str, Any]], configured: str) -> dict[str, Any]:
+    configured = str(configured or "").strip()
+    if configured:
+        for device in devices:
+            if str(device.get("id") or "").strip() == configured:
+                return device
+        for device in devices:
+            if str(device.get("name") or "").strip().lower() == configured.lower():
+                return device
+    for device in devices:
+        if device.get("active") and device.get("id"):
+            return device
+    for device in devices:
+        if device.get("id"):
+            return device
+    return {}
+
+
+def _looks_like_no_active_device(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return (
+        "no active device" in message
+        or "device not found" in message
+        or "player command failed" in message
+    )
 
 
 def _merge_playback_status(device_status: dict[str, Any], update: dict[str, Any]) -> None:

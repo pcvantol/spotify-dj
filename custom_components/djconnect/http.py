@@ -1106,6 +1106,7 @@ class DJConnectVoiceView(HomeAssistantView):
                         "text": dj_text,
                         "dj_text": dj_text,
                         "recognized_text": user_text,
+                        "intent": getattr(runtime, "last_intent", None),
                         "dj_response": dj_response,
                         "audio_url": audio_url,
                         "audio_type": _audio_type_from_url(audio_url),

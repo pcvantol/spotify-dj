@@ -138,6 +138,144 @@ class SpotifyBackendTest(unittest.TestCase):
         self.assertEqual(runtime.device_status["sound_output"], "Living room")
         self.assertEqual(runtime.device_status["ha_pairing_status"], "paired")
 
+    def test_play_search_query_resolves_to_spotify_uri_before_playback(self) -> None:
+        class Response:
+            def __init__(self, status, payload=None):
+                self.status = status
+                self.payload = payload or {}
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def json(self, content_type=None):
+                return self.payload
+
+            async def text(self):
+                return str(self.payload)
+
+        class Session:
+            def __init__(self):
+                self.calls = []
+
+            def request(self, method, url, **kwargs):
+                self.calls.append({"method": method, "url": url, **kwargs})
+                if method == "GET" and "/search?" in url:
+                    return Response(
+                        200,
+                        {"tracks": {"items": [{"uri": "spotify:track:pearl-jam"}]}},
+                    )
+                return Response(204)
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={
+                "spotify_client_id": "client-id",
+                "spotify_refresh_token": "refresh",
+                "spotify_market": "NL",
+            },
+            options={},
+        )
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            latest_spotify_refresh_token=None,
+            spotify_access_token="access",
+            spotify_access_token_expires_at=time.time() + 1800,
+            device_status={},
+            update=lambda **kwargs: setattr(runtime, "last_update", kwargs),
+        )
+        runtime.config = dict(entry.data)
+        backend = self.backend.SpotifyBackend(object(), runtime)
+        session = Session()
+        backend.session = session
+
+        asyncio.run(backend.play({"query": "ik wil pearl jam starten", "type": "music"}))
+
+        self.assertIn("/search?", session.calls[0]["url"])
+        self.assertIn("q=ik+wil+pearl+jam+starten", session.calls[0]["url"])
+        self.assertEqual(session.calls[0]["method"], "GET")
+        self.assertEqual(session.calls[1]["method"], "PUT")
+        self.assertEqual(
+            session.calls[1]["json"],
+            {"uris": ["spotify:track:pearl-jam"]},
+        )
+
+    def test_play_recovers_no_active_device_by_transferring_to_configured_source(self) -> None:
+        class Response:
+            def __init__(self, status, payload=None):
+                self.status = status
+                self.payload = payload or {}
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def json(self, content_type=None):
+                return self.payload
+
+            async def text(self):
+                return str(self.payload)
+
+        class Session:
+            def __init__(self):
+                self.calls = []
+                self.play_attempts = 0
+
+            def request(self, method, url, **kwargs):
+                self.calls.append({"method": method, "url": url, **kwargs})
+                if method == "PUT" and url.endswith("/me/player/play"):
+                    self.play_attempts += 1
+                    if self.play_attempts == 1:
+                        return Response(
+                            404,
+                            {"error": {"message": "No active device found"}},
+                        )
+                    return Response(204)
+                if method == "GET" and url.endswith("/me/player/devices"):
+                    return Response(
+                        200,
+                        {
+                            "devices": [
+                                {"id": "dev-1", "name": "Kitchen", "is_active": False},
+                                {"id": "dev-2", "name": "Living room", "is_active": False},
+                            ]
+                        },
+                    )
+                return Response(204)
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={
+                "spotify_client_id": "client-id",
+                "spotify_refresh_token": "refresh",
+                "spotify_source": "Living room",
+            },
+            options={},
+        )
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            latest_spotify_refresh_token=None,
+            spotify_access_token="access",
+            spotify_access_token_expires_at=time.time() + 1800,
+            backend_cache={},
+            device_status={},
+            update=lambda **kwargs: setattr(runtime, "last_update", kwargs),
+        )
+        runtime.config = dict(entry.data)
+        backend = self.backend.SpotifyBackend(object(), runtime)
+        session = Session()
+        backend.session = session
+
+        asyncio.run(backend.play("spotify:track:alive"))
+
+        self.assertEqual(session.play_attempts, 2)
+        transfer = next(call for call in session.calls if call["url"].endswith("/me/player"))
+        self.assertEqual(transfer["json"], {"device_ids": ["dev-2"], "play": False})
+
     def test_invalid_grant_creates_reauth_issue_and_friendly_error(self) -> None:
         async def revoked(*args, **kwargs):
             raise self.oauth.SpotifyTokenRefreshError(

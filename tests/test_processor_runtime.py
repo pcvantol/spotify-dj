@@ -14,6 +14,23 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def install_processor_stubs() -> None:
+    aiohttp = sys.modules.setdefault("aiohttp", types.ModuleType("aiohttp"))
+    class ClientTimeout:
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+
+    aiohttp.ClientTimeout = ClientTimeout
+    helpers = sys.modules.setdefault(
+        "homeassistant.helpers",
+        types.ModuleType("homeassistant.helpers"),
+    )
+    aiohttp_client = sys.modules.setdefault(
+        "homeassistant.helpers.aiohttp_client",
+        types.ModuleType("homeassistant.helpers.aiohttp_client"),
+    )
+    aiohttp_client.async_get_clientsession = lambda hass: None
+    helpers.aiohttp_client = aiohttp_client
     if "homeassistant.core" not in sys.modules:
         homeassistant = types.ModuleType("homeassistant")
         core = types.ModuleType("homeassistant.core")
@@ -77,6 +94,43 @@ class ProcessorRuntimeTest(unittest.TestCase):
         self.assertEqual(runtime.last_dj_text, "Daar gaan we.")
         self.assertEqual(runtime.last_playback["track"], "Pearl Jam - Black")
         self.assertEqual(result["playback"]["track"], "Pearl Jam - Black")
+
+    def test_process_text_command_keeps_intent_when_playback_fails(self) -> None:
+        async def assist(hass, user_text, conf):
+            return {
+                "type": "search",
+                "spotify_search_query": user_text,
+                "dj_announcement": "Daar gaan we.",
+            }
+
+        async def play(hass, runtime, intent, conf):
+            raise RuntimeError("Spotify failed")
+
+        original_assist = self.processor.process_text_with_assist
+        original_play = self.processor.play_from_intent
+        self.processor.process_text_with_assist = assist
+        self.processor.play_from_intent = play
+        runtime = Runtime()
+        try:
+            with self.assertRaisesRegex(RuntimeError, "Spotify failed"):
+                asyncio.run(
+                    self.processor.process_text_command(
+                        object(),
+                        runtime,
+                        "ik wil pearl jam starten",
+                        play=True,
+                    )
+                )
+        finally:
+            self.processor.process_text_with_assist = original_assist
+            self.processor.play_from_intent = original_play
+
+        self.assertEqual(runtime.last_text, "ik wil pearl jam starten")
+        self.assertEqual(runtime.last_intent["type"], "search")
+        self.assertEqual(
+            runtime.last_intent["spotify_search_query"],
+            "ik wil pearl jam starten",
+        )
 
 
 if __name__ == "__main__":

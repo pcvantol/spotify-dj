@@ -141,7 +141,6 @@ OPTIONS_ACTION_NAMES_NL = {
 }
 
 ADVANCED_VOICE_FIELDS = (
-    CONF_SPOTIFY_SOURCE,
     CONF_FIRMWARE_REPO,
     CONF_FIRMWARE_ASSET_PREFIX,
     CONF_FIRMWARE_DEVICE,
@@ -587,6 +586,10 @@ def _base_voice_schema(
             default=defaults.get(CONF_DJ_STYLE, DEFAULT_DJ_STYLE),
         ): vol.In(DJ_STYLE_NAMES),
         vol.Optional(CONF_LIKED_PROXY, default=defaults.get(CONF_LIKED_PROXY, "")): str,
+        vol.Optional(
+            CONF_SPOTIFY_SOURCE,
+            default=defaults.get(CONF_SPOTIFY_SOURCE, ""),
+        ): str,
     })
     return schema
 
@@ -598,10 +601,6 @@ def _advanced_voice_schema(defaults: dict[str, Any]) -> dict[Any, Any]:
         defaults.get(CONF_FIRMWARE_CHANNEL, DEFAULT_FIRMWARE_CHANNEL),
     )
     return {
-        vol.Optional(
-            CONF_SPOTIFY_SOURCE,
-            default=defaults.get(CONF_SPOTIFY_SOURCE, ""),
-        ): str,
         vol.Optional(
             CONF_FIRMWARE_REPO,
             default=defaults.get(CONF_FIRMWARE_REPO, DEFAULT_FIRMWARE_REPO),

@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.0.21`
+- Home Assistant integration: `3.0.22`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -162,6 +162,7 @@ The config flow and options flow include safe defaults for optional voice fields
 - DJ style
 - Device UI language for ESP pairing (`en` or `nl`)
 - Liked proxy playlist URI
+- Spotify source override, optional visible Spotify device name or device ID
 - Firmware repository/channel/options
 - OTA battery safety options
 
@@ -170,7 +171,7 @@ been reauthorized with `playlist-read-private`; diagnostics and Home Assistant
 repairs show a warning when the stored OAuth scope list is missing required
 DJConnect scopes.
 
-Where Home Assistant exposes choices, DJConnect shows populated dropdowns for Assist pipeline, TTS entity, known TTS voices, Spotify market, DJ style, and firmware channel. Stored custom values remain selectable so existing setups keep working. Backend playback is handled by Home Assistant through the DJConnect playback proxy; ESP device settings use the local device command API. Spotify source override, firmware repository settings, firmware channel, manual device URL, max audio bytes, and OTA battery settings are shown only after enabling the inline advanced-options checkbox. The manual device URL is normally not needed: DJConnect resolves the device through `_djconnect._tcp` mDNS, uses the device-reported `local_url` when available, and only builds `http://djconnect-lilygo-[device-suffix].local` when the configured ID contains a real 12-character device suffix.
+Where Home Assistant exposes choices, DJConnect shows populated dropdowns for Assist pipeline, TTS entity, known TTS voices, Spotify market, DJ style, and firmware channel. Stored custom values remain selectable so existing setups keep working. Backend playback is handled by Home Assistant through the DJConnect playback proxy; ESP device settings use the local device command API. The Spotify source override is shown in the normal flow so a preferred Spotify Connect output can be set by visible name or device ID. Firmware repository settings, firmware channel, manual device URL, max audio bytes, and OTA battery settings are shown only after enabling the inline advanced-options checkbox. The manual device URL is normally not needed: DJConnect resolves the device through `_djconnect._tcp` mDNS, uses the device-reported `local_url` when available, and only builds `http://djconnect-lilygo-[device-suffix].local` when the configured ID contains a real 12-character device suffix.
 
 The options flow also includes an action selector. Use `Reauthorize Spotify` to
 refresh OAuth from the integration page, `Retry pairing with current code` to
@@ -261,6 +262,11 @@ If HA Assist returns a generic smart-home answer such as "I cannot play music",
 DJConnect does not use that sentence as the DJ announcement. It keeps the
 Spotify search intent based on the original command and falls back to the
 DJConnect DJ response text unless Assist returns explicit `djconnect` data.
+Plain voice/search commands such as "ik wil Pearl Jam starten" are resolved
+through Spotify Search before playback starts. If Spotify reports that no
+active playback device exists, DJConnect refreshes available Spotify devices,
+selects the configured Spotify source when possible, transfers playback there
+and retries the command once.
 
 Developer action overview:
 
@@ -507,12 +513,12 @@ Example manifest:
 
 ```json
 {
-  "version": "3.0.21",
+  "version": "3.0.22",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.21.bin",
+  "asset": "djconnect-device-v3.0.22.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "3.0.21"
+  "min_ha_integration": "3.0.22"
 }
 ```
 
@@ -527,7 +533,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.0.21
+./release.sh 3.0.22
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -538,7 +544,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.0.21 --dry-run
+./release.sh 3.0.22 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -596,11 +602,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.0.21"
-git tag v3.0.21
+git commit -m "Release DJConnect v3.0.22"
+git tag v3.0.22
 git push origin main
-git push origin v3.0.21
-gh release create v3.0.21 --title "DJConnect v3.0.21" --notes-file CHANGELOG.md
+git push origin v3.0.22
+gh release create v3.0.22 --title "DJConnect v3.0.22" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

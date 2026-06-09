@@ -13,6 +13,7 @@ async def process_text_command(
     runtime.update(last_text=user_text, last_error=None)
     conf = runtime.config
     intent = await process_text_with_assist(hass, user_text, conf)
+    runtime.update(last_intent=intent)
     playback = None
     if play:
         playback = await play_from_intent(hass, runtime, intent, conf)
