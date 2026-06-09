@@ -4,16 +4,12 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 
 from .const import (
-    CONF_DJ_STYLE,
+    CONF_DJ_RESPONSE_PROMPT,
     CONF_TTS_LANGUAGE,
-    DEFAULT_DJ_STYLE,
+    DEFAULT_DJ_RESPONSE_PROMPT,
     DEFAULT_TTS_LANGUAGE,
-    DJ_STYLE_CALM_EVENING,
-    DJ_STYLE_CLASSIC_DUTCH_RADIO,
-    DJ_STYLE_FESTIVAL,
-    DJ_STYLE_MINIMAL,
 )
-from .pipeline import process_text_with_assist
+from .pipeline import generate_dj_response_with_assist, process_text_with_assist
 from .spotify import play_from_intent
 
 
@@ -27,7 +23,13 @@ async def process_text_command(
     playback = None
     if play:
         playback = await play_from_intent(hass, runtime, intent, conf)
-    dj_text = _dj_response_text(intent, playback, conf)
+    fallback_dj_text = _dj_response_text(intent, playback, conf)
+    dj_text = await generate_dj_response_with_assist(
+        hass,
+        media=_resolved_media(playback) or intent,
+        fallback_text=fallback_dj_text,
+        conf=conf,
+    )
     result = {
         "text": user_text,
         "intent": intent,
@@ -54,7 +56,7 @@ def _dj_response_text(
     artist = _first_text(media, "artist", "artist_name")
     album = _first_text(media, "album_name", "album")
     playlist = _first_text(media, "playlist", "name")
-    style = str(conf.get(CONF_DJ_STYLE) or DEFAULT_DJ_STYLE)
+    prompt = str(conf.get(CONF_DJ_RESPONSE_PROMPT) or DEFAULT_DJ_RESPONSE_PROMPT)
     language = str(conf.get(CONF_TTS_LANGUAGE) or DEFAULT_TTS_LANGUAGE)
     is_nl = language.lower().startswith("nl")
 
@@ -63,11 +65,11 @@ def _dj_response_text(
             title=title,
             artist=artist,
             album=album,
-            style=style,
+            prompt=prompt,
             is_nl=is_nl,
         )
     if playlist:
-        return _playlist_response(playlist, style=style, is_nl=is_nl)
+        return _playlist_response(playlist, prompt=prompt, is_nl=is_nl)
 
     announcement = str(intent.get("dj_announcement") or "").strip()
     if announcement and not _is_generic_announcement(announcement):
@@ -94,35 +96,33 @@ def _track_response(
     title: str,
     artist: str,
     album: str,
-    style: str,
+    prompt: str,
     is_nl: bool,
 ) -> str:
     subject = _track_subject(title, artist, is_nl=is_nl)
-    if style == DJ_STYLE_MINIMAL:
+    prompt_words = prompt.lower()
+    if "minimaal" in prompt_words or "minimal" in prompt_words:
         return subject
-    if style == DJ_STYLE_CALM_EVENING:
+    if "rustig" in prompt_words or "calm" in prompt_words:
         if is_nl:
             return f"Rustig erin: {subject}. Even laten landen."
         return f"Ease into this one: {subject}. Let it breathe."
-    if style == DJ_STYLE_FESTIVAL:
+    if "festival" in prompt_words or "energiek" in prompt_words:
         if is_nl:
             return f"Handen omhoog: {subject}. Dit is er eentje om wakker van te worden."
         return f"Hands up: {subject}. This one should wake the room."
-    if style == DJ_STYLE_CLASSIC_DUTCH_RADIO:
-        if album and artist:
-            return f"Daar is {artist}, met {title}. Van {album}; zet 'm maar lekker open."
-        return f"Daar is {subject}. Zet 'm maar lekker open."
-    if is_nl:
-        return f"Ik zet {subject} voor je aan."
-    return f"Starting {subject} for you."
+    if album and artist:
+        return f"Daar is {artist}, met {title}. Van {album}; zet 'm maar lekker open."
+    return f"Daar is {subject}. Zet 'm maar lekker open." if is_nl else f"Here is {subject}. Turn it up."
 
 
-def _playlist_response(playlist: str, *, style: str, is_nl: bool) -> str:
-    if style == DJ_STYLE_MINIMAL:
+def _playlist_response(playlist: str, *, prompt: str, is_nl: bool) -> str:
+    prompt_words = prompt.lower()
+    if "minimaal" in prompt_words or "minimal" in prompt_words:
         return playlist
-    if style == DJ_STYLE_FESTIVAL:
+    if "festival" in prompt_words or "energiek" in prompt_words:
         return f"Daar gaan we: {playlist}. Tijd om los te komen." if is_nl else f"Here we go: {playlist}. Time to move."
-    if style == DJ_STYLE_CALM_EVENING:
+    if "rustig" in prompt_words or "calm" in prompt_words:
         return f"Ik zet {playlist} rustig voor je op." if is_nl else f"I'll ease into {playlist} for you."
     return f"Ik zet {playlist} voor je klaar." if is_nl else f"I'll start {playlist} for you."
 

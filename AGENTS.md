@@ -57,7 +57,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `djconnect`
 - HACS custom integration.
-- Actuele integratieversie: `3.0.25`.
+- Actuele integratieversie: `3.0.26`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -91,7 +91,7 @@ HA integration:
   - Assist pipeline uit HA Assist pipelines.
   - TTS engine uit HA `tts` entities.
   - Spotify market vaste keuzes.
-  - DJ style vaste keuzes.
+  - DJ response prompt als vrij tekstveld; geen vaste DJ style keuzes.
   - Firmware channel vaste keuzes.
 - Verberg firmware repo settings, firmware channel, max audio bytes, min battery for OTA en allow OTA on battery achter een integration-local advanced checkbox; gebruik niet HA's deprecated `show_advanced_options` property.
 - Laat velden vrije tekst waar HA geen betrouwbare bron heeft, zoals TTS language/voice, playlist URI en firmware repo/asset/device strings.

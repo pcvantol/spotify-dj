@@ -135,7 +135,7 @@ class ProcessorRuntimeTest(unittest.TestCase):
         self.processor.play_from_intent = play
         runtime = Runtime()
         runtime.config = {
-            "dj_style": "festival",
+            "dj_response_prompt": "Maak een energieke festival-DJ-aankondiging.",
             "tts_language": "nl",
         }
         try:

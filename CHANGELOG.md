@@ -1,7 +1,9 @@
 # Changelog
 
-## 3.0.25
+## 3.0.26
 
+- Replace the four fixed DJ style choices with one editable `dj_response_prompt` in the config/options flow; old `dj_style` and `dj_profile` compatibility paths are removed.
+- Keep `sensor.djconnect_last_track` and `sensor.djconnect_last_command` stable by caching their last non-empty value at entity level, so temporary empty runtime/playback/status updates no longer make them unavailable or unknown.
 - Restrict plain Spotify text searches to artists only; PTT/Assist music requests now resolve text to `type=artist` and start the artist context instead of selecting arbitrary track or album results.
 - Persist the last known ESP device status in the Home Assistant config entry and restore it on integration reload/startup, so battery, firmware, sound output, screen/LED state and `ha_pairing_status=paired` do not fall back to unknown/pending while waiting for the next ESP status post.
 - Expose PTT debugging as entity attributes on `sensor.djconnect_status` and `sensor.djconnect_last_command`, including `last_stt_text`, `last_spotify_search` and `last_resolved_media`.

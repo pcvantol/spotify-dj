@@ -28,9 +28,8 @@ from .const import (
     CONF_DEVICE_NAME,
     CONF_DEVICE_TOKEN,
     CONF_DJ_RESPONSE_ENABLED,
+    CONF_DJ_RESPONSE_PROMPT,
     CONF_DJ_RESPONSE_TTL_SECONDS,
-    CONF_DJ_PROFILE,
-    CONF_DJ_STYLE,
     CONF_FIRMWARE_ASSET_PREFIX,
     CONF_FIRMWARE_CHANNEL,
     CONF_FIRMWARE_DEVICE,
@@ -58,8 +57,8 @@ from .const import (
     DEFAULT_DEVICE_NAME,
     DEFAULT_DEVICE_LANGUAGE,
     DEFAULT_DJ_RESPONSE_ENABLED,
+    DEFAULT_DJ_RESPONSE_PROMPT,
     DEFAULT_DJ_RESPONSE_TTL_SECONDS,
-    DEFAULT_DJ_STYLE,
     DEFAULT_FIRMWARE_ASSET_PREFIX,
     DEFAULT_FIRMWARE_CHANNEL,
     DEFAULT_FIRMWARE_DEVICE,
@@ -75,8 +74,6 @@ from .const import (
     DEFAULT_TTS_LANGUAGE,
     DEFAULT_TTS_VOICE,
     CLIENT_TYPE_NAMES,
-    DJ_STYLE_NAMES,
-    DJ_STYLES,
     DOMAIN,
     SETUP_METHOD_BLE_WIFI,
     SETUP_METHOD_PAIR_EXISTING,
@@ -582,9 +579,9 @@ def _base_voice_schema(
             ),
         ): bool,
         vol.Optional(
-            CONF_DJ_STYLE,
-            default=defaults.get(CONF_DJ_STYLE, DEFAULT_DJ_STYLE),
-        ): vol.In(DJ_STYLE_NAMES),
+            CONF_DJ_RESPONSE_PROMPT,
+            default=defaults.get(CONF_DJ_RESPONSE_PROMPT, DEFAULT_DJ_RESPONSE_PROMPT),
+        ): str,
         vol.Optional(CONF_LIKED_PROXY, default=defaults.get(CONF_LIKED_PROXY, "")): str,
         vol.Optional(
             CONF_SPOTIFY_SOURCE,
@@ -702,12 +699,10 @@ def _voice_defaults(
 ) -> dict[str, Any]:
     """Return voice/options config with safe defaults."""
     source = data or {}
-    dj_style = _clean(
-        source.get(CONF_DJ_STYLE) or source.get(CONF_DJ_PROFILE),
-        DEFAULT_DJ_STYLE,
+    dj_response_prompt = _clean(
+        source.get(CONF_DJ_RESPONSE_PROMPT),
+        DEFAULT_DJ_RESPONSE_PROMPT,
     )
-    if dj_style not in DJ_STYLES:
-        dj_style = DEFAULT_DJ_STYLE
     return {
         CONF_ASSIST_PIPELINE_ID: _defaultable_value(
             source,
@@ -742,8 +737,7 @@ def _voice_defaults(
             source.get(CONF_DJ_RESPONSE_TTL_SECONDS),
             DEFAULT_DJ_RESPONSE_TTL_SECONDS,
         ),
-        CONF_DJ_STYLE: dj_style,
-        CONF_DJ_PROFILE: dj_style,
+        CONF_DJ_RESPONSE_PROMPT: dj_response_prompt,
         CONF_FIRMWARE_REPO: _clean(
             source.get(CONF_FIRMWARE_REPO),
             DEFAULT_FIRMWARE_REPO,

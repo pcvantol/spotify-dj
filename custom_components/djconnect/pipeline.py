@@ -7,14 +7,10 @@ from homeassistant.core import HomeAssistant
 
 from .const import (
     CONF_ASSIST_PIPELINE_ID,
-    CONF_DJ_STYLE,
+    CONF_DJ_RESPONSE_PROMPT,
     CONF_TTS_LANGUAGE,
-    DEFAULT_DJ_STYLE,
+    DEFAULT_DJ_RESPONSE_PROMPT,
     DEFAULT_TTS_LANGUAGE,
-    DJ_STYLE_CALM_EVENING,
-    DJ_STYLE_CLASSIC_DUTCH_RADIO,
-    DJ_STYLE_FESTIVAL,
-    DJ_STYLE_MINIMAL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,7 +34,7 @@ def _assist_context(hass: HomeAssistant, conf: dict[str, Any]) -> dict[str, Any]
     pipeline_id = (conf.get(CONF_ASSIST_PIPELINE_ID) or "").strip()
     context: dict[str, Any] = {
         "language": conf.get(CONF_TTS_LANGUAGE) or DEFAULT_TTS_LANGUAGE,
-        "dj_style": conf.get(CONF_DJ_STYLE) or DEFAULT_DJ_STYLE,
+        "dj_response_prompt": conf.get(CONF_DJ_RESPONSE_PROMPT) or DEFAULT_DJ_RESPONSE_PROMPT,
     }
     if not pipeline_id:
         return context
@@ -77,9 +73,9 @@ async def _conversation_process(
     assist_context: dict[str, Any],
 ) -> dict[str, Any]:
     language = assist_context.get("language") or DEFAULT_TTS_LANGUAGE
-    dj_style = assist_context.get("dj_style") or DEFAULT_DJ_STYLE
+    dj_response_prompt = assist_context.get("dj_response_prompt") or DEFAULT_DJ_RESPONSE_PROMPT
     data = {
-        "text": _djconnect_assist_prompt(user_text, str(language), str(dj_style)),
+        "text": _djconnect_assist_prompt(user_text, str(language), str(dj_response_prompt)),
         "language": language,
     }
     if assist_context.get("agent_id"):
@@ -102,58 +98,67 @@ async def _conversation_process(
 def _djconnect_assist_prompt(
     user_text: str,
     language: str,
-    dj_style: str = DEFAULT_DJ_STYLE,
+    dj_response_prompt: str = DEFAULT_DJ_RESPONSE_PROMPT,
 ) -> str:
     """Add DJConnect-specific DJ response guidance to the Assist text request."""
-    style_instruction = _dj_style_instruction(dj_style, language)
+    response_instruction = str(dj_response_prompt or DEFAULT_DJ_RESPONSE_PROMPT).strip()
     if str(language or "").lower().startswith("nl"):
         return (
             "Verwerk deze DJConnect muziekopdracht en maak waar mogelijk "
             "djconnect intentdata. Als je een dj_announcement geeft, vertel "
             "ook één kort leuk feitje over de artiest en/of het nummer. "
-            f"DJ stijl: {style_instruction}. "
+            f"DJ response prompt: {response_instruction}. "
             f"Opdracht: {user_text}"
         )
     return (
         "Handle this DJConnect music request and return djconnect intent data "
         "when possible. If you provide a dj_announcement, also include one short "
-        f"fun fact about the artist and/or song. DJ style: {style_instruction}. "
+        f"fun fact about the artist and/or song. DJ response prompt: {response_instruction}. "
         f"Request: {user_text}"
     )
 
 
-def _dj_style_instruction(dj_style: str, language: str) -> str:
-    """Translate DJ style settings into concrete prompt guidance."""
-    is_nl = str(language or "").lower().startswith("nl")
-    if dj_style == DJ_STYLE_CALM_EVENING:
-        return (
-            "warm, rustig en ontspannen; maximaal één korte zin, geen hype"
-            if is_nl
-            else "warm, calm and relaxed; one short sentence at most, no hype"
-        )
-    if dj_style == DJ_STYLE_FESTIVAL:
-        return (
-            "energiek en enthousiast alsof je een festivalstage opent; kort houden"
-            if is_nl
-            else "energetic and excited like opening a festival stage; keep it short"
-        )
-    if dj_style == DJ_STYLE_MINIMAL:
-        return (
-            "zeer kort en functioneel; geen extra grapjes, maximaal enkele woorden"
-            if is_nl
-            else "very short and functional; no extra jokes, only a few words"
-        )
-    if dj_style == DJ_STYLE_CLASSIC_DUTCH_RADIO:
-        return (
-            "klassieke Nederlandse radio-DJ; vriendelijk, herkenbaar en licht enthousiast"
-            if is_nl
-            else "classic Dutch radio DJ; friendly, familiar and lightly upbeat"
-        )
-    return (
-        "vriendelijk en kort"
-        if is_nl
-        else "friendly and brief"
+async def generate_dj_response_with_assist(
+    hass: HomeAssistant,
+    *,
+    media: dict[str, Any],
+    fallback_text: str,
+    conf: dict[str, Any],
+) -> str:
+    """Ask HA Assist for a short DJ response using resolved playback metadata."""
+    prompt = str(conf.get(CONF_DJ_RESPONSE_PROMPT) or DEFAULT_DJ_RESPONSE_PROMPT).strip()
+    language = conf.get(CONF_TTS_LANGUAGE) or DEFAULT_TTS_LANGUAGE
+    media_context = {
+        key: value
+        for key, value in media.items()
+        if key in {"type", "title", "track_name", "artist", "artist_name", "album_name", "playlist", "owner", "uri"}
+        and value not in (None, "", [], {})
+    }
+    if not media_context:
+        return fallback_text
+    text = (
+        "Maak alleen de korte DJ response tekst voor het DJConnect device. "
+        "Gebruik deze DJ response prompt letterlijk als stijl-/inhoudsinstructie: "
+        f"{prompt}. Media: {media_context}. Geen JSON, geen uitleg."
+        if str(language).lower().startswith("nl")
+        else "Return only the short DJ response text for the DJConnect device. "
+        f"Use this DJ response prompt as style/content guidance: {prompt}. "
+        f"Media: {media_context}. No JSON, no explanation."
     )
+    try:
+        result = await hass.services.async_call(
+            "conversation",
+            "process",
+            {"text": text, "language": language},
+            blocking=True,
+            return_response=True,
+        )
+        response = (result or {}).get("response") or {}
+        generated = _speech_from_response(response)
+        return generated or fallback_text
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("DJConnect DJ response generation through Assist failed", exc_info=True)
+        return fallback_text
 
 
 def _intent_from_assist_response(response: dict[str, Any], user_text: str) -> dict[str, Any]:

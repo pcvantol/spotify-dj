@@ -90,15 +90,22 @@ class DJConnectLastTextSensor(DJConnectBaseSensor):
     _attr_translation_key = "last_command"
     _attr_unique_id = "djconnect_last_command"
 
+    def __init__(self, runtime) -> None:
+        super().__init__(runtime)
+        self._last_value = _last_command_value(runtime)
+
     @property
     def native_value(self):
-        return self.runtime.last_text
+        value = _last_command_value(self.runtime)
+        if value not in (None, ""):
+            self._last_value = value
+        return self._last_value
 
     @property
     def extra_state_attributes(self):
         return {
-            "last_stt_text": getattr(self.runtime, "last_stt_text", None) or self.runtime.last_text,
-            "last_intent": self.runtime.last_intent,
+            "last_stt_text": getattr(self.runtime, "last_stt_text", None) or self._last_value,
+            "last_intent": getattr(self.runtime, "last_intent", None),
             "last_spotify_search": getattr(self.runtime, "last_spotify_search", None),
             "last_resolved_media": getattr(self.runtime, "last_resolved_media", None),
         }
@@ -137,18 +144,16 @@ class DJConnectLastTrackSensor(DJConnectBaseSensor):
     _attr_translation_key = "last_track"
     _attr_unique_id = "djconnect_last_track"
 
+    def __init__(self, runtime) -> None:
+        super().__init__(runtime)
+        self._last_value = _last_track_value(runtime)
+
     @property
     def native_value(self):
-        playback = self.runtime.last_playback or {}
-        for key in ("track_name", "title", "name", "track"):
-            value = playback.get(key)
-            if value not in (None, ""):
-                return value
-        for key in ("last_track", "track_name", "track"):
-            value = self.runtime.device_status.get(key)
-            if value not in (None, ""):
-                return value
-        return None
+        value = _last_track_value(self.runtime)
+        if value not in (None, ""):
+            self._last_value = value
+        return self._last_value
 
     @property
     def extra_state_attributes(self):
@@ -301,5 +306,37 @@ def _queue_currently_playing(queue):
     if isinstance(queue, dict):
         value = queue.get("currently_playing") or queue.get("current")
         if isinstance(value, dict):
+            return value
+    return None
+
+
+def _last_command_value(runtime):
+    for key in ("last_text", "last_stt_text"):
+        value = getattr(runtime, key, None)
+        if value not in (None, ""):
+            return value
+    status = getattr(runtime, "device_status", {}) or {}
+    for key in ("last_command", "last_text", "last_stt_text"):
+        value = status.get(key)
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def _last_track_value(runtime):
+    playback = getattr(runtime, "last_playback", None) or {}
+    for key in ("track_name", "title", "name", "track"):
+        value = playback.get(key)
+        if value not in (None, ""):
+            return value
+    resolved = getattr(runtime, "last_resolved_media", None) or {}
+    for key in ("track_name", "title", "name", "artist", "artist_name"):
+        value = resolved.get(key)
+        if value not in (None, ""):
+            return value
+    status = getattr(runtime, "device_status", {}) or {}
+    for key in ("last_track", "track_name", "track", "title"):
+        value = status.get(key)
+        if value not in (None, ""):
             return value
     return None

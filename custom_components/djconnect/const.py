@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "djconnect"
 NAME = "DJConnect"
-VERSION = "3.0.25"
+VERSION = "3.0.26"
 
 API_BASE = "/api/djconnect"
 API_PAIR = f"{API_BASE}/pair"
@@ -42,10 +42,7 @@ CONF_TTS_LANGUAGE = "tts_language"
 CONF_TTS_VOICE = "tts_voice"
 CONF_DJ_RESPONSE_ENABLED = "dj_response_enabled"
 CONF_DJ_RESPONSE_TTL_SECONDS = "dj_response_ttl_seconds"
-
-# Both option names are accepted by local options helpers.
-CONF_DJ_STYLE = "dj_style"
-CONF_DJ_PROFILE = "dj_profile"
+CONF_DJ_RESPONSE_PROMPT = "dj_response_prompt"
 
 CONF_MAX_AUDIO_BYTES = "max_audio_bytes"
 
@@ -87,28 +84,11 @@ DEFAULT_TTS_LANGUAGE = "nl-NL"
 DEFAULT_TTS_VOICE = ""
 DEFAULT_DJ_RESPONSE_ENABLED = True
 DEFAULT_DJ_RESPONSE_TTL_SECONDS = 120
-DJ_STYLE_CLASSIC_DUTCH_RADIO = "classic_dutch_radio"
-DJ_STYLE_CALM_EVENING = "calm_evening"
-DJ_STYLE_FESTIVAL = "festival"
-DJ_STYLE_MINIMAL = "minimal"
-
-DEFAULT_DJ_STYLE = DJ_STYLE_CLASSIC_DUTCH_RADIO
-DEFAULT_DJ_PROFILE = DEFAULT_DJ_STYLE
-
-DJ_STYLES = [
-    DJ_STYLE_CLASSIC_DUTCH_RADIO,
-    DJ_STYLE_CALM_EVENING,
-    DJ_STYLE_FESTIVAL,
-    DJ_STYLE_MINIMAL,
-]
-
-DJ_STYLE_NAMES = {
-    DJ_STYLE_CLASSIC_DUTCH_RADIO: "Classic Dutch radio - warm radio-DJ",
-    DJ_STYLE_CALM_EVENING: "Calm evening - rustig en kort",
-    DJ_STYLE_FESTIVAL: "Festival - energiek en enthousiast",
-    DJ_STYLE_MINIMAL: "Minimal - alleen het nodige",
-}
-
+DEFAULT_DJ_RESPONSE_PROMPT = (
+    "Maak een korte gesproken DJ-aankondiging in het Nederlands. "
+    "Noem waar mogelijk de artiest en/of het nummer, gebruik maximaal twee zinnen, "
+    "klink warm, persoonlijk en als een herkenbare radio-DJ."
+)
 SPOTIFY_SCOPES = [
     "user-read-playback-state",
     "user-modify-playback-state",

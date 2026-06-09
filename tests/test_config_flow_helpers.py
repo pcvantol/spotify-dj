@@ -253,6 +253,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertIn(self.const.CONF_STT_ENGINE, basic_keys)
         self.assertIn(self.const.CONF_TTS_ENGINE, basic_keys)
         self.assertIn(self.const.CONF_SPOTIFY_SOURCE, basic_keys)
+        self.assertIn(self.const.CONF_DJ_RESPONSE_PROMPT, basic_keys)
         self.assertTrue(advanced_only.issubset(advanced_keys))
         self.assertIn(self.const.CONF_DJ_RESPONSE_ENABLED, basic_keys)
 
@@ -260,15 +261,17 @@ class ConfigFlowHelperTest(unittest.TestCase):
         data = self.config_flow._voice_defaults(
             {
                 self.const.CONF_TTS_LANGUAGE: "",
-                self.const.CONF_DJ_STYLE: "does_not_exist",
+                self.const.CONF_DJ_RESPONSE_PROMPT: "",
                 self.const.CONF_MAX_AUDIO_BYTES: "not-an-int",
                 self.const.CONF_MIN_BATTERY_FOR_OTA: "55",
             }
         )
 
         self.assertEqual(data[self.const.CONF_TTS_LANGUAGE], self.const.DEFAULT_TTS_LANGUAGE)
-        self.assertEqual(data[self.const.CONF_DJ_STYLE], self.const.DEFAULT_DJ_STYLE)
-        self.assertEqual(data[self.const.CONF_DJ_PROFILE], self.const.DEFAULT_DJ_STYLE)
+        self.assertEqual(
+            data[self.const.CONF_DJ_RESPONSE_PROMPT],
+            self.const.DEFAULT_DJ_RESPONSE_PROMPT,
+        )
         self.assertEqual(data[self.const.CONF_MAX_AUDIO_BYTES], self.const.DEFAULT_MAX_AUDIO_BYTES)
         self.assertTrue(data[self.const.CONF_ALLOW_OTA_ON_BATTERY])
         self.assertEqual(data[self.const.CONF_MIN_BATTERY_FOR_OTA], 55)
