@@ -4,7 +4,7 @@ Werk in de bestaande proprietary ESP firmware repo `pcvantol/djconnect-app`.
 
 ## Doel
 
-Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur.
+Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.2`.
 
 De HA integration is de trusted backend voor:
 
@@ -38,8 +38,37 @@ De ESP blijft eigenaar van:
 - `/api/device/provision_spotify` mag niet bestaan of gebruikt worden.
 - Pairing/status/voice/command auth gebruikt alleen het device bearer token.
 - Device ID format voor actuele firmware is `djconnect-lilygo-XXXXXXXXXXXX`.
+- Accepteer geen legacy `djconnect-XXXXXXXXXXXX` device IDs en bouw geen compatibility fallback voor dat oude formaat.
+- Alle user-facing tekst, filenames, namespaces, logs en provisioning labels gebruiken `DJConnect` / `djconnect`; nergens meer `SpotifyDJ`, `spotifydj` of `spotify_dj`.
 - NVS taal key blijft `provision.language`.
+- NVS namespace is `djconnect`.
 - Secrets nooit loggen: geen device tokens, HA tokens, Spotify tokens, WiFi wachtwoorden of tijdelijke audio URL tokens.
+
+## Assets uit HA repo overnemen
+
+Gebruik de echte DJConnect icon/logo assets uit `pcvantol/djconnect`; teken het logo niet opnieuw in firmware als er een bitmap/vector-conversie gebruikt kan worden.
+
+Bronbestanden in de HA repo:
+
+- `assets/djconnect/djconnect-icon.svg`
+- `assets/djconnect/djconnect-icon-256.png`
+- `assets/djconnect/djconnect-icon-512.png`
+- `assets/djconnect/djconnect-icon-1024.png`
+- `assets/djconnect/djconnect-logo.svg`
+- `assets/djconnect/djconnect-logo-512x256.png`
+- `website/assets/djconnect/icon.svg`
+- `website/assets/djconnect/icon-192.png`
+- `website/assets/djconnect/icon-512.png`
+- `website/assets/lilygo-t-embed-djconnect.svg` als visuele referentie voor de landscape hero/device mockup.
+
+Acties:
+
+- Kopieer of exporteer het echte DJConnect icoon naar het firmware assetformaat dat de LilyGO UI gebruikt.
+- Houd de paarse/blauwe DJConnect iconstijl intact: vinyl, DJ letters, toonarm/microfoon en gradient arc.
+- Gebruik het echte icoon op splash/pairing/idle/voice schermen waar nu nog een placeholder of opnieuw getekende benadering staat.
+- Gebruik firmware-native conversie tooling als assets naar RGB565/LVGL/C-array/binair formaat moeten.
+- Commit geen gegenereerde build-cache; commit alleen de bronasset en benodigde firmware-runtime asset.
+- Verwijder oude SpotifyDJ/spotifydj iconen en logos als ze niet meer gebruikt worden.
 
 ## Endpoint contract
 
@@ -97,6 +126,8 @@ Controleer en fix:
 - ESP ontvangt `ha_local_url` en/of `ha_remote_url` via `POST /api/device/pair`.
 - ESP gebruikt `ha_local_url` LAN-first en `ha_remote_url` als cloud fallback.
 - ESP accepteert en verwacht geen legacy `ha_url` pairingveld meer.
+- ESP accepteert als persistent device ID alleen `djconnect-lilygo-XXXXXXXXXXXX`.
+- Een tijdelijke setup-code identiteit mag alleen tijdens captive/setup flow bestaan; na pairing moet de firmware de echte LilyGO device ID gebruiken.
 - ESP slaat exact die token persistent op.
 - Eerste call naar HA `/api/djconnect/command` gebruikt exact die token.
 - Eerste call naar HA `/api/djconnect/status` gebruikt exact die token.
@@ -371,11 +402,12 @@ Geen Spotify credentials, device tokens of andere secrets via BLE.
 ### 9. UI/UX
 
 - Device blijft koppelcode tonen tot HA pairing echt bevestigd is.
+- Gebruik het echte DJConnect icoon uit de overgenomen assets op het device-scherm; geen approximatie met eigen SVG/primitive drawing.
 - Na succesvolle HA direct pair en eerste geaccepteerde HA command/status mag UI naar paired/groen.
 - Backend unavailable mag niet terug naar pairing-code scherm forceren.
 - Pairing stale mag duidelijk tonen: reset/re-pair nodig.
 - Soft reset/reboot moet local cue sound en felle witte LED-ring flash tonen vlak voor reboot.
-- Bonus game Pong mag in UI blijven.
+- Bonus games Pong, Asteroids en Fly mogen in UI blijven.
 - Noem oude broker-gebaseerde routes nergens.
 
 ### 10. Tests
@@ -390,10 +422,12 @@ Voeg/update host tests waar mogelijk:
 - PTT upload bouwt correcte headers en content type.
 - No Spotify OAuth secret keys in status/pair/provision payloads.
 - OTA payload device target `lilygo-t-embed-s3`.
+- DJConnect asset conversie test of snapshot/checksum zodat het firmware asset niet per ongeluk terugvalt naar een oud SpotifyDJ icoon.
 
 ## Acceptatiecriteria
 
 - ESP pairt met HA en blijft paired na de eerste `/api/djconnect/command`.
+- ESP gebruikt uitsluitend `djconnect-lilygo-XXXXXXXXXXXX` als echte device ID en accepteert geen legacy `djconnect-XXXXXXXXXXXX`.
 - ESP wist pairing niet door Spotify OAuth/backend failures.
 - ESP status houdt HA native entities actueel.
 - ESP gebruikt alleen de HA-native lokale API.
@@ -401,4 +435,5 @@ Voeg/update host tests waar mogelijk:
 - ESP stuurt generic playback commands naar HA.
 - ESP PTT uploadt raw WAV naar HA en speelt HA DJ response lokaal af.
 - OTA blijft werken met `djconnect-device-vX.Y.Z.bin` en target `lilygo-t-embed-s3`.
+- Het device gebruikt de echte DJConnect icon assets uit `pcvantol/djconnect` in plaats van een opnieuw getekende benadering.
 - Logs bevatten geen secrets.
