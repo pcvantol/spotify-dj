@@ -19,6 +19,8 @@ Architectuur beslissingen:
 - Huidige firmware gebruikt de lokale ESP API met bearer token voor device-acties.
 - Backend playback loopt via de HA integration en wordt user-facing aangeboden als optionele/native `media_player` proxy; device-instellingen lopen via `POST /api/device/command`.
 - ESP backend playback commands naar `POST /api/djconnect/command` gebruiken losse `set_shuffle` boolean en `set_repeat` met `off`/`track`/`context`; gebruik geen gecombineerde `set_play_mode` flow.
+- HA integration en ESP firmware moeten dezelfde `major.minor` protocolversie hebben: HA `3.0.z` praat alleen met ESP `3.0.z`, HA `3.1.z` alleen met ESP `3.1.z`; patchversies mogen verschillen.
+- Bij major/minor mismatch retourneert HA HTTP `426` met `error: version_mismatch` en HA/firmware metadata; dit is geen pairing-token failure en mag pairing/token niet wissen.
 - ESP uploadt raw WAV audio naar `POST /api/djconnect/voice`; de HA integration doet Assist/STT intern via HA `stt.async_get_speech_to_text_engine(...).async_process_audio_stream` met eerst `stt_engine` uit options, daarna opgeslagen Assist pipeline, HA preferred/default pipeline, eerste pipeline met STT, eerste HA `stt.*` entity of als laatste HA `assist_pipeline.async_pipeline_from_audio_stream`, en geeft tekst plus optionele WAV/MP3 `audio_url` terug.
 - Actieve HA routes gebruiken geen directe externe AI/STT/TTS APIs; gebruik HA Assist en HA TTS.
 - DJ responses spelen op het DJConnect device af, niet via Spotify Connect of HA media_player; HA post `text` plus optionele tijdelijke WAV/MP3 `audio_url` naar `/api/device/dj_response`.
@@ -54,7 +56,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `djconnect`
 - HACS custom integration.
-- Actuele integratieversie: `3.0.3`.
+- Actuele integratieversie: `3.0.4`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -130,6 +132,7 @@ ESP firmware:
 - Device info endpoint: `GET /api/device/info`
 - Status endpoint naar HA: `POST /api/djconnect/status`
 - Voice tekst endpoint naar HA: `POST /api/djconnect/voice`
+- ESP moet `firmware` bij status meesturen en HTTP `426` `version_mismatch` van HA behandelen als update-required/protocolblokkade zonder NVS pairing/token te wissen.
 
 Firmware releases:
 - Build vanuit private repo `djconnect-app`.
@@ -203,3 +206,4 @@ Tests:
   - Config-flow helper/default gedrag.
   - Vertaalcoverage voor config-flow error keys.
   - Diagnostics redaction en legal metadata.
+  - HA/ESP `major.minor` version mismatch geeft HTTP 426 `version_mismatch` en houdt pairing intact.

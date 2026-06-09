@@ -4,7 +4,7 @@ Werk in de bestaande Home Assistant custom integration repo `pcvantol/djconnect`
 
 ## Doel
 
-Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmware contracten voor release `v3.0.3`.
+Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmware contracten voor release `v3.0.4`.
 
 ## 0. Repository / Release Hygiene
 
@@ -12,7 +12,7 @@ Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmwar
 - ESP source repo: `pcvantol/djconnect-app`.
 - Public OTA firmware repo: `pcvantol/djconnect-firmware`.
 - Firmware binaries/manifests must be consumed from `djconnect-firmware`; the ESP source repo is not the OTA asset host.
-- Current HA integration release/tag baseline is `v3.0.3`; do not reference old 2.x firmware assets or tags.
+- Current HA integration release/tag baseline is `v3.0.4`; do not reference old 2.x firmware assets or tags.
 - Current firmware asset naming convention is `djconnect-device-vX.Y.Z.bin`.
 - Current OTA manifest filename is `firmware_manifest.json`.
 - Current OTA manifest `device` target is `lilygo-t-embed-s3`.
@@ -102,6 +102,10 @@ Taken:
 - Publish invalid unknown device values zoals volume `-1` als unavailable/`None`, niet als out-of-range HA state.
 - OTA/update entity moet `ota_state/update_state=idle` plus firmware version verwerken om `updating` te clearen na reboot.
 - Status payloads mogen nooit secrets loggen of in diagnostics tonen.
+- HA en ESP firmware moeten dezelfde `major.minor` protocolversie gebruiken.
+- Patchversies mogen verschillen: HA `3.0.x` accepteert ESP `3.0.y`, maar niet ESP `3.1.y` of `2.9.y`.
+- Als de ESP `firmware` major/minor niet matcht met de HA integration versie, retourneer HTTP `426` met `error:"version_mismatch"` en velden `ha_version`, `ha_major_minor`, `firmware`, `firmware_major_minor`.
+- `version_mismatch` is geen pairing-token failure; wis pairing/token niet.
 
 ## 3. Playback Command Proxy
 
@@ -134,6 +138,7 @@ Commands:
 Response contract:
 
 - Auth/pairing failure: HTTP 401/403/404.
+- Version/protocol mismatch: HTTP 426 met `success:false`, `error:"version_mismatch"` en HA/firmware major.minor metadata.
 - Playback/backend unavailable: HTTP 200 met `success:false`, `backend_available:false`.
 - Nooit HTTP 503 voor normale backend unavailable.
 - `command=status` moet direct na ESP boot snel kunnen antwoorden.
@@ -217,11 +222,11 @@ OTA payload naar ESP:
 
 ```json
 {
-  "version": "3.0.3",
-  "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.3/djconnect-device-v3.0.3.bin",
+  "version": "3.0.4",
+  "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.4/djconnect-device-v3.0.4.bin",
   "sha256": "...",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.3.bin"
+  "asset": "djconnect-device-v3.0.4.bin"
 }
 ```
 
@@ -237,6 +242,7 @@ OTA payload naar ESP:
 - Empty queue/devices/playlists responses do not become HTTP 503.
 - `set_shuffle` and `set_repeat` remain canonical.
 - Legacy `djconnect-XXXXXXXXXXXX` device IDs are rejected.
+- HA/ESP major.minor mismatch returns HTTP 426 `version_mismatch` and keeps pairing intact.
 - Pair payload contains `ha_local_url` and/or `ha_remote_url`, and never `ha_url`.
 - Diagnostics redact keys containing `token`, `password` or `secret` and include legal metadata.
 
@@ -248,10 +254,11 @@ python3 -m unittest discover -s tests
 
 ## 9. Acceptance Criteria
 
-- ESP `v3.0.3` pairs without stale-pairing loops.
+- ESP `v3.0.4` pairs without stale-pairing loops.
 - ESP S indicator updates green/grey/red after reboot without user action.
 - HA entities reflect ESP state after reboot/status post.
 - Backend unavailable keeps HA pairing intact.
+- HA `3.0.z` only talks to ESP `3.0.z`; HA `3.1.z` only talks to ESP `3.1.z`; mismatch returns HTTP 426 without clearing pairing.
 - Backend credentials remain only in Home Assistant.
 - OTA discovers firmware from `pcvantol/djconnect-firmware`.
 - OTA sends target `lilygo-t-embed-s3`, not `djconnect-device`.

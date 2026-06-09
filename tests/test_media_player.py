@@ -76,7 +76,7 @@ class DJConnectMediaPlayerTest(unittest.TestCase):
             device_token="device-token",
             device_status={
                 "device_id": "djconnect-lilygo-90B70990A994",
-                "firmware": "3.0.3",
+                "firmware": "3.0.4",
                 "available_outputs": [{"id": "dev-1", "name": "Living room"}],
             },
             last_error=None,

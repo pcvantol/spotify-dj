@@ -1261,7 +1261,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
                 return {
                     "device_id": "djconnect-lilygo-90B70990A994",
                     "update_state": "idle",
-                    "firmware": "3.0.3",
+                    "firmware": "3.0.4",
                     "settings": {
                         "screen_brightness_percent": 91,
                         "screen_off_timeout_ms": 60000,
@@ -1288,6 +1288,121 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(runtime.device_status["screen_brightness_level"], 88)
         self.assertEqual(runtime.device_status["led_state"], "off")
         self.assertNotIn("device_token", response["payload"])
+
+    def test_status_view_accepts_same_major_minor_firmware(self) -> None:
+        const = importlib.import_module("custom_components.djconnect.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            ota_in_progress = False
+            ota_last_error = None
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def get_current_spotify_credentials(self):
+                return {}
+
+            def device_language(self):
+                return "nl"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
+
+            async def json(self):
+                return {
+                    "device_id": "djconnect-lilygo-90B70990A994",
+                    "firmware": "v3.0.99",
+                }
+
+        response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertEqual(runtime.device_status["firmware"], "v3.0.99")
+
+    def test_status_view_rejects_different_major_minor_firmware(self) -> None:
+        const = importlib.import_module("custom_components.djconnect.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            ota_in_progress = False
+            ota_last_error = None
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def get_current_spotify_credentials(self):
+                return {}
+
+            def device_language(self):
+                return "nl"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
+
+            async def json(self):
+                return {
+                    "device_id": "djconnect-lilygo-90B70990A994",
+                    "firmware": "3.1.0",
+                }
+
+        response = asyncio.run(self.http.DJConnectStatusView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 426)
+        self.assertEqual(response["payload"]["error"], "version_mismatch")
+        self.assertEqual(response["payload"]["ha_major_minor"], "3.0")
+        self.assertEqual(response["payload"]["firmware_major_minor"], "3.1")
+
+    def test_command_view_rejects_known_different_major_minor_firmware(self) -> None:
+        const = importlib.import_module("custom_components.djconnect.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {
+                "device_id": "djconnect-lilygo-90B70990A994",
+                "firmware": "4.0.0",
+            }
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+        runtime = Runtime()
+
+        class Request:
+            headers = {
+                "Authorization": "Bearer device-token",
+                "X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994",
+            }
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
+
+            async def json(self):
+                return {
+                    "device_id": "djconnect-lilygo-90B70990A994",
+                    "command": "status",
+                }
+
+        response = asyncio.run(self.http.DJConnectCommandView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 426)
+        self.assertEqual(response["payload"]["error"], "version_mismatch")
+        self.assertEqual(response["payload"]["firmware"], "4.0.0")
 
     def test_status_view_prefers_current_spotify_credentials(self) -> None:
         const = importlib.import_module("custom_components.djconnect.const")

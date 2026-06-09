@@ -33,6 +33,7 @@ from .const import (
     CONF_SPOTIFY_SCOPES,
     DEFAULT_SPOTIFY_MARKET,
     DEFAULT_SPOTIFY_SCOPES,
+    VERSION,
 )
 from .assist_stt import (
     DJConnectNoSttProviderError,
@@ -266,6 +267,7 @@ ERROR_MESSAGES = {
     "invalid_command": "Send a valid DJConnect command.",
     "backend_unavailable": "The configured playback backend is unavailable.",
     "stale_pairing": "DJConnect pairing is stale. Pair the device again.",
+    "version_mismatch": "DJConnect Home Assistant integration and device firmware major.minor versions must match.",
 }
 DJ_FAILURE_TEXTS = {
     "assist": {
@@ -319,6 +321,59 @@ def _json_error(
         },
         status_code=status_code,
     )
+
+
+def _major_minor(version: Any) -> str | None:
+    match = re.search(r"(\d+)\.(\d+)(?:\.\d+)?", str(version or ""))
+    if not match:
+        return None
+    return f"{match.group(1)}.{match.group(2)}"
+
+
+def _versions_compatible(ha_version: Any, firmware_version: Any) -> bool:
+    ha_major_minor = _major_minor(ha_version)
+    firmware_major_minor = _major_minor(firmware_version)
+    return bool(
+        ha_major_minor
+        and firmware_major_minor
+        and ha_major_minor == firmware_major_minor
+    )
+
+
+def _version_mismatch_response(view: HomeAssistantView, firmware_version: Any):
+    ha_major_minor = _major_minor(VERSION)
+    firmware_major_minor = _major_minor(firmware_version)
+    return view.json(
+        {
+            "success": False,
+            "error": "version_mismatch",
+            "message": (
+                "DJConnect Home Assistant integration and device firmware "
+                "major.minor versions must match."
+            ),
+            "ha_version": VERSION,
+            "ha_major_minor": ha_major_minor,
+            "firmware": firmware_version,
+            "firmware_major_minor": firmware_major_minor,
+        },
+        status_code=426,
+    )
+
+
+def _runtime_firmware_version(runtime: Any) -> Any:
+    status = getattr(runtime, "device_status", {}) or {}
+    return status.get("firmware") or status.get("firmware_version")
+
+
+def _runtime_versions_compatible(runtime: Any) -> bool:
+    firmware_version = _runtime_firmware_version(runtime)
+    if not firmware_version:
+        return True
+    return _versions_compatible(VERSION, firmware_version)
+
+
+def _runtime_version_mismatch_response(view: HomeAssistantView, runtime: Any):
+    return _version_mismatch_response(view, _runtime_firmware_version(runtime))
 
 
 def _missing_text_response(view: HomeAssistantView):
@@ -616,6 +671,14 @@ class DJConnectStatusView(HomeAssistantView):
             return _json_error(self, "unauthorized", 401)
         status_update = _normalized_status_payload(data)
         runtime.device_status.update(status_update)
+        if not _runtime_versions_compatible(runtime):
+            runtime.update(
+                last_error=(
+                    "DJConnect version mismatch: HA "
+                    f"{VERSION}, firmware {_runtime_firmware_version(runtime)}"
+                )
+            )
+            return _runtime_version_mismatch_response(self, runtime)
         if data.get("device_id") and runtime.device_token:
             _persist_paired_device(
                 hass,
@@ -676,6 +739,8 @@ class DJConnectCommandView(HomeAssistantView):
             return _json_error(self, "not_configured", 503)
         if not runtime.authorize_device_request(request.headers, data.get("device_id")):
             return _json_error(self, "unauthorized", 401)
+        if not _runtime_versions_compatible(runtime):
+            return _runtime_version_mismatch_response(self, runtime)
         header_device = request.headers.get("X-DJConnect-Device-ID")
         real_device_id = data.get("device_id") or header_device
         if real_device_id and getattr(runtime, "device_token", None):
@@ -752,6 +817,8 @@ class DJConnectEventView(HomeAssistantView):
             return _json_error(self, "invalid_json", 400)
         if not runtime.authorize_device_request(request.headers, data.get("device_id")):
             return _json_error(self, "unauthorized", 401)
+        if not _runtime_versions_compatible(runtime):
+            return _runtime_version_mismatch_response(self, runtime)
         event_type = data.get("type") or data.get("event")
         runtime.device_status["last_event"] = data
         runtime.update(last_error=None)
@@ -777,6 +844,8 @@ class DJConnectVoiceView(HomeAssistantView):
             return _json_error(self, "not_configured", 503)
         if not runtime.authorize_device_request(request.headers, device_id):
             return _json_error(self, "unauthorized", 401)
+        if not _runtime_versions_compatible(runtime):
+            return _runtime_version_mismatch_response(self, runtime)
         if getattr(runtime, "device_token", None):
             _persist_paired_device(
                 hass,

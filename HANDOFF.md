@@ -4,14 +4,15 @@
 
 - Repository: `pcvantol/djconnect`.
 - Integration domain: `djconnect`.
-- Current integration release: `3.0.3`.
-- Release status: DJConnect `3.0.3` is published as the latest GitHub release.
+- Current integration release: `3.0.4`.
+- Release status: DJConnect `3.0.4` is published as the latest GitHub release.
 - Home Assistant integration is HACS-distributed and MIT-licensed.
 - ESP firmware source remains proprietary in `pcvantol/djconnect-app`.
 - Public firmware release assets live in `pcvantol/djconnect-firmware`.
 - Current firmware uses the local ESP API with bearer-token auth and generic playback commands.
 - ESP no longer stores Spotify OAuth/client_id/refresh_token or other playback-backend credentials.
 - HA integration is the trusted backend for pairing, Spotify OAuth/backend playback, Assist/STT/TTS, OTA and native entities.
+- HA integration and ESP firmware must share the same `major.minor` protocol version; patch versions may differ.
 - Lightweight tests live in `tests/` and currently pass with `python3 -m unittest discover -s tests`.
 
 ## Architecture
@@ -64,6 +65,12 @@ All protected ESP -> HA routes use:
 - `Authorization: Bearer <device_token>`
 - `X-DJConnect-Device-ID: djconnect-lilygo-XXXXXXXXXXXX`
 
+Version contract:
+
+- HA `3.0.z` accepts ESP `3.0.z`; HA `3.1.z` accepts ESP `3.1.z`.
+- A different ESP `major.minor` returns HTTP `426` with `error: version_mismatch`.
+- `version_mismatch` is a protocol/update requirement, not a stale pairing-token state; do not clear pairing because of it.
+
 ### HA -> ESP
 
 - `GET /api/device/info`
@@ -99,6 +106,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - At least one of `ha_local_url` or `ha_remote_url` must be present. ESP should try `ha_local_url` first and use `ha_remote_url` as cloud fallback.
 - HA may call `POST /api/device/pair` only for initial pairing, explicit re-pair/token rotation or stale-pairing recovery. Startup with a stored token, normal status sync, playback commands and settings sync must not call it.
 - Setup-code pairing can start with a temporary six-digit identity, but HA must learn and persist only the real `djconnect-lilygo-XXXXXXXXXXXX` ID from the first authenticated ESP call. Legacy `djconnect-XXXXXXXXXXXX` IDs are not accepted.
+- HA and ESP firmware compatibility is strict on `major.minor`: patch versions may differ, but `3.0.z` must not talk to `3.1.z`. HA returns HTTP `426` `version_mismatch` with HA/firmware metadata and keeps pairing intact.
 - ESP status payloads can report device settings as top-level fields or nested `settings`, `screen` and `led` objects; HA flattens those aliases for native entities.
 - HA pairing status is `pending` until ESP confirms `ha_pairing_status=paired`; a locally stored token alone is not enough.
 - `POST /api/djconnect/command` should return JSON and avoid 503 loops for Spotify auth failures; report backend unavailable without causing ESP to clear pairing.
@@ -117,7 +125,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 
 ## Current Release Notes
 
-- `3.0.3` uses the dark DJConnect SVG banner in the README so GitHub and HACS do not show the old white PNG canvas.
+- `3.0.4` uses the dark DJConnect SVG banner in the README so GitHub and HACS do not show the old white PNG canvas.
 - Product website hero was refreshed with a landscape LilyGO-style device, rectangular screen, DJConnect icon on screen, right-side volume dial, purple LEDs and no text/device overlap.
 - Product website now calls out personal voice based DJ responses and bonus games: Pong, Asteroids and Fly.
 - Repository, integration assets, examples, website copy and user-facing documentation are aligned with DJConnect.
@@ -128,6 +136,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - Pairing/provisioning logs include exception class/repr for empty-message failures.
 - Status response includes cached playback where available.
 - Backend playback auth failures are returned as user-friendly JSON without forcing ESP pairing reset.
+- HA now blocks ESP calls with HTTP `426` `version_mismatch` when HA and ESP firmware `major.minor` differ, while preserving pairing/token state.
 - Device number entities accept common firmware status aliases and unit conversions.
 
 ## Known Issues / Field Checks
@@ -137,6 +146,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - Confirm Nabu Casa/external URL is correctly detected or manually editable before OAuth.
 - Confirm ESP remains paired after first `/api/djconnect/command` following direct pairing.
 - Confirm ESP does not clear pairing when Spotify backend is temporarily unavailable.
+- Confirm ESP shows update-required state and keeps pairing intact after HA returns `426 version_mismatch`.
 - Confirm ESP status payload includes top-level or nested device settings so HA brightness/theme/log-level/speaker-volume entities do not remain unknown/minimum.
 - Confirm physical PTT with selected HA STT provider returns recognized text.
 - Confirm HA TTS returns WAV/MP3 or falls back to text-only without crashing.
@@ -144,7 +154,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 
 ## Next Tasks
 
-1. Install `3.0.3` via HACS and restart Home Assistant.
+1. Install `3.0.4` via HACS and restart Home Assistant.
 2. Verify the README/HACS banner and product website hero render as intended.
 3. Push the ESP-side DJConnect rename in `pcvantol/djconnect-app`.
 4. Test Repair flow for revoked Spotify token.

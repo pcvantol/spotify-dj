@@ -4,7 +4,7 @@ Werk in de bestaande proprietary ESP firmware repo `pcvantol/djconnect-app`.
 
 ## Doel
 
-Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.3`.
+Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.4`.
 
 De HA integration is de trusted backend voor:
 
@@ -39,6 +39,8 @@ De ESP blijft eigenaar van:
 - Pairing/status/voice/command auth gebruikt alleen het device bearer token.
 - Device ID format voor actuele firmware is `djconnect-lilygo-XXXXXXXXXXXX`.
 - Accepteer geen legacy `djconnect-XXXXXXXXXXXX` device IDs en bouw geen compatibility fallback voor dat oude formaat.
+- HA integration en ESP firmware moeten dezelfde `major.minor` protocolversie gebruiken: HA `3.0.z` praat alleen met ESP `3.0.z`, HA `3.1.z` alleen met ESP `3.1.z`.
+- Patchversies mogen verschillen; major/minor mismatch is een protocolblokkade, geen pairing-token failure.
 - Alle user-facing tekst, filenames, namespaces, logs en provisioning labels gebruiken `DJConnect` / `djconnect`; nergens meer `SpotifyDJ`, `spotifydj` of `spotify_dj`.
 - NVS taal key blijft `provision.language`.
 - NVS namespace is `djconnect`.
@@ -139,6 +141,7 @@ Controleer en fix:
   - 404 met duidelijke stale pairing betekenis.
 - 200 JSON met `success:false` en `backend_unavailable` betekent niet pairing wissen.
 - 503 backend unavailable mag bij voorkeur ook niet direct NVS pairing wissen; toon pairing degraded/backend unavailable.
+- HTTP 426 met JSON `error:"version_mismatch"` betekent HA/ESP major.minor mismatch; wis pairing niet, maar toon duidelijke firmware/integration update melding.
 
 Veilige logs:
 
@@ -204,6 +207,15 @@ Gebruik aliases waar makkelijk, want de HA integration accepteert meerdere namen
 - `language`;
 - `theme`;
 - `log_level`.
+
+Versiecontract:
+
+- Stuur `firmware` bij elke boot/status post.
+- Firmwareversie moet semver-achtig zijn, bijvoorbeeld `3.0.4` of `v3.0.4`.
+- Als HA `/api/djconnect/status`, `/api/djconnect/command`, `/api/djconnect/voice` of `/api/djconnect/event` HTTP `426` teruggeeft met `error:"version_mismatch"`, stop verdere command/voice retries totdat de gebruiker firmware of HA integration heeft bijgewerkt.
+- Gebruik responsevelden `ha_version`, `ha_major_minor`, `firmware` en `firmware_major_minor` voor UI/logs.
+- Toon iets als: `Update DJConnect firmware/integration: HA 3.1.x requires firmware 3.1.x`.
+- Behandel dit niet als auth failure en wis geen NVS pairing/token.
 
 ### 3. Generic playback command API naar HA
 
@@ -271,6 +283,28 @@ Backend unavailable/auth failure:
   "playback": {}
 }
 ```
+
+Version mismatch:
+
+```json
+{
+  "success": false,
+  "error": "version_mismatch",
+  "message": "DJConnect Home Assistant integration and device firmware major.minor versions must match.",
+  "ha_version": "3.1.0",
+  "ha_major_minor": "3.1",
+  "firmware": "3.0.4",
+  "firmware_major_minor": "3.0"
+}
+```
+
+ESP gedrag bij version mismatch:
+
+- Niet opnieuw pairen.
+- Token/NVS behouden.
+- Command/voice retries pauzeren of sterk throttlen.
+- Status mag periodiek blijven melden zodat HA ziet wanneer firmwareversie na OTA wel matcht.
+- UI/LED status mag `update required` of vergelijkbaar tonen.
 
 Belangrijk:
 
@@ -417,6 +451,7 @@ Voeg/update host tests waar mogelijk:
 - Pairing token opgeslagen en hergebruikt voor `/status`, `/command`, `/voice`.
 - Backend unavailable response wist pairing niet.
 - 401/403/404 markeert pairing stale maar wist NVS niet automatisch.
+- 426 `version_mismatch` wist pairing niet en toont update-required state.
 - Status payload bevat settings aliases.
 - Device command parsing voor brightness/speaker/language/theme/log_level.
 - PTT upload bouwt correcte headers en content type.
@@ -428,6 +463,7 @@ Voeg/update host tests waar mogelijk:
 
 - ESP pairt met HA en blijft paired na de eerste `/api/djconnect/command`.
 - ESP gebruikt uitsluitend `djconnect-lilygo-XXXXXXXXXXXX` als echte device ID en accepteert geen legacy `djconnect-XXXXXXXXXXXX`.
+- ESP stuurt firmwareversie bij status en behandelt HA `426 version_mismatch` als major/minor protocolblokkade zonder pairing/token te wissen.
 - ESP wist pairing niet door Spotify OAuth/backend failures.
 - ESP status houdt HA native entities actueel.
 - ESP gebruikt alleen de HA-native lokale API.
