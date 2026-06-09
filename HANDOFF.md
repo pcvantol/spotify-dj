@@ -4,8 +4,8 @@
 
 - Repository: `pcvantol/djconnect`.
 - Integration domain: `djconnect`.
-- Current integration release: `3.0.16`.
-- Release status: DJConnect `3.0.16` is the current release target.
+- Current integration release: `3.0.17`.
+- Release status: DJConnect `3.0.17` is the current release target.
 - Home Assistant integration is HACS-distributed and MIT-licensed.
 - ESP firmware source remains proprietary in `pcvantol/djconnect-app`.
 - Public firmware release assets live in `pcvantol/djconnect-firmware`.
@@ -129,6 +129,9 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - Strict current ESP device identity is `djconnect-lilygo-XXXXXXXXXXXX`; legacy `djconnect-XXXXXXXXXXXX` IDs are not accepted.
 - HA blocks ESP calls with HTTP `426` `version_mismatch` when HA and ESP firmware `major.minor` differ, while preserving pairing/token state.
 - ESP status payloads are merged as partial updates, so sparse heartbeat/status posts do not clear known HA sensor values.
+- `/api/djconnect/status` is the only authoritative ESP device-status source. Command, voice, backend playback and local ESP info/command refreshes must never replace the full cached sensor snapshot with empty/unknown values.
+- Local ESP `/api/device/command` responses and `/api/device/info` refreshes are merge-only and preserve cached firmware, battery, RSSI, screen/LED, sound output, volume, last track and `ha_pairing_status` when fields are missing or empty.
+- Empty Spotify playback snapshots may update backend/playback state, but must not clear cached device sensor fields such as `sound_output`, `volume`, `last_track` or pairing status.
 - Command and voice payloads are never authoritative device-status sources; they must not clear sensor values or move `ha_pairing_status` back to `pending` when fields are absent.
 - ESP status must include `client_type=esp32`; missing client type is surfaced as a visible HA status error.
 - Native HA entities include backend playback proxy, queue/up-next, output list, output select, firmware OTA, device settings and test/refresh buttons under one HA device.
@@ -164,13 +167,14 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 2. Verify the README/HACS banner and product website hero render as intended.
 3. Verify `button.djconnect_refresh_up_next` updates `sensor.djconnect_queue` attributes.
 4. Verify `select.djconnect_sound_output` populates Spotify outputs without manually calling `devices`.
-5. Test Repair flow for revoked Spotify token.
-6. Test options-flow Spotify reauthorize action.
-7. Pair a device from scratch and verify token synchronization with `ha_local_url` / `ha_remote_url`.
-8. Verify ESP `/status` includes current settings aliases consumed by HA.
-9. Run physical PTT end-to-end.
-10. Verify native playback proxy media player controls Spotify backend playback and shows album art.
-11. Verify no Spotify OAuth secrets are sent to ESP or logged.
+5. Verify sensors keep last-known values after ESP status, playback command polling, voice tests and local device-info refreshes.
+6. Test Repair flow for revoked Spotify token.
+7. Test options-flow Spotify reauthorize action.
+8. Pair a device from scratch and verify token synchronization with `ha_local_url` / `ha_remote_url`.
+9. Verify ESP `/status` includes current settings aliases consumed by HA.
+10. Run physical PTT end-to-end.
+11. Verify native playback proxy media player controls Spotify backend playback and shows album art.
+12. Verify no Spotify OAuth secrets are sent to ESP or logged.
 
 ## Validation Commands
 
