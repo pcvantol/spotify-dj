@@ -7,9 +7,9 @@ Usage:
   ./release.sh <version> [--dry-run]
 
 Examples:
-  ./release.sh 3.0.0
-  ./release.sh v3.0.0
-  ./release.sh 3.0.0 --dry-run
+  ./release.sh 3.0.1
+  ./release.sh v3.0.1
+  ./release.sh 3.0.1 --dry-run
 
 The script stages all changes, commits, tags, pushes main and the tag, and
 creates a GitHub release from CHANGELOG.md. It also updates the integration
@@ -35,7 +35,7 @@ if [[ $# -eq 2 ]]; then
 fi
 
 if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "Invalid version: $1. Use semantic version format, for example 3.0.0." >&2
+  echo "Invalid version: $1. Use semantic version format, for example 3.0.1." >&2
   exit 64
 fi
 

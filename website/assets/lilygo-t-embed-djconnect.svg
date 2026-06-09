@@ -1,42 +1,79 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 980" role="img" aria-labelledby="title desc">
-  <title id="title">DJConnect device illustration based on LilyGO T-Embed form factor</title>
-  <desc id="desc">A stylized black handheld DJConnect remote with screen, rotary control and purple-blue LED ring.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 560" role="img" aria-labelledby="title desc">
+  <title id="title">DJConnect landscape device illustration based on LilyGO T-Embed form factor</title>
+  <desc id="desc">A stylized landscape DJConnect remote with display on the left and encoder controls on the right.</desc>
   <defs>
-    <radialGradient id="glow" cx="50%" cy="45%" r="60%">
-      <stop offset="0%" stop-color="#1ed760" stop-opacity="0.42"/>
-      <stop offset="60%" stop-color="#38bdf8" stop-opacity="0.13"/>
+    <radialGradient id="glow" cx="52%" cy="48%" r="62%">
+      <stop offset="0%" stop-color="#1ed760" stop-opacity="0.34"/>
+      <stop offset="58%" stop-color="#38bdf8" stop-opacity="0.13"/>
       <stop offset="100%" stop-color="#000" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="body" x1="15%" x2="86%" y1="7%" y2="95%">
-      <stop offset="0%" stop-color="#283241"/>
-      <stop offset="48%" stop-color="#111827"/>
+    <linearGradient id="body" x1="10%" x2="94%" y1="8%" y2="92%">
+      <stop offset="0%" stop-color="#2c3546"/>
+      <stop offset="46%" stop-color="#111827"/>
       <stop offset="100%" stop-color="#030407"/>
     </linearGradient>
     <linearGradient id="screen" x1="0%" x2="100%" y1="0%" y2="100%">
       <stop offset="0%" stop-color="#182233"/>
-      <stop offset="60%" stop-color="#070b12"/>
+      <stop offset="62%" stop-color="#070b12"/>
       <stop offset="100%" stop-color="#050608"/>
     </linearGradient>
-    <filter id="shadow" x="-30%" y="-20%" width="160%" height="150%">
-      <feDropShadow dx="0" dy="42" stdDeviation="38" flood-color="#000" flood-opacity="0.55"/>
+    <linearGradient id="iconAccent" x1="170" y1="154" x2="406" y2="376" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#66e0ff"/>
+      <stop offset="50%" stop-color="#7b5cff"/>
+      <stop offset="100%" stop-color="#db5cff"/>
+    </linearGradient>
+    <radialGradient id="iconVinyl" cx="42%" cy="30%" r="74%">
+      <stop offset="0%" stop-color="#343047"/>
+      <stop offset="48%" stop-color="#13111d"/>
+      <stop offset="100%" stop-color="#030207"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="34" stdDeviation="32" flood-color="#000" flood-opacity="0.55"/>
     </filter>
-    <filter id="greenGlow" x="-40%" y="-40%" width="180%" height="180%">
-      <feDropShadow dx="0" dy="0" stdDeviation="18" flood-color="#1ed760" flood-opacity="0.65"/>
+    <filter id="greenGlow" x="-45%" y="-45%" width="190%" height="190%">
+      <feDropShadow dx="0" dy="0" stdDeviation="18" flood-color="#1ed760" flood-opacity="0.68"/>
     </filter>
+    <filter id="purpleGlow" x="-45%" y="-45%" width="190%" height="190%">
+      <feDropShadow dx="0" dy="0" stdDeviation="14" flood-color="#c084fc" flood-opacity="0.78"/>
+    </filter>
+    <clipPath id="screenClip">
+      <rect x="96" y="154" width="484" height="252" rx="34"/>
+    </clipPath>
   </defs>
-  <rect width="900" height="980" fill="url(#glow)"/>
+  <rect width="980" height="560" fill="url(#glow)"/>
   <g filter="url(#shadow)">
-    <rect x="245" y="70" width="410" height="840" rx="58" fill="url(#body)" stroke="rgba(255,255,255,0.22)" stroke-width="3"/>
-    <rect x="286" y="116" width="328" height="326" rx="34" fill="url(#screen)" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
-    <circle cx="450" cy="280" r="78" fill="none" stroke="#1ed760" stroke-width="16" stroke-linecap="round" stroke-dasharray="330 80" filter="url(#greenGlow)"/>
-    <circle cx="450" cy="280" r="42" fill="#0b0d12" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-    <text x="450" y="205" text-anchor="middle" fill="#b7bccb" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700">DJConnect</text>
-    <text x="450" y="505" text-anchor="middle" fill="#f7f7fb" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800">Push to talk</text>
-    <circle cx="450" cy="642" r="128" fill="#0a0d13" stroke="#1ed760" stroke-width="22" filter="url(#greenGlow)"/>
-    <circle cx="450" cy="642" r="58" fill="#151b26" stroke="rgba(255,255,255,0.20)" stroke-width="3"/>
-    <polygon points="431,609 431,675 484,642" fill="#1ed760"/>
-    <circle cx="333" cy="792" r="21" fill="#1f2937" stroke="rgba(255,255,255,0.18)"/>
-    <circle cx="450" cy="810" r="25" fill="#1f2937" stroke="rgba(255,255,255,0.18)"/>
-    <circle cx="567" cy="792" r="21" fill="#1f2937" stroke="rgba(255,255,255,0.18)"/>
+    <rect x="40" y="92" width="900" height="376" rx="104" fill="url(#body)" stroke="rgba(255,255,255,0.22)" stroke-width="3"/>
+    <rect x="96" y="154" width="484" height="252" rx="34" fill="url(#screen)" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
+
+    <g clip-path="url(#screenClip)">
+      <g filter="url(#greenGlow)">
+        <path d="M170 294c-15-39-8-90 25-120 34-30 86-34 122-7 33 25 44 73 28 110" fill="none" stroke="url(#iconAccent)" stroke-width="7" stroke-linecap="round"/>
+        <circle cx="220" cy="255" r="50" fill="url(#iconVinyl)"/>
+        <circle cx="220" cy="255" r="16" fill="#151023" stroke="url(#iconAccent)" stroke-width="5"/>
+        <path d="M272 206c11-6 25 2 25 14 0 11-11 19-21 16-9 32-19 60-40 81-9 9-19 16-28 19" fill="none" stroke="#dbe6ff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="281" cy="220" r="13" fill="#131522" stroke="url(#iconAccent)" stroke-width="4"/>
+        <text x="174" y="319" fill="#f7f9ff" stroke="url(#iconAccent)" stroke-width="4" stroke-linejoin="round" font-family="Avenir Next, Arial Black, Impact, sans-serif" font-style="italic" font-weight="900" font-size="62" letter-spacing="-6">DJ</text>
+      </g>
+
+      <text x="430" y="230" text-anchor="middle" fill="#f7f7fb" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="900">DJConnect</text>
+      <text x="430" y="276" text-anchor="middle" fill="#9de8ff" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" letter-spacing="2">PUSH TO TALK</text>
+      <text x="430" y="322" text-anchor="middle" fill="#b7bccb" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700">Vraag muziek. Krijg DJ response.</text>
+    </g>
+
+    <circle cx="776" cy="280" r="106" fill="#0a0d13" stroke="rgba(255,255,255,0.16)" stroke-width="4"/>
+    <g fill="#c084fc" stroke="#f0abfc" stroke-width="2" filter="url(#purpleGlow)">
+      <circle cx="776" cy="146" r="9"/>
+      <circle cx="871" cy="185" r="9"/>
+      <circle cx="910" cy="280" r="9"/>
+      <circle cx="871" cy="375" r="9"/>
+      <circle cx="776" cy="414" r="9"/>
+      <circle cx="681" cy="375" r="9"/>
+      <circle cx="642" cy="280" r="9"/>
+      <circle cx="681" cy="185" r="9"/>
+    </g>
+    <circle cx="776" cy="280" r="78" fill="#05060a" stroke="#090b11" stroke-width="10"/>
+    <circle cx="776" cy="280" r="58" fill="#020308" stroke="rgba(255,255,255,0.22)" stroke-width="3"/>
+    <circle cx="776" cy="280" r="30" fill="#0d111b" stroke="rgba(255,255,255,0.16)" stroke-width="2"/>
+    <path d="M776 224v22" stroke="#c084fc" stroke-width="7" stroke-linecap="round" filter="url(#purpleGlow)"/>
   </g>
 </svg>

@@ -1,7 +1,7 @@
 # DJConnect
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/pcvantol/djconnect/main/assets/djconnect/djconnect-logo-512x256.png" alt="DJConnect" width="420">
+  <img src="https://raw.githubusercontent.com/pcvantol/djconnect/main/assets/djconnect/djconnect-logo.svg" alt="DJConnect" width="760">
 </p>
 
 DJConnect is a Home Assistant custom integration for a DJConnect device.
@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.0.0`
+- Home Assistant integration: `3.0.1`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -470,12 +470,12 @@ Example manifest:
 
 ```json
 {
-  "version": "3.0.0",
+  "version": "3.0.1",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.0.bin",
+  "asset": "djconnect-device-v3.0.1.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "3.0.0"
+  "min_ha_integration": "3.0.1"
 }
 ```
 
@@ -490,7 +490,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.0.0
+./release.sh 3.0.1
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -501,14 +501,14 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.0.0 --dry-run
+./release.sh 3.0.1 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
 public-repo option if available:
 
 ```bash
-./release.sh 3.0.0 --publish-firmware-repo ../djconnect-firmware
+./release.sh 3.0.1 --publish-firmware-repo ../djconnect-firmware
 ```
 
 The public `djconnect-firmware` repository should contain only the release
@@ -543,7 +543,7 @@ Tag and publish:
 One-liner:
 
 ```bash
-./release.sh 3.0.0
+./release.sh 3.0.1
 ```
 
 The script updates the integration version in `manifest.json`, `const.py`,
@@ -552,18 +552,18 @@ The script updates the integration version in `manifest.json`, `const.py`,
 Preview without executing git/gh commands:
 
 ```bash
-./release.sh 3.0.0 --dry-run
+./release.sh 3.0.1 --dry-run
 ```
 
 Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.0.0"
-git tag v3.0.0
+git commit -m "Release DJConnect v3.0.1"
+git tag v3.0.1
 git push origin main
-git push origin v3.0.0
-gh release create v3.0.0 --title "DJConnect v3.0.0" --notes-file CHANGELOG.md
+git push origin v3.0.1
+gh release create v3.0.1 --title "DJConnect v3.0.1" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

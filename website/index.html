@@ -228,10 +228,11 @@
     .device-img {
       position: absolute;
       left: 50%;
-      top: 52%;
-      width: min(88%, 470px);
+      top: 56%;
+      width: clamp(500px, 84%, 900px);
       transform: translate(-50%, -50%);
       filter: drop-shadow(0 36px 70px rgba(0, 0, 0, 0.42));
+      z-index: 2;
     }
 
     .screen {
@@ -288,6 +289,8 @@
 
     .floating {
       position: absolute;
+      z-index: 3;
+      width: clamp(168px, 27%, 300px);
       border: 1px solid var(--line);
       background: rgba(0,0,0,0.3);
       backdrop-filter: blur(16px);
@@ -299,9 +302,9 @@
     }
 
     .floating strong { color: var(--text); display: block; }
-    .f1 { left: 24px; top: 32px; }
-    .f2 { right: 22px; top: 154px; }
-    .f3 { left: 28px; bottom: 38px; }
+    .f1 { left: 32px; top: 38px; }
+    .f2 { right: 32px; top: 38px; }
+    .f3 { left: 32px; bottom: 42px; }
 
     section { padding: 72px 0; }
 
@@ -497,6 +500,8 @@
         transform: translateX(50%);
       }
       .device-card { min-height: 520px; }
+      .floating { width: clamp(150px, 29%, 240px); }
+      .device-img { width: clamp(430px, 88%, 760px); }
       .nav-links { display: none; }
     }
 
@@ -580,9 +585,14 @@
             <p>Druk op de knop, spreek je verzoek in en DJConnect helpt je muziek starten.</p>
           </article>
           <article class="card">
+            <div class="icon">🎧</div>
+            <h3>Persoonlijke DJ response</h3>
+            <p>Je krijgt een korte voice based DJ response terug op het device, afgestemd op je verzoek en muziek.</p>
+          </article>
+          <article class="card">
             <div class="icon">🏓</div>
-            <h3>Bonus game: Pong</h3>
-            <p>Even geen muziek kiezen? De firmware bevat ook een kleine Pong game op het device.</p>
+            <h3>Bonus games</h3>
+            <p>Even geen muziek kiezen? De firmware bevat ook kleine games zoals Pong, Asteroids en Fly op het device.</p>
           </article>
         </div>
       </div>
