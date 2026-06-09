@@ -55,6 +55,28 @@ class SpotifyBackendTest(unittest.TestCase):
     def setUp(self) -> None:
         self.issues.clear()
 
+    def test_normalize_playback_exposes_best_album_art_for_media_player(self) -> None:
+        playback = self.backend._normalize_playback(
+            {
+                "is_playing": True,
+                "item": {
+                    "name": "Song",
+                    "artists": [{"name": "Artist"}],
+                    "album": {
+                        "name": "Album",
+                        "images": [
+                            {"url": "https://example.test/small.jpg", "width": 64, "height": 64},
+                            {"url": "https://example.test/large.jpg", "width": 640, "height": 640},
+                        ],
+                    },
+                },
+                "device": {"name": "iPhone", "volume_percent": 30},
+            }
+        )
+
+        self.assertEqual(playback["album_image_url"], "https://example.test/large.jpg")
+        self.assertEqual(playback["media_image_url"], "https://example.test/large.jpg")
+
     def test_invalid_grant_creates_reauth_issue_and_friendly_error(self) -> None:
         async def revoked(*args, **kwargs):
             raise self.oauth.SpotifyTokenRefreshError(

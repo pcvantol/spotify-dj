@@ -1247,6 +1247,9 @@ class VoiceHttpHelperTest(unittest.TestCase):
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
 
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
         runtime = Runtime()
 
         class Request:
@@ -1261,6 +1264,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["status_code"], 400)
         self.assertEqual(response["payload"]["error"], "invalid_client_type")
         self.assertIn("client_type", response["payload"]["message"])
+        self.assertIn("client_type=esp32", runtime.last_update["last_error"])
 
     def test_status_view_accepts_lilygo_device_id_and_flattens_device_settings(self) -> None:
         const = importlib.import_module("custom_components.djconnect.const")

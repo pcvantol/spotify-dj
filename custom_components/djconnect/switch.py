@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
@@ -10,6 +11,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .spotify_backend import handle_spotify_command
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -61,6 +64,13 @@ class DJConnectShuffleSwitch(SwitchEntity):
         await handle_spotify_command(self.hass, self.runtime, "set_shuffle", enabled)
         self.runtime.device_status["shuffle"] = enabled
         self.runtime.update()
+        await self._refresh_device_display()
+
+    async def _refresh_device_display(self) -> None:
+        try:
+            await self.runtime.async_device_command(self.hass, "status")
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.debug("DJConnect device display refresh failed: %s", exc)
 
     @callback
     def _handle_runtime_update(self) -> None:

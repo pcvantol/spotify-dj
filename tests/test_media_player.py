@@ -13,27 +13,36 @@ def install_media_player_stubs() -> None:
         "homeassistant.components",
         types.ModuleType("homeassistant.components"),
     )
+    http_component = types.ModuleType("homeassistant.components.http")
     media_player = types.ModuleType("homeassistant.components.media_player")
     media_player_const = types.ModuleType("homeassistant.components.media_player.const")
     config_entries = types.ModuleType("homeassistant.config_entries")
     const = types.ModuleType("homeassistant.const")
     core = types.ModuleType("homeassistant.core")
+    aiohttp = sys.modules.setdefault("aiohttp", types.ModuleType("aiohttp"))
     helpers = sys.modules.setdefault("homeassistant.helpers", types.ModuleType("homeassistant.helpers"))
+    aiohttp_client = types.ModuleType("homeassistant.helpers.aiohttp_client")
     device_registry = types.ModuleType("homeassistant.helpers.device_registry")
     entity_platform = types.ModuleType("homeassistant.helpers.entity_platform")
+    helpers_typing = types.ModuleType("homeassistant.helpers.typing")
 
     class MediaPlayerEntity:
         def async_write_ha_state(self):
             self.wrote_state = True
 
+    class HomeAssistantView:
+        def json(self, payload, status_code=200):
+            return {"status_code": status_code, "payload": payload}
+
     class Feature:
         PLAY = 1
         PAUSE = 2
-        NEXT_TRACK = 4
-        PREVIOUS_TRACK = 8
-        VOLUME_SET = 16
-        SELECT_SOURCE = 32
-        PLAY_MEDIA = 64
+        PLAY_PAUSE = 4
+        NEXT_TRACK = 8
+        PREVIOUS_TRACK = 16
+        VOLUME_SET = 32
+        SELECT_SOURCE = 64
+        PLAY_MEDIA = 128
 
     class State:
         PLAYING = "playing"
@@ -41,27 +50,44 @@ def install_media_player_stubs() -> None:
         IDLE = "idle"
         UNAVAILABLE = "unavailable"
 
+    class ClientTimeout:
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+
+    aiohttp.ClientTimeout = ClientTimeout
+    aiohttp.web = types.SimpleNamespace(Response=object)
+    http_component.HomeAssistantView = HomeAssistantView
     media_player.MediaPlayerEntity = MediaPlayerEntity
     media_player.MediaPlayerEntityFeature = Feature
     media_player_const.MediaPlayerState = State
     config_entries.ConfigEntry = object
     const.PERCENTAGE = "%"
     core.HomeAssistant = object
+    core.ServiceCall = object
     core.callback = lambda func: func
+    aiohttp_client.async_get_clientsession = lambda hass: None
     device_registry.DeviceInfo = dict
     entity_platform.AddEntitiesCallback = object
+    helpers_typing.ConfigType = dict
     components.media_player = media_player
+    components.http = http_component
+    helpers.aiohttp_client = aiohttp_client
     helpers.device_registry = device_registry
     helpers.entity_platform = entity_platform
+    helpers.typing = helpers_typing
     ha.components = components
 
+    sys.modules["homeassistant.components.http"] = http_component
     sys.modules["homeassistant.components.media_player"] = media_player
     sys.modules["homeassistant.components.media_player.const"] = media_player_const
     sys.modules["homeassistant.config_entries"] = config_entries
     sys.modules["homeassistant.const"] = const
     sys.modules["homeassistant.core"] = core
+    sys.modules["homeassistant.helpers.aiohttp_client"] = aiohttp_client
     sys.modules["homeassistant.helpers.device_registry"] = device_registry
     sys.modules["homeassistant.helpers.entity_platform"] = entity_platform
+    sys.modules["homeassistant.helpers.typing"] = helpers_typing
 
 
 class DJConnectMediaPlayerTest(unittest.TestCase):
@@ -99,6 +125,7 @@ class DJConnectMediaPlayerTest(unittest.TestCase):
         self.assertEqual(entity.media_artist, "Pearl Jam")
         self.assertEqual(entity.media_album_name, "Ten")
         self.assertEqual(entity.entity_picture, "https://example.test/cover.jpg")
+        self.assertEqual(entity.media_image_url, "https://example.test/cover.jpg")
         self.assertEqual(entity.volume_level, 0.5)
         self.assertEqual(entity.source, "Living room")
         self.assertEqual(entity.source_list, ["Living room"])
@@ -126,6 +153,10 @@ class DJConnectMediaPlayerTest(unittest.TestCase):
         try:
             asyncio.run(entity.async_media_play())
             asyncio.run(entity.async_media_pause())
+            runtime.last_playback = {"has_playback": True, "is_playing": True}
+            asyncio.run(entity.async_media_play_pause())
+            runtime.last_playback = {"has_playback": True, "is_playing": False}
+            asyncio.run(entity.async_media_play_pause())
             asyncio.run(entity.async_select_source("Living room"))
             asyncio.run(entity.async_set_volume_level(0.5))
             asyncio.run(entity.async_set_shuffle(True))
@@ -136,6 +167,8 @@ class DJConnectMediaPlayerTest(unittest.TestCase):
 
         self.assertIn(("play", None, None), calls)
         self.assertIn(("pause", None, None), calls)
+        self.assertGreaterEqual(calls.count(("play", None, None)), 2)
+        self.assertGreaterEqual(calls.count(("pause", None, None)), 2)
         self.assertIn(("set_output", "dev-1", False), calls)
         self.assertIn(("set_volume", 30, None), calls)
         self.assertIn(("set_shuffle", True, None), calls)

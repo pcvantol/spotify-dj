@@ -726,6 +726,12 @@ class DJConnectStatusView(HomeAssistantView):
         status_update = _normalized_status_payload(data)
         client_type = _validate_required_client_type(status_update)
         if client_type is None:
+            runtime.update(
+                last_error=(
+                    "DJConnect ESP status payload is missing required "
+                    "client_type=esp32"
+                )
+            )
             return _json_error(self, "invalid_client_type", 400)
         status_update[CONF_CLIENT_TYPE] = client_type
         runtime.device_status.update(status_update)

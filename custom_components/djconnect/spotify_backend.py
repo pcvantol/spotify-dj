@@ -57,6 +57,9 @@ async def handle_spotify_command(
     if normalized == "play":
         await backend.play(value)
         return {"success": True, "playback": await backend.playback_state()}
+    if normalized == "play_context_at":
+        await backend.play_context_at(value)
+        return {"success": True, "playback": await backend.playback_state()}
     if normalized == "next":
         await backend.next()
         return {"success": True, "playback": await backend.playback_state()}
@@ -284,6 +287,23 @@ class SpotifyBackend:
             body = {"uris": [str(value)]} if str(value).startswith("spotify:track:") else {"context_uri": str(value)}
         await self._request("PUT", "/me/player/play", json=body, expected_empty=True)
 
+    async def play_context_at(self, value: Any) -> None:
+        if not isinstance(value, dict):
+            raise ValueError("Provide context_uri and offset_uri")
+        context_uri = str(value.get("context_uri") or "").strip()
+        offset_uri = str(value.get("offset_uri") or value.get("uri") or "").strip()
+        if not offset_uri:
+            raise ValueError("Provide offset_uri")
+        if not context_uri:
+            await self.play(offset_uri)
+            return
+        await self._request(
+            "PUT",
+            "/me/player/play",
+            json={"context_uri": context_uri, "offset": {"uri": offset_uri}},
+            expected_empty=True,
+        )
+
     async def next(self) -> None:
         await self._request("POST", "/me/player/next", expected_empty=True)
 
@@ -353,7 +373,8 @@ def _normalize_playback(data: dict[str, Any]) -> dict[str, Any]:
     item = data.get("item") or {}
     artists = item.get("artists") or []
     album = item.get("album") or {}
-    images = album.get("images") or []
+    images = album.get("images") or item.get("images") or []
+    album_image_url = _best_image_url(images)
     return {
         "has_playback": bool(data),
         "is_playing": bool(data.get("is_playing")),
@@ -362,7 +383,8 @@ def _normalize_playback(data: dict[str, Any]) -> dict[str, Any]:
         "artist": ", ".join(artist.get("name", "") for artist in artists if artist.get("name")),
         "artist_name": ", ".join(artist.get("name", "") for artist in artists if artist.get("name")),
         "album_name": album.get("name") or "",
-        "album_image_url": images[0].get("url") if images else "",
+        "album_image_url": album_image_url,
+        "media_image_url": album_image_url,
         "progress_ms": data.get("progress_ms"),
         "duration_ms": item.get("duration_ms"),
         "volume_percent": (data.get("device") or {}).get("volume_percent"),
@@ -370,6 +392,20 @@ def _normalize_playback(data: dict[str, Any]) -> dict[str, Any]:
         "repeat_state": data.get("repeat_state") or "off",
         "device": _normalize_device(data.get("device") or {}),
     }
+
+
+def _best_image_url(images: Any) -> str:
+    if not isinstance(images, list):
+        return ""
+    valid = [image for image in images if isinstance(image, dict) and image.get("url")]
+    if not valid:
+        return ""
+    sorted_images = sorted(
+        valid,
+        key=lambda image: int(image.get("width") or 0) * int(image.get("height") or 0),
+        reverse=True,
+    )
+    return str(sorted_images[0]["url"])
 
 
 def _normalize_device(device: dict[str, Any]) -> dict[str, Any]:

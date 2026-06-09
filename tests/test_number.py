@@ -105,9 +105,8 @@ class NumberTest(unittest.TestCase):
             entry=types.SimpleNamespace(entry_id="entry-1"),
             device_status={
                 "screen_brightness_percent": 73,
-                "speaker_volume_percent": 44,
+                "volume": 44,
                 "screen_off_timeout_ms": 45000,
-                "turn_off_after": 900000,
             },
             listeners=[],
         )
@@ -146,23 +145,10 @@ class NumberTest(unittest.TestCase):
             "s",
             value_multiplier=1000,
         )
-        turn_off_after = self.number.DJConnectCommandNumber(
-            runtime,
-            object(),
-            "turn_off_after",
-            "turn_off_after",
-            "turn_off_after",
-            "value",
-            0,
-            240,
-            "min",
-            value_multiplier=60000,
-        )
 
         self.assertEqual(brightness.native_value, 73)
         self.assertEqual(speaker.native_value, 44)
         self.assertEqual(screen_timeout.native_value, 45)
-        self.assertEqual(turn_off_after.native_value, 15)
 
 
 if __name__ == "__main__":

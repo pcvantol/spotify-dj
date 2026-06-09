@@ -285,9 +285,6 @@
       "screen_timeout": {
         "name": "Scherm timeout"
       },
-      "turn_off_after": {
-        "name": "Uitschakelen na"
-      },
       "speaker_volume": {
         "name": "Speaker volume"
       }
@@ -301,6 +298,9 @@
       },
       "language": {
         "name": "Device taal"
+      },
+      "turn_off_after": {
+        "name": "Uitschakelen na"
       },
       "theme": {
         "name": "Thema"

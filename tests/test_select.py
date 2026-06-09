@@ -110,6 +110,107 @@ class DJConnectSelectTest(unittest.TestCase):
         self.assertIn(("set_repeat", "track", None), calls)
         self.assertEqual(runtime.device_status["repeat_state"], "track")
 
+    def test_sound_output_uses_output_alias_and_available_outputs(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={},
+            device_status={
+                "output": "Living room",
+                "available_outputs": [
+                    {"id": "dev-1", "name": "Living room"},
+                    {"id": "dev-2", "name": "Kitchen"},
+                ],
+            },
+            last_playback={},
+            listeners=[],
+        )
+        sound_output = self.select.DJConnectCommandSelect(
+            runtime,
+            object(),
+            "sound_output",
+            "sound_output",
+            "set_output",
+            [],
+        )
+
+        self.assertEqual(sound_output.options, ["Living room", "Kitchen"])
+        self.assertEqual(sound_output.current_option, "Living room")
+
+    def test_sound_output_prefers_playback_device_and_active_output(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={},
+            device_status={
+                "available_outputs": [
+                    {"id": "dev-1", "name": "Living room", "active": False},
+                    {"id": "dev-2", "name": "Kitchen", "active": True},
+                ],
+            },
+            last_playback={},
+            listeners=[],
+        )
+        sound_output = self.select.DJConnectCommandSelect(
+            runtime,
+            object(),
+            "sound_output",
+            "sound_output",
+            "set_output",
+            [],
+        )
+
+        self.assertEqual(sound_output.current_option, "Kitchen")
+        runtime.last_playback = {"device": {"id": "dev-1", "name": "Living room"}}
+        self.assertEqual(sound_output.current_option, "Living room")
+
+    def test_turn_off_after_select_uses_fixed_minute_options(self) -> None:
+        calls = []
+
+        async def async_device_command(hass, command, **kwargs):
+            calls.append((command, kwargs))
+            return {"success": True}
+
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={},
+            device_status={"turn_off_after": 900000},
+            listeners=[],
+            async_device_command=async_device_command,
+            update=lambda **kwargs: calls.append(("update", kwargs)),
+        )
+        turn_off_after = self.select.DJConnectCommandSelect(
+            runtime,
+            object(),
+            "turn_off_after",
+            "turn_off_after",
+            "turn_off_after",
+            self.select.TURN_OFF_AFTER_OPTIONS,
+        )
+
+        self.assertEqual(turn_off_after.options, ["5", "15", "30", "60"])
+        self.assertEqual(turn_off_after.current_option, "15")
+        asyncio.run(turn_off_after.async_select_option("30"))
+
+        self.assertIn(("turn_off_after", {"value": 1800000}), calls)
+        self.assertEqual(runtime.device_status["turn_off_after"], "30")
+
+    def test_turn_off_after_select_rounds_to_closest_option(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={},
+            device_status={"turn_off_after_ms": 1200000},
+            listeners=[],
+        )
+        turn_off_after = self.select.DJConnectCommandSelect(
+            runtime,
+            object(),
+            "turn_off_after",
+            "turn_off_after",
+            "turn_off_after",
+            self.select.TURN_OFF_AFTER_OPTIONS,
+        )
+
+        self.assertEqual(turn_off_after.current_option, "15")
+
 
 if __name__ == "__main__":
     unittest.main()

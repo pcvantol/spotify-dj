@@ -51,18 +51,6 @@ async def async_setup_entry(
             DJConnectCommandNumber(
                 runtime,
                 hass,
-                "turn_off_after",
-                "turn_off_after",
-                "turn_off_after",
-                "value",
-                0,
-                240,
-                "min",
-                value_multiplier=60000,
-            ),
-            DJConnectCommandNumber(
-                runtime,
-                hass,
                 "speaker_volume",
                 "speaker_volume",
                 "speaker_volume",
@@ -244,6 +232,9 @@ def _status_key_aliases(status_key: str, value_multiplier: int) -> list[tuple[st
             ("speaker_volume_percent", 1),
             ("cue_volume", 1),
             ("sound_volume", 1),
+            ("volume_percent_local", 1),
+            ("local_volume", 1),
+            ("volume", 1),
         ]
     if status_key == "screen_timeout":
         return [

@@ -26,6 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 SUPPORTED_FEATURES = (
     MediaPlayerEntityFeature.PLAY
     | MediaPlayerEntityFeature.PAUSE
+    | getattr(MediaPlayerEntityFeature, "PLAY_PAUSE", 0)
     | MediaPlayerEntityFeature.NEXT_TRACK
     | MediaPlayerEntityFeature.PREVIOUS_TRACK
     | MediaPlayerEntityFeature.VOLUME_SET
@@ -101,6 +102,16 @@ class DJConnectPlaybackProxyMediaPlayer(MediaPlayerEntity):
         return _playback_value(self.runtime, "album_image_url", "entity_picture")
 
     @property
+    def media_image_url(self) -> str | None:
+        return _playback_value(
+            self.runtime,
+            "album_image_url",
+            "media_image_url",
+            "image_url",
+            "entity_picture",
+        )
+
+    @property
     def volume_level(self) -> float | None:
         value = _playback_value(self.runtime, "volume_percent")
         try:
@@ -148,20 +159,29 @@ class DJConnectPlaybackProxyMediaPlayer(MediaPlayerEntity):
     async def async_media_pause(self) -> None:
         await self._backend_command("pause")
 
+    async def async_media_play_pause(self) -> None:
+        playback = self.runtime.last_playback or {}
+        command = "pause" if playback.get("is_playing") else "play"
+        await self._backend_command(command)
+
     async def async_media_next_track(self) -> None:
         await self._backend_command("next")
+        await self._refresh_device_display()
 
     async def async_media_previous_track(self) -> None:
         await self._backend_command("previous")
+        await self._refresh_device_display()
 
     async def async_set_volume_level(self, volume: float) -> None:
         await self._backend_command("set_volume", int(max(0.0, min(1.0, volume)) * 60))
 
     async def async_set_shuffle(self, shuffle: bool) -> None:
         await self._backend_command("set_shuffle", bool(shuffle))
+        await self._refresh_device_display()
 
     async def async_set_repeat(self, repeat: str) -> None:
         await self._backend_command("set_repeat", repeat)
+        await self._refresh_device_display()
 
     async def async_select_source(self, source: str) -> None:
         output = _output_by_name(self.runtime, source)
@@ -196,6 +216,12 @@ class DJConnectPlaybackProxyMediaPlayer(MediaPlayerEntity):
             raise
         self.runtime.update(last_error=None)
         return result
+
+    async def _refresh_device_display(self) -> None:
+        try:
+            await self.runtime.async_device_command(self.hass, "status")
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.debug("DJConnect device display refresh failed: %s", exc)
 
     @callback
     def _handle_runtime_update(self) -> None:

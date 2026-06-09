@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from homeassistant.components.select import SelectEntity
@@ -10,6 +11,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .spotify_backend import handle_spotify_command
+
+_LOGGER = logging.getLogger(__name__)
+
+TURN_OFF_AFTER_OPTIONS = ["5", "15", "30", "60"]
 
 
 async def async_setup_entry(
@@ -43,6 +48,14 @@ async def async_setup_entry(
                 "language",
                 "language",
                 ["en", "nl"],
+            ),
+            DJConnectCommandSelect(
+                runtime,
+                hass,
+                "turn_off_after",
+                "turn_off_after",
+                "turn_off_after",
+                TURN_OFF_AFTER_OPTIONS,
             ),
             DJConnectCommandSelect(
                 runtime,
@@ -97,11 +110,15 @@ class DJConnectCommandSelect(SelectEntity):
     @property
     def options(self) -> list[str]:
         if self.status_key == "sound_output":
-            return _options_from_status(
+            options = _options_from_status(
                 self.runtime.device_status,
                 "available_outputs",
                 self._fallback_options,
             )
+            current = self.current_option
+            if current and current not in options:
+                options.append(current)
+            return options
         current = self.current_option
         options = list(self._fallback_options)
         if current and current not in options:
@@ -110,6 +127,10 @@ class DJConnectCommandSelect(SelectEntity):
 
     @property
     def current_option(self) -> str | None:
+        if self.status_key == "sound_output":
+            return _current_sound_output(self.runtime)
+        if self.status_key == "turn_off_after":
+            return _current_turn_off_after(self.runtime.device_status)
         value = self.runtime.device_status.get(self.status_key)
         if value not in (None, ""):
             return str(value)
@@ -136,6 +157,15 @@ class DJConnectCommandSelect(SelectEntity):
                 "set_repeat",
                 option,
             )
+            await self._refresh_device_display()
+        elif self.command == "turn_off_after":
+            minutes = _closest_turn_off_after_minutes(option)
+            await self.runtime.async_device_command(
+                self.hass,
+                self.command,
+                value=minutes * 60000,
+            )
+            option = str(minutes)
         else:
             await self.runtime.async_device_command(self.hass, self.command, value=option)
         self.runtime.device_status[self.status_key] = option
@@ -144,6 +174,12 @@ class DJConnectCommandSelect(SelectEntity):
     @callback
     def _handle_runtime_update(self) -> None:
         self.async_write_ha_state()
+
+    async def _refresh_device_display(self) -> None:
+        try:
+            await self.runtime.async_device_command(self.hass, "status")
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.debug("DJConnect device display refresh failed: %s", exc)
 
     async def async_will_remove_from_hass(self) -> None:
         if self._handle_runtime_update in self.runtime.listeners:
@@ -179,3 +215,59 @@ def _output_id_from_option(status: dict[str, Any], option: str) -> str:
         if value.get("name") == option or value.get("id") == option:
             return str(value.get("id") or option)
     return option
+
+
+def _current_sound_output(runtime: Any) -> str | None:
+    status = runtime.device_status
+    playback = runtime.last_playback or {}
+    device = playback.get("device") if isinstance(playback, dict) else None
+    if isinstance(device, dict) and device.get("name"):
+        return str(device["name"])
+    for key in ("sound_output", "output"):
+        value = status.get(key)
+        if value not in (None, ""):
+            return str(value)
+    values = status.get("available_outputs") or []
+    if isinstance(values, list):
+        for value in values:
+            if isinstance(value, dict) and value.get("active"):
+                label = value.get("name") or value.get("id")
+                if label not in (None, ""):
+                    return str(label)
+    return None
+
+
+def _current_turn_off_after(status: dict[str, Any]) -> str | None:
+    minutes = _turn_off_after_minutes(status)
+    if minutes is None:
+        return None
+    return str(_closest_turn_off_after_minutes(minutes))
+
+
+def _turn_off_after_minutes(status: dict[str, Any]) -> int | None:
+    aliases = (
+        ("turn_off_after_minutes", 1),
+        ("turn_off_after", 60000),
+        ("turn_off_after_ms", 60000),
+        ("auto_off_timeout", 60000),
+    )
+    for key, divisor in aliases:
+        if key not in status:
+            continue
+        try:
+            value = float(status[key])
+        except (TypeError, ValueError):
+            continue
+        if divisor > 1:
+            value /= divisor
+        return int(round(value))
+    return None
+
+
+def _closest_turn_off_after_minutes(value: Any) -> int:
+    try:
+        minutes = int(float(value))
+    except (TypeError, ValueError):
+        return 15
+    allowed = [int(option) for option in TURN_OFF_AFTER_OPTIONS]
+    return min(allowed, key=lambda option: abs(option - minutes))
