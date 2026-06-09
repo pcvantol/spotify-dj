@@ -328,6 +328,10 @@
       "title": "Spotify autorisatie mist playlist scope",
       "fix_flow": {
         "step": {
+          "init": {
+            "title": "DJConnect autoriseren bij Spotify",
+            "description": "DJConnect heeft opnieuw Spotify toestemming nodig. Home Assistant opent Spotify in je browser; geef akkoord en keer daarna terug naar Home Assistant."
+          },
           "authorize": {
             "title": "DJConnect autoriseren bij Spotify",
             "description": "Home Assistant opent Spotify in je browser. Geef akkoord in Spotify en keer daarna terug naar Home Assistant."
@@ -349,6 +353,10 @@
       "title": "Spotify autorisatie ontbreekt",
       "fix_flow": {
         "step": {
+          "init": {
+            "title": "DJConnect autoriseren bij Spotify",
+            "description": "DJConnect heeft Spotify toestemming nodig om muziek namens jou te bedienen. Home Assistant opent Spotify in je browser; geef akkoord en keer daarna terug naar Home Assistant."
+          },
           "authorize": {
             "title": "DJConnect autoriseren bij Spotify",
             "description": "Home Assistant opent Spotify in je browser. Geef akkoord in Spotify en keer daarna terug naar Home Assistant."
@@ -370,6 +378,10 @@
       "title": "Spotify autorisatie is verlopen of ingetrokken",
       "fix_flow": {
         "step": {
+          "init": {
+            "title": "DJConnect opnieuw autoriseren bij Spotify",
+            "description": "De Spotify toestemming voor DJConnect is verlopen of ingetrokken. Home Assistant opent Spotify in je browser; geef opnieuw akkoord en keer daarna terug naar Home Assistant."
+          },
           "authorize": {
             "title": "DJConnect autoriseren bij Spotify",
             "description": "Home Assistant opent Spotify in je browser. Geef akkoord in Spotify en keer daarna terug naar Home Assistant."

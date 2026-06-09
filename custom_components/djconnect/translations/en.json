@@ -328,6 +328,10 @@
       "title": "Spotify authorization is missing playlist scope",
       "fix_flow": {
         "step": {
+          "init": {
+            "title": "Authorize DJConnect with Spotify",
+            "description": "DJConnect needs Spotify permission again. Home Assistant opens Spotify in your browser; approve access, then return to Home Assistant."
+          },
           "authorize": {
             "title": "Authorize DJConnect with Spotify",
             "description": "Home Assistant opens Spotify in your browser. Approve access in Spotify, then return to Home Assistant."
@@ -349,6 +353,10 @@
       "title": "Spotify authorization is missing",
       "fix_flow": {
         "step": {
+          "init": {
+            "title": "Authorize DJConnect with Spotify",
+            "description": "DJConnect needs Spotify permission to control music for you. Home Assistant opens Spotify in your browser; approve access, then return to Home Assistant."
+          },
           "authorize": {
             "title": "Authorize DJConnect with Spotify",
             "description": "Home Assistant opens Spotify in your browser. Approve access in Spotify, then return to Home Assistant."
@@ -370,6 +378,10 @@
       "title": "Spotify authorization expired or was revoked",
       "fix_flow": {
         "step": {
+          "init": {
+            "title": "Reauthorize DJConnect with Spotify",
+            "description": "DJConnect's Spotify permission expired or was revoked. Home Assistant opens Spotify in your browser; approve access again, then return to Home Assistant."
+          },
           "authorize": {
             "title": "Authorize DJConnect with Spotify",
             "description": "Home Assistant opens Spotify in your browser. Approve access in Spotify, then return to Home Assistant."
