@@ -4,8 +4,8 @@
 
 - Repository: `pcvantol/djconnect`.
 - Integration domain: `djconnect`.
-- Current integration release: `3.0.2`.
-- Release status: DJConnect `3.0.2` is published as the latest GitHub release.
+- Current integration release: `3.0.3`.
+- Release status: DJConnect `3.0.3` is published as the latest GitHub release.
 - Home Assistant integration is HACS-distributed and MIT-licensed.
 - ESP firmware source remains proprietary in `pcvantol/djconnect-app`.
 - Public firmware release assets live in `pcvantol/djconnect-firmware`.
@@ -117,7 +117,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 
 ## Current Release Notes
 
-- `3.0.2` uses the dark DJConnect SVG banner in the README so GitHub and HACS do not show the old white PNG canvas.
+- `3.0.3` uses the dark DJConnect SVG banner in the README so GitHub and HACS do not show the old white PNG canvas.
 - Product website hero was refreshed with a landscape LilyGO-style device, rectangular screen, DJConnect icon on screen, right-side volume dial, purple LEDs and no text/device overlap.
 - Product website now calls out personal voice based DJ responses and bonus games: Pong, Asteroids and Fly.
 - Repository, integration assets, examples, website copy and user-facing documentation are aligned with DJConnect.
@@ -144,7 +144,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 
 ## Next Tasks
 
-1. Install `3.0.2` via HACS and restart Home Assistant.
+1. Install `3.0.3` via HACS and restart Home Assistant.
 2. Verify the README/HACS banner and product website hero render as intended.
 3. Push the ESP-side DJConnect rename in `pcvantol/djconnect-app`.
 4. Test Repair flow for revoked Spotify token.

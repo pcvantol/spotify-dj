@@ -105,11 +105,11 @@ class DJConnectUpdateEntityTest(unittest.TestCase):
         )
         entity = self.update.DJConnectFirmwareUpdate(runtime, object())
         release = github.FirmwareRelease(
-            version="3.0.2",
-            title="DJConnect v3.0.2",
+            version="3.0.3",
+            title="DJConnect v3.0.3",
             body="Release notes",
-            firmware_url="https://example.test/djconnect-device-v3.0.2.bin",
-            firmware_asset="djconnect-device-v3.0.2.bin",
+            firmware_url="https://example.test/djconnect-device-v3.0.3.bin",
+            firmware_asset="djconnect-device-v3.0.3.bin",
             manifest_url="https://example.test/firmware_manifest.json",
             device="lilygo-t-embed-s3",
         )
@@ -130,7 +130,7 @@ class DJConnectUpdateEntityTest(unittest.TestCase):
             self.update.fetch_latest_firmware_release = original
 
         self.assertEqual(calls, 2)
-        self.assertEqual(entity.latest_version, "3.0.2")
+        self.assertEqual(entity.latest_version, "3.0.3")
 
 
 if __name__ == "__main__":

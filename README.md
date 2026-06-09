@@ -508,7 +508,7 @@ When publishing to the public firmware repository, use the firmware script's
 public-repo option if available:
 
 ```bash
-./release.sh 3.0.2 --publish-firmware-repo ../djconnect-firmware
+./release.sh 3.0.3 --publish-firmware-repo ../djconnect-firmware
 ```
 
 The public `djconnect-firmware` repository should contain only the release
@@ -543,7 +543,7 @@ Tag and publish:
 One-liner:
 
 ```bash
-./release.sh 3.0.2
+./release.sh 3.0.3
 ```
 
 The script updates the integration version in `manifest.json`, `const.py`,
@@ -552,7 +552,7 @@ The script updates the integration version in `manifest.json`, `const.py`,
 Preview without executing git/gh commands:
 
 ```bash
-./release.sh 3.0.2 --dry-run
+./release.sh 3.0.3 --dry-run
 ```
 
 Manual equivalent:
