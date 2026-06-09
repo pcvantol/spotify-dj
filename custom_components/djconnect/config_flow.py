@@ -804,6 +804,9 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             if _request_advanced(self, user_input):
                 return await self.async_step_pair()
+            method = user_input.get(CONF_SETUP_METHOD, SETUP_METHOD_PAIR_EXISTING)
+            if method == SETUP_METHOD_BLE_WIFI:
+                return await self.async_step_ble_wifi()
             pair_code = str(user_input.get(CONF_PAIR_CODE, "")).strip()
             self._last_pair_code = pair_code
             if not pair_code:
@@ -843,7 +846,11 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Build pairing schema; manual device URL is advanced-only."""
         pair_code = getattr(self, "_last_pair_code", "")
         schema: dict[Any, Any] = {
-            vol.Required(CONF_PAIR_CODE): str,
+            vol.Optional(
+                CONF_SETUP_METHOD,
+                default=SETUP_METHOD_PAIR_EXISTING,
+            ): vol.In(_setup_method_names(getattr(self, "hass", None))),
+            vol.Optional(CONF_PAIR_CODE): str,
             vol.Optional(
                 CONF_DEVICE_NAME,
                 default=DEFAULT_DEVICE_NAME,

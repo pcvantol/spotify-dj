@@ -387,6 +387,31 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertIn(self.const.CONF_WIFI_SSID, keys)
         self.assertIn(self.const.CONF_WIFI_PASSWORD, keys)
 
+    def test_pair_schema_allows_returning_to_ble_setup(self) -> None:
+        flow = self.config_flow.DJConnectConfigFlow()
+        flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="nl-NL"))
+
+        schema = flow._user_schema()
+        keys = {marker.key for marker in schema}
+
+        self.assertIn(self.const.CONF_SETUP_METHOD, keys)
+        self.assertIn(self.const.CONF_PAIR_CODE, keys)
+
+    def test_pair_step_can_route_back_to_ble_setup(self) -> None:
+        flow = self.config_flow.DJConnectConfigFlow()
+        flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="nl-NL"))
+
+        async def fake_ble_wifi(user_input=None):
+            return {"type": "form", "step_id": "ble_wifi"}
+
+        flow.async_step_ble_wifi = fake_ble_wifi
+
+        result = asyncio.run(
+            flow.async_step_pair({self.const.CONF_SETUP_METHOD: self.config_flow.SETUP_METHOD_BLE_WIFI})
+        )
+
+        self.assertEqual(result["step_id"], "ble_wifi")
+
     def test_spotify_client_id_is_advanced_override(self) -> None:
         basic_schema = self.config_flow._spotify_schema(include_advanced=False)
         advanced_schema = self.config_flow._spotify_schema(include_advanced=True)
