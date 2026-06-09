@@ -312,6 +312,75 @@ class SpotifyBackendTest(unittest.TestCase):
         self.assertEqual(runtime.device_status["shuffle"], True)
         self.assertEqual(runtime.device_status["repeat_state"], "context")
 
+    def test_queue_command_returns_context_and_album_art(self) -> None:
+        class Response:
+            status = 200
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def json(self, content_type=None):
+                return {
+                    "queue": [
+                        {
+                            "name": "Next Song",
+                            "uri": "spotify:track:next",
+                            "artists": [{"name": "Artist"}],
+                            "album": {
+                                "images": [
+                                    {
+                                        "url": "https://example.test/queue.jpg",
+                                        "width": 300,
+                                        "height": 300,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                }
+
+            async def text(self):
+                return "{}"
+
+        class Session:
+            def request(self, method, url, **kwargs):
+                return Response()
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={"spotify_client_id": "client-id", "spotify_refresh_token": "refresh"},
+            options={},
+        )
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            latest_spotify_refresh_token=None,
+            spotify_access_token="access",
+            spotify_access_token_expires_at=time.time() + 1800,
+            device_status={},
+            last_playback={"context_uri": "spotify:playlist:abc"},
+            update=lambda **kwargs: None,
+        )
+        runtime.config = dict(entry.data)
+
+        original_clientsession = self.backend.async_get_clientsession
+        self.backend.async_get_clientsession = lambda hass: Session()
+        try:
+            result = asyncio.run(
+                self.backend.handle_spotify_command(object(), runtime, "queue")
+            )
+        finally:
+            self.backend.async_get_clientsession = original_clientsession
+
+        self.assertTrue(result["success"])
+        self.assertEqual(result["context_uri"], "spotify:playlist:abc")
+        self.assertEqual(result["contextUri"], "spotify:playlist:abc")
+        self.assertEqual(result["queue"][0]["album_image_url"], "https://example.test/queue.jpg")
+        self.assertEqual(result["queue"][0]["imageUrl"], "https://example.test/queue.jpg")
+        self.assertEqual(runtime.device_status["queue"]["items"], result["queue"])
+
     def test_set_play_mode_is_no_longer_supported(self) -> None:
         runtime = types.SimpleNamespace(config={})
         with self.assertRaises(ValueError):

@@ -48,7 +48,7 @@ async def handle_spotify_command(
     if normalized == "devices":
         return {"success": True, "devices": await backend.devices()}
     if normalized == "queue":
-        return {"success": True, "queue": await backend.queue()}
+        return {"success": True, **await backend.queue()}
     if normalized == "playlists":
         return {"success": True, "playlists": await backend.playlists()}
     if normalized == "pause":
@@ -260,13 +260,23 @@ class SpotifyBackend:
         self.runtime.update()
         return devices
 
-    async def queue(self) -> list[dict[str, str]]:
+    async def queue(self) -> dict[str, Any]:
         data = await self._request("GET", "/me/player/queue")
         queue = data.get("queue") or []
         normalized = [_normalize_queue_item(item) for item in queue]
-        self.runtime.device_status["queue"] = normalized
+        playback = self.runtime.last_playback or {}
+        context_uri = str(playback.get("context_uri") or playback.get("queue_context") or "").strip()
+        self.runtime.device_status["queue"] = {
+            "items": normalized,
+            "context_uri": context_uri,
+            "contextUri": context_uri,
+        }
         self.runtime.update()
-        return normalized
+        return {
+            "queue": normalized,
+            "context_uri": context_uri,
+            "contextUri": context_uri,
+        }
 
     async def playlists(self) -> list[dict[str, str]]:
         async def load():
@@ -438,10 +448,17 @@ def _normalize_device(device: dict[str, Any]) -> dict[str, Any]:
 
 def _normalize_queue_item(item: dict[str, Any]) -> dict[str, str]:
     artists = item.get("artists") or []
+    images = (item.get("album") or {}).get("images") or item.get("images") or []
+    album_image_url = _best_image_url(images)
     return {
         "title": item.get("name") or "",
         "subtitle": ", ".join(artist.get("name", "") for artist in artists if artist.get("name")),
         "uri": item.get("uri") or "",
+        "album_image_url": album_image_url,
+        "albumImageUrl": album_image_url,
+        "image_url": album_image_url,
+        "imageUrl": album_image_url,
+        "thumbnail_url": album_image_url,
     }
 
 

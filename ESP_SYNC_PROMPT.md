@@ -4,7 +4,7 @@ Werk in de bestaande proprietary ESP firmware repo `pcvantol/djconnect-app`.
 
 ## Doel
 
-Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.9`.
+Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.14`.
 
 De HA integration is de trusted backend voor:
 
@@ -133,6 +133,10 @@ Controleer en fix:
 - ESP ontvangt `ha_local_url` en/of `ha_remote_url` via `POST /api/device/pair`.
 - ESP gebruikt `ha_local_url` LAN-first en `ha_remote_url` als cloud fallback.
 - ESP accepteert en verwacht geen legacy `ha_url` pairingveld meer.
+- Als HA alleen met een 6-cijferige setupcode begint, moet HA eerst `GET /api/device/pairing-info` kunnen gebruiken om `pair_code` te verifiëren en de echte `djconnect-lilygo-XXXXXXXXXXXX` device-id te leren.
+- ESP moet in `/api/device/pairing-info` de echte device-id, `pair_code`, `client_type:"esp32"` en bereikbare local info teruggeven zolang het pairing/setup scherm actief is.
+- HA mag nooit een tijdelijke `djconnect-<6-cijferige-code>` als `device_id` naar `POST /api/device/pair` sturen; ESP moet de echte LilyGO device-id verwachten.
+- Als HA `/api/device/pair` niet succesvol bij ESP aflevert, blijft ESP op het pairing scherm en moet HA pairing hooguit `pending` blijven.
 - ESP accepteert als persistent device ID alleen `djconnect-lilygo-XXXXXXXXXXXX`.
 - ESP slaat `client_type=esp32` persistent of runtime-bekend op en stuurt dit verplicht mee in pairing-info, status, command/event JSON payloads waar JSON wordt gebruikt.
 - HA behandelt ontbrekende of onbekende `client_type` op ESP JSON routes als contractfout (`invalid_client_type`).
@@ -249,6 +253,7 @@ Payload voorbeelden:
 {"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"set_volume","value":35}
 {"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"start_liked_proxy","play":true}
 {"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"start_playlist","value":"spotify:playlist:...","play":true}
+{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"play_context_at","value":{"context_uri":"spotify:playlist:...","offset_uri":"spotify:track:..."}}
 {"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"set_shuffle","value":true}
 {"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"set_repeat","value":"context"}
 ```
@@ -320,6 +325,10 @@ Belangrijk:
 - Dit is geen pairing failure.
 - Toon een backend/playback fout in UI.
 - Wis pairing niet.
+- `command=status` moet direct na ESP boot snel kunnen antwoorden; ESP mag deze poll gebruiken om de playback indicator groen/grijs/rood te zetten.
+- `command=devices`, `command=queue` en `command=playlists` moeten bij bereikbare backend `success:true` met lege arrays kunnen teruggeven; maak daar geen HTTP 503 van.
+- `command=queue` kan top-level `context_uri` en `contextUri` teruggeven. Gebruik die context voor `play_context_at` vanuit Up Next.
+- Queue items kunnen `album_image_url`, `albumImageUrl`, `image_url`, `imageUrl` of `thumbnail_url` bevatten. De ESP hoeft thumbnails niet zelf te downloaden; web/UI mag image URLs lazy-loaden wanneer de Up Next view zichtbaar is.
 
 ### 4. Device command API vanaf HA
 

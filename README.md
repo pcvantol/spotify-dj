@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.0.13`
+- Home Assistant integration: `3.0.14`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -448,7 +448,7 @@ Firmware sends backend playback commands to Home Assistant instead of storing Sp
 POST /api/djconnect/command
 ```
 
-Required headers are `Authorization: Bearer <device_token>`, `X-DJConnect-Device-ID` and `Content-Type: application/json`. Supported commands include `status`, `devices`, `queue`, `playlists`, `pause`, `play`, `next`, `previous`, `start_liked_proxy`, `start_playlist`, `set_shuffle`, `set_repeat`, `set_output` and `set_volume`. `set_shuffle` accepts a boolean value; `set_repeat` accepts `off`, `track` or `context`. Responses are generic JSON shapes with `playback`, `devices`, `queue` or `playlists`, so future backends such as Sonos or Home Assistant media players can be added without firmware changes. Logs never include device tokens, Spotify tokens or backend credentials.
+Required headers are `Authorization: Bearer <device_token>`, `X-DJConnect-Device-ID` and `Content-Type: application/json`. Supported commands include `status`, `devices`, `queue`, `playlists`, `pause`, `play`, `next`, `previous`, `start_liked_proxy`, `start_playlist`, `play_context_at`, `set_shuffle`, `set_repeat`, `set_output` and `set_volume`. `set_shuffle` accepts a boolean value; `set_repeat` accepts `off`, `track` or `context`; `play_context_at` accepts a context URI and track offset URI for Up Next playback. Responses are generic JSON shapes with `playback`, `devices`, `queue` or `playlists`, so future backends such as Sonos or Home Assistant media players can be added without firmware changes. `queue` responses include top-level `context_uri` / `contextUri` when known and per-item artwork aliases such as `album_image_url` and `image_url`. Logs never include device tokens, Spotify tokens or backend credentials.
 
 HA and ESP firmware must share the same `major.minor` protocol version. Patch
 versions may differ, so HA `3.0.x` can talk to ESP `3.0.y`, but HA `3.1.x`
@@ -503,12 +503,12 @@ Example manifest:
 
 ```json
 {
-  "version": "3.0.13",
+  "version": "3.0.14",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.13.bin",
+  "asset": "djconnect-device-v3.0.14.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "3.0.13"
+  "min_ha_integration": "3.0.14"
 }
 ```
 
@@ -523,7 +523,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.0.13
+./release.sh 3.0.14
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -534,7 +534,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.0.13 --dry-run
+./release.sh 3.0.14 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -592,11 +592,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.0.13"
-git tag v3.0.13
+git commit -m "Release DJConnect v3.0.14"
+git tag v3.0.14
 git push origin main
-git push origin v3.0.13
-gh release create v3.0.13 --title "DJConnect v3.0.13" --notes-file CHANGELOG.md
+git push origin v3.0.14
+gh release create v3.0.14 --title "DJConnect v3.0.14" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:
