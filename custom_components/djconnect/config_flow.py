@@ -222,7 +222,7 @@ def _default_local_url(pair_code: str | None) -> str:
     normalized = str(pair_code or "").strip()
     if not re.fullmatch(r"[0-9A-Fa-f]{12}", normalized):
         return ""
-    return f"http://djconnect-{normalized}.local"
+    return f"http://djconnect-lilygo-{normalized}.local"
 
 
 def _valid_pair_code(pair_code: str) -> bool:

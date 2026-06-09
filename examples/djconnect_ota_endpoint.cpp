@@ -7,7 +7,7 @@
 #include <ArduinoJson.h>
 
 String deviceToken;       // loaded from NVS after pairing
-String deviceId;          // djconnect-XXXXXXXXXXXX
+String deviceId;          // djconnect-lilygo-XXXXXXXXXXXX
 String firmwareVersion;   // injected from firmware build metadata
 
 static const char* OTA_TARGET_DEVICE = "lilygo-t-embed-s3";

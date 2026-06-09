@@ -531,7 +531,7 @@ def _device_id_mdns_fallback_url(device_id: Any) -> str | None:
 def _is_real_djconnect_device_id(device_id: str) -> bool:
     return bool(
         re.fullmatch(
-            r"djconnect-(?:lilygo-)?[0-9A-Fa-f]{12}",
+            r"djconnect-lilygo-[0-9A-Fa-f]{12}",
             str(device_id or "").strip(),
         )
     )

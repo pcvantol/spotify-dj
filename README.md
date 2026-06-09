@@ -11,7 +11,8 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 - HACS category: `Integration`
 - Device target: DJConnect device
 - Firmware mDNS service: `_djconnect._tcp`
-- Device ID format: `djconnect-lilygo-XXXXXXXXXXXX` for current firmware; older `djconnect-XXXXXXXXXXXX` IDs remain accepted for compatibility.
+- Device ID format: `djconnect-lilygo-XXXXXXXXXXXX`.
+- Legacy `djconnect-XXXXXXXXXXXX` device IDs are not accepted.
 
 ## Features
 
@@ -162,7 +163,7 @@ been reauthorized with `playlist-read-private`; diagnostics and Home Assistant
 repairs show a warning when the stored OAuth scope list is missing required
 DJConnect scopes.
 
-Where Home Assistant exposes choices, DJConnect shows populated dropdowns for Assist pipeline, TTS entity, known TTS voices, Spotify market, DJ style, and firmware channel. Stored custom values remain selectable so existing setups keep working. Backend playback is handled by Home Assistant through the DJConnect playback proxy; ESP device settings use the local device command API. Spotify source override, firmware repository settings, firmware channel, manual device URL, max audio bytes, and OTA battery settings are shown only after enabling the inline advanced-options checkbox. The manual device URL is normally not needed: DJConnect resolves the device through `_djconnect._tcp` mDNS, uses the device-reported `local_url` when available, and only builds `http://djconnect-[device-suffix].local` when the configured ID contains a real 12-character device suffix.
+Where Home Assistant exposes choices, DJConnect shows populated dropdowns for Assist pipeline, TTS entity, known TTS voices, Spotify market, DJ style, and firmware channel. Stored custom values remain selectable so existing setups keep working. Backend playback is handled by Home Assistant through the DJConnect playback proxy; ESP device settings use the local device command API. Spotify source override, firmware repository settings, firmware channel, manual device URL, max audio bytes, and OTA battery settings are shown only after enabling the inline advanced-options checkbox. The manual device URL is normally not needed: DJConnect resolves the device through `_djconnect._tcp` mDNS, uses the device-reported `local_url` when available, and only builds `http://djconnect-lilygo-[device-suffix].local` when the configured ID contains a real 12-character device suffix.
 
 The options flow also includes an action selector. Use `Reauthorize Spotify` to
 refresh OAuth from the integration page, `Retry pairing with current code` to
@@ -439,7 +440,7 @@ POST /api/device/forget
 GET  /api/device/info
 ```
 
-The integration uses the device `local_url` from pairing/status when provided. If the field is empty, it resolves the `_djconnect._tcp` mDNS service for the paired device. When the setup code is only 6 digits, DJConnect can also use the single visible DJConnect mDNS service on the network. Fallback hostnames are only generated for real 12-character device suffixes, including current `djconnect-lilygo-90B70990A994` IDs and older `djconnect-90B70990A994` IDs. `djconnect-[6-digit-code].local` is intentionally ignored.
+The integration uses the device `local_url` from pairing/status when provided. If the field is empty, it resolves the `_djconnect._tcp` mDNS service for the paired device. When the setup code is only 6 digits, DJConnect can also use the single visible DJConnect mDNS service on the network. Fallback hostnames are only generated for real 12-character device suffixes as `djconnect-lilygo-[suffix].local`, for example `djconnect-lilygo-90B70990A994.local`. `djconnect-[6-digit-code].local` and legacy `djconnect-90B70990A994.local` fallbacks are intentionally ignored.
 
 When the ESP status payload reports `spotify_configured=false`, Home Assistant treats that as a compatibility/status hint. Spotify OAuth credentials stay in Home Assistant and are not returned in status responses.
 

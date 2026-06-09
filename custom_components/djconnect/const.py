@@ -42,7 +42,7 @@ CONF_TTS_VOICE = "tts_voice"
 CONF_DJ_RESPONSE_ENABLED = "dj_response_enabled"
 CONF_DJ_RESPONSE_TTL_SECONDS = "dj_response_ttl_seconds"
 
-# Both names are kept for backwards compatibility with older modules.
+# Both option names are accepted by local options helpers.
 CONF_DJ_STYLE = "dj_style"
 CONF_DJ_PROFILE = "dj_profile"
 

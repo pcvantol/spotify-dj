@@ -35,7 +35,7 @@ De ESP blijft eigenaar van:
 - ESP stuurt generieke playback commands naar HA.
 - HA vertaalt playback commands naar Spotify of toekomstige backends.
 - ESP speaker is alleen voor local cues en DJ/voice response audio.
-- `/api/device/provision_spotify` mag niet meer bestaan of gebruikt worden; als compat route nog aanwezig is, verwijder die of laat hem expliciet `410 Gone` geven zonder secrets.
+- `/api/device/provision_spotify` mag niet bestaan of gebruikt worden.
 - Pairing/status/voice/command auth gebruikt alleen het device bearer token.
 - Device ID format voor actuele firmware is `djconnect-lilygo-XXXXXXXXXXXX`.
 - NVS taal key blijft `provision.language`.
@@ -145,7 +145,7 @@ Stuur minimaal:
   "device_id": "djconnect-lilygo-XXXXXXXXXXXX",
   "ha_pairing_status": "paired|pending|stale|unpaired",
   "local_url": "http://djconnect-lilygo-XXXXXXXXXXXX.local",
-  "firmware": "2.9.x",
+  "firmware": "3.0.x",
   "battery_percent": 85,
   "wifi_rssi": -55,
   "uptime": 123456,

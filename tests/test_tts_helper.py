@@ -123,7 +123,7 @@ class TtsHelperTest(unittest.TestCase):
                 return Response()
 
         entry = types.SimpleNamespace(
-            data={self.const.CONF_DEVICE_ID: "djconnect-90B70990A994"},
+            data={self.const.CONF_DEVICE_ID: "djconnect-lilygo-90B70990A994"},
             options={},
         )
         runtime = self.integration.DJConnectRuntime(entry=entry)
@@ -193,10 +193,10 @@ class TtsHelperTest(unittest.TestCase):
         entry = types.SimpleNamespace(
             entry_id="entry-1",
             data={
-                self.const.CONF_DEVICE_ID: "djconnect-90B70990A994",
+                self.const.CONF_DEVICE_ID: "djconnect-lilygo-90B70990A994",
                 self.const.CONF_PAIR_CODE: "981032",
                 self.const.CONF_DEVICE_TOKEN: "device-token",
-                self.const.CONF_LOCAL_URL: "http://djconnect-90B70990A994.local",
+                self.const.CONF_LOCAL_URL: "http://djconnect-lilygo-90B70990A994.local",
             },
             options={},
         )
@@ -205,12 +205,12 @@ class TtsHelperTest(unittest.TestCase):
         runtime = self.integration._restore_runtime(hass, entry)
 
         self.assertEqual(runtime.device_token, "device-token")
-        self.assertEqual(runtime.pairing_device_id, "djconnect-90B70990A994")
+        self.assertEqual(runtime.pairing_device_id, "djconnect-lilygo-90B70990A994")
         self.assertEqual(runtime.pairing_code, "981032")
-        self.assertEqual(runtime.device_status["device_id"], "djconnect-90B70990A994")
+        self.assertEqual(runtime.device_status["device_id"], "djconnect-lilygo-90B70990A994")
         self.assertEqual(
             runtime.device_status["local_url"],
-            "http://djconnect-90B70990A994.local",
+            "http://djconnect-lilygo-90B70990A994.local",
         )
 
     def test_restore_runtime_ignores_obsolete_pair_code_local_url(self) -> None:
@@ -352,20 +352,20 @@ class TtsHelperTest(unittest.TestCase):
         self.http._persist_paired_device(
             hass,
             runtime,
-            "djconnect-90B70990A994",
-            "http://djconnect-90B70990A994.local",
+            "djconnect-lilygo-90B70990A994",
+            "http://djconnect-lilygo-90B70990A994.local",
             "device-token",
         )
 
         self.assertEqual(config_entries.calls[0][1][self.const.CONF_PAIR_CODE], "981032")
         self.assertEqual(
             entry.data[self.const.CONF_DEVICE_ID],
-            "djconnect-90B70990A994",
+            "djconnect-lilygo-90B70990A994",
         )
         self.assertEqual(entry.data[self.const.CONF_DEVICE_TOKEN], "device-token")
         self.assertEqual(
             entry.data[self.const.CONF_LOCAL_URL],
-            "http://djconnect-90B70990A994.local",
+            "http://djconnect-lilygo-90B70990A994.local",
         )
 
     def test_pair_device_payload_omits_spotify_credentials(self) -> None:
@@ -446,17 +446,17 @@ class TtsHelperTest(unittest.TestCase):
 
         headers = {
             "Authorization": " Bearer token-new ",
-            "X-DJConnect-Device-ID": "djconnect-90B70990A994",
+            "X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994",
         }
         with self.assertLogs(self.integration._LOGGER, level="DEBUG") as captured:
             allowed = runtime.authorize_device_request(
                 headers,
-                "djconnect-90B70990A994",
+                "djconnect-lilygo-90B70990A994",
             )
 
         self.assertTrue(allowed)
-        self.assertEqual(runtime.pairing_device_id, "djconnect-90B70990A994")
-        self.assertEqual(runtime.device_status["device_id"], "djconnect-90B70990A994")
+        self.assertEqual(runtime.pairing_device_id, "djconnect-lilygo-90B70990A994")
+        self.assertEqual(runtime.device_status["device_id"], "djconnect-lilygo-90B70990A994")
         logs = "\n".join(captured.output)
         self.assertIn("token_match=True", logs)
         self.assertNotIn("token-new", logs)
@@ -465,20 +465,20 @@ class TtsHelperTest(unittest.TestCase):
         entry = types.SimpleNamespace(entry_id="entry-1", data={}, options={})
         runtime = self.integration.DJConnectRuntime(entry=entry)
         runtime.device_token = "token-new"
-        runtime.pairing_device_id = "djconnect-90B70990A994"
-        runtime.device_status["device_id"] = "djconnect-90B70990A994"
-        headers = {"X-DJConnect-Device-ID": "djconnect-90B70990A994"}
+        runtime.pairing_device_id = "djconnect-lilygo-90B70990A994"
+        runtime.device_status["device_id"] = "djconnect-lilygo-90B70990A994"
+        headers = {"X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994"}
 
         self.assertTrue(
             runtime.authorize_device_request(
                 {**headers, "Authorization": "Bearer token-new"},
-                "djconnect-90B70990A994",
+                "djconnect-lilygo-90B70990A994",
             )
         )
         self.assertFalse(
             runtime.authorize_device_request(
                 {**headers, "Authorization": "Bearer token-old"},
-                "djconnect-90B70990A994",
+                "djconnect-lilygo-90B70990A994",
             )
         )
 
@@ -507,7 +507,7 @@ class TtsHelperTest(unittest.TestCase):
         )
         headers = {
             "Authorization": "Bearer token-shared",
-            "X-DJConnect-Device-ID": "djconnect-90B70990A994",
+            "X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994",
             "Content-Type": "application/json",
         }
 
@@ -517,7 +517,7 @@ class TtsHelperTest(unittest.TestCase):
                 self.headers = headers
 
             async def json(self):
-                return {"device_id": "djconnect-90B70990A994"}
+                return {"device_id": "djconnect-lilygo-90B70990A994"}
 
         async def command_handler(hass, runtime, command, value=None, *, play=None):
             return {"success": True, "playback": {"has_playback": False}}
@@ -532,7 +532,7 @@ class TtsHelperTest(unittest.TestCase):
 
             async def json(self):
                 return {
-                    "device_id": "djconnect-90B70990A994",
+                    "device_id": "djconnect-lilygo-90B70990A994",
                     "command": "status",
                 }
 
@@ -564,16 +564,16 @@ class TtsHelperTest(unittest.TestCase):
         const = self.const
         stale = types.SimpleNamespace(
             device_token="old-token",
-            pairing_device_id="djconnect-90B70990A994",
-            device_status={"device_id": "djconnect-90B70990A994"},
-            config={const.CONF_DEVICE_ID: "djconnect-90B70990A994"},
+            pairing_device_id="djconnect-lilygo-90B70990A994",
+            device_status={"device_id": "djconnect-lilygo-90B70990A994"},
+            config={const.CONF_DEVICE_ID: "djconnect-lilygo-90B70990A994"},
             authorize_device_request=lambda headers, body_device_id=None: False,
         )
         active = types.SimpleNamespace(
             device_token="new-token",
-            pairing_device_id="djconnect-90B70990A994",
-            device_status={"device_id": "djconnect-90B70990A994"},
-            config={const.CONF_DEVICE_ID: "djconnect-90B70990A994"},
+            pairing_device_id="djconnect-lilygo-90B70990A994",
+            device_status={"device_id": "djconnect-lilygo-90B70990A994"},
+            config={const.CONF_DEVICE_ID: "djconnect-lilygo-90B70990A994"},
             authorize_device_request=lambda headers, body_device_id=None: True,
         )
         hass = types.SimpleNamespace(
@@ -588,7 +588,7 @@ class TtsHelperTest(unittest.TestCase):
 
         resolved = self.http._runtime(
             hass,
-            "djconnect-90B70990A994",
+            "djconnect-lilygo-90B70990A994",
             {"Authorization": "Bearer new-token"},
         )
 
@@ -617,20 +617,20 @@ class TtsHelperTest(unittest.TestCase):
 
         entry = types.SimpleNamespace(
             data={
-                self.const.CONF_DEVICE_ID: "djconnect-90B70990A994",
+                self.const.CONF_DEVICE_ID: "djconnect-lilygo-90B70990A994",
                 self.const.CONF_DEVICE_TOKEN: "device-token",
             },
             options={},
         )
         runtime = self.integration.DJConnectRuntime(entry=entry)
         runtime.device_token = "device-token"
-        runtime.device_status["local_url"] = "http://djconnect-90B70990A994.local"
+        runtime.device_status["local_url"] = "http://djconnect-lilygo-90B70990A994.local"
         release = types.SimpleNamespace(
-            version="2.7.0",
-            firmware_url="https://example/djconnect-device-v2.7.0.bin",
+            version="3.0.1",
+            firmware_url="https://example/djconnect-device-v3.0.1.bin",
             sha256="a" * 64,
             device="lilygo-t-embed-s3",
-            firmware_asset="djconnect-device-v2.7.0.bin",
+            firmware_asset="djconnect-device-v3.0.1.bin",
         )
         session = Session()
         original_session = self.integration.async_get_clientsession
@@ -641,16 +641,16 @@ class TtsHelperTest(unittest.TestCase):
             self.integration.async_get_clientsession = original_session
 
         call = session.calls[0]
-        self.assertEqual(call["url"], "http://djconnect-90B70990A994.local/api/device/ota")
+        self.assertEqual(call["url"], "http://djconnect-lilygo-90B70990A994.local/api/device/ota")
         self.assertEqual(call["headers"]["Authorization"], "Bearer device-token")
         self.assertEqual(
             call["json"],
             {
-                "version": "2.7.0",
-                "url": "https://example/djconnect-device-v2.7.0.bin",
+                "version": "3.0.1",
+                "url": "https://example/djconnect-device-v3.0.1.bin",
                 "sha256": "a" * 64,
                 "device": "lilygo-t-embed-s3",
-                "asset": "djconnect-device-v2.7.0.bin",
+                "asset": "djconnect-device-v3.0.1.bin",
             },
         )
 
@@ -672,17 +672,17 @@ class TtsHelperTest(unittest.TestCase):
                 return Response()
 
         entry = types.SimpleNamespace(
-            data={self.const.CONF_DEVICE_ID: "djconnect-90B70990A994"},
+            data={self.const.CONF_DEVICE_ID: "djconnect-lilygo-90B70990A994"},
             options={},
         )
         runtime = self.integration.DJConnectRuntime(entry=entry)
-        runtime.device_status["local_url"] = "http://djconnect-90B70990A994.local"
+        runtime.device_status["local_url"] = "http://djconnect-lilygo-90B70990A994.local"
         release = types.SimpleNamespace(
-            version="2.7.0",
-            firmware_url="https://example/djconnect-device-v2.7.0.bin",
+            version="3.0.1",
+            firmware_url="https://example/djconnect-device-v3.0.1.bin",
             sha256="a" * 64,
             device="djconnect-device",
-            firmware_asset="djconnect-device-v2.7.0.bin",
+            firmware_asset="djconnect-device-v3.0.1.bin",
         )
         original_session = self.integration.async_get_clientsession
         self.integration.async_get_clientsession = lambda hass: Session()
@@ -715,7 +715,7 @@ class TtsHelperTest(unittest.TestCase):
             async def async_get_service_info(self, service_type, service_name):
                 return types.SimpleNamespace(
                     name=service_name,
-                    server="djconnect-90B70990A994.local.",
+                    server="djconnect-lilygo-90B70990A994.local.",
                     port=80,
                 )
 
@@ -726,7 +726,7 @@ class TtsHelperTest(unittest.TestCase):
             )
         )
 
-        self.assertEqual(info.server, "djconnect-90B70990A994.local.")
+        self.assertEqual(info.server, "djconnect-lilygo-90B70990A994.local.")
 
     def test_url_from_service_info_matches_friendly_mdns_name(self) -> None:
         entry = types.SimpleNamespace(
@@ -772,14 +772,14 @@ class TtsHelperTest(unittest.TestCase):
 
     def test_device_local_url_falls_back_to_mdns_hostname(self) -> None:
         entry = types.SimpleNamespace(
-            data={self.const.CONF_DEVICE_ID: "djconnect-90B70990A994"},
+            data={self.const.CONF_DEVICE_ID: "djconnect-lilygo-90B70990A994"},
             options={},
         )
         runtime = self.integration.DJConnectRuntime(entry=entry)
 
         url = asyncio.run(runtime.async_device_local_url(hass=object()))
 
-        self.assertEqual(url, "http://djconnect-90B70990A994.local")
+        self.assertEqual(url, "http://djconnect-lilygo-90B70990A994.local")
 
     def test_device_local_url_does_not_fallback_to_pair_code_hostname(self) -> None:
         entry = types.SimpleNamespace(
@@ -814,7 +814,7 @@ class TtsHelperTest(unittest.TestCase):
         runtime = self.integration.DJConnectRuntime(entry=entry)
 
         async def discover(hass, runtime):
-            return "http://djconnect-90B70990A994.local"
+            return "http://djconnect-lilygo-90B70990A994.local"
 
         original_discover = self.integration.async_discover_device_url
         self.integration.async_discover_device_url = discover
@@ -823,7 +823,7 @@ class TtsHelperTest(unittest.TestCase):
         finally:
             self.integration.async_discover_device_url = original_discover
 
-        self.assertEqual(url, "http://djconnect-90B70990A994.local")
+        self.assertEqual(url, "http://djconnect-lilygo-90B70990A994.local")
 
     def test_tts_audio_store_returns_wav_and_unknown_404(self) -> None:
         hass = types.SimpleNamespace(data={})

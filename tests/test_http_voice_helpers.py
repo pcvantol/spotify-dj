@@ -155,7 +155,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "X-DJConnect-Text": "Test",
-                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994",
             }
             app = {"hass": hass}
 
@@ -214,7 +214,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994",
                 "Content-Type": "application/json",
             }
             app = {"hass": hass}
@@ -245,13 +245,13 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         class Runtime:
             config = {const.CONF_MAX_AUDIO_BYTES: 100}
-            device_status = {"device_id": "djconnect-90B70990A994"}
+            device_status = {"device_id": "djconnect-lilygo-90B70990A994"}
             device_token = "device-token"
 
             def authorize_device_request(self, headers, body_device_id=None):
                 return (
                     headers.get("Authorization") == "Bearer device-token"
-                    and body_device_id == "djconnect-90B70990A994"
+                    and body_device_id == "djconnect-lilygo-90B70990A994"
                 )
 
             def update(self, **kwargs):
@@ -289,7 +289,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994",
                 "Content-Type": "audio/wav",
             }
             app = {"hass": hass}
@@ -323,7 +323,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         class Runtime:
             config = {const.CONF_MAX_AUDIO_BYTES: 100}
-            device_status = {"device_id": "djconnect-90B70990A994"}
+            device_status = {"device_id": "djconnect-lilygo-90B70990A994"}
 
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
@@ -356,7 +356,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994",
                 "Content-Type": "audio/wav",
             }
             app = {"hass": hass}
@@ -383,7 +383,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         class Runtime:
             config = {const.CONF_MAX_AUDIO_BYTES: 4}
-            device_status = {"device_id": "djconnect-90B70990A994"}
+            device_status = {"device_id": "djconnect-lilygo-90B70990A994"}
 
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
@@ -393,7 +393,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994",
                 "Content-Type": "audio/x-wav",
             }
             app = {"hass": hass}
@@ -411,7 +411,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         class Runtime:
             config = {const.CONF_MAX_AUDIO_BYTES: 100}
-            device_status = {"device_id": "djconnect-90B70990A994"}
+            device_status = {"device_id": "djconnect-lilygo-90B70990A994"}
 
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
@@ -431,7 +431,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994",
                 "Content-Type": "application/octet-stream",
             }
             app = {"hass": hass}
@@ -454,7 +454,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         class Runtime:
             config = {const.CONF_MAX_AUDIO_BYTES: 100}
-            device_status = {"device_id": "djconnect-90B70990A994"}
+            device_status = {"device_id": "djconnect-lilygo-90B70990A994"}
 
             def authorize_device_request(self, headers, body_device_id=None):
                 return True
@@ -476,7 +476,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994",
                 "Content-Type": "audio/wav",
             }
             app = {"hass": hass}
@@ -1207,8 +1207,8 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
             async def json(self):
                 return {
-                    "device_id": "djconnect-90B70990A994",
-                    "local_url": "http://djconnect-90B70990A994.local",
+                    "device_id": "djconnect-lilygo-90B70990A994",
+                    "local_url": "http://djconnect-lilygo-90B70990A994.local",
                     "spotify_configured": True,
                 }
 
@@ -1217,12 +1217,12 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["status_code"], 200)
         self.assertEqual(
             config_entries.updates[0][const.CONF_DEVICE_ID],
-            "djconnect-90B70990A994",
+            "djconnect-lilygo-90B70990A994",
         )
         self.assertEqual(config_entries.updates[0][const.CONF_DEVICE_TOKEN], "device-token")
         self.assertEqual(
             config_entries.updates[0][const.CONF_LOCAL_URL],
-            "http://djconnect-90B70990A994.local",
+            "http://djconnect-lilygo-90B70990A994.local",
         )
 
     def test_status_view_accepts_lilygo_device_id_and_flattens_device_settings(self) -> None:
@@ -1261,7 +1261,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
                 return {
                     "device_id": "djconnect-lilygo-90B70990A994",
                     "update_state": "idle",
-                    "firmware": "2.9.25",
+                    "firmware": "3.0.0",
                     "settings": {
                         "screen_brightness_percent": 91,
                         "screen_off_timeout_ms": 60000,
@@ -1479,7 +1479,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         class Runtime:
             device_token = "device-token"
-            device_status = {"device_id": "djconnect-90B70990A994"}
+            device_status = {"device_id": "djconnect-lilygo-90B70990A994"}
             config = {}
 
             def authorize_device_request(self, headers, body_device_id=None):
@@ -1497,13 +1497,13 @@ class VoiceHttpHelperTest(unittest.TestCase):
         class Request:
             headers = {
                 "Authorization": "Bearer device-token",
-                "X-DJConnect-Device-ID": "djconnect-90B70990A994",
+                "X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994",
             }
             app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
 
             async def json(self):
                 return {
-                    "device_id": "djconnect-90B70990A994",
+                    "device_id": "djconnect-lilygo-90B70990A994",
                     "command": "devices",
                     "value": "",
                     "play": False,
@@ -1543,7 +1543,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": Runtime()}})}
 
             async def json(self):
-                return {"device_id": "djconnect-90B70990A994", "command": "status"}
+                return {"device_id": "djconnect-lilygo-90B70990A994", "command": "status"}
 
         original = self.http.handle_spotify_command
         self.http.handle_spotify_command = command_handler

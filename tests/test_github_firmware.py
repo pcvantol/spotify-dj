@@ -73,7 +73,7 @@ class GithubFirmwareTest(unittest.TestCase):
         assets = self.github._select_release_assets(
             [
                 {
-                    "name": "djconnect-device-v2.7.0.bin",
+                    "name": "djconnect-device-v3.0.1.bin",
                     "browser_download_url": "https://example/firmware.bin",
                 },
                 {
@@ -84,7 +84,7 @@ class GithubFirmwareTest(unittest.TestCase):
             "djconnect-device",
         )
 
-        self.assertEqual(assets.firmware["name"], "djconnect-device-v2.7.0.bin")
+        self.assertEqual(assets.firmware["name"], "djconnect-device-v3.0.1.bin")
         self.assertEqual(assets.manifest["name"], "firmware_manifest.json")
 
     def test_firmware_release_uses_manifest_device_and_metadata(self) -> None:
@@ -114,11 +114,11 @@ class GithubFirmwareTest(unittest.TestCase):
                 if url.endswith("/releases/latest"):
                     return Response(
                         {
-                            "tag_name": "v2.7.0",
-                            "name": "DJConnect v2.7.0",
+                            "tag_name": "v3.0.1",
+                            "name": "DJConnect v3.0.1",
                             "assets": [
                                 {
-                                    "name": "djconnect-device-v2.7.0.bin",
+                                    "name": "djconnect-device-v3.0.1.bin",
                                     "browser_download_url": "https://example/firmware.bin",
                                 },
                                 {
@@ -130,9 +130,9 @@ class GithubFirmwareTest(unittest.TestCase):
                     )
                 return Response(
                     {
-                        "version": "2.7.0",
+                        "version": "3.0.1",
                         "device": "lilygo-t-embed-s3",
-                        "asset": "djconnect-device-v2.7.0.bin",
+                        "asset": "djconnect-device-v3.0.1.bin",
                         "sha256": "a" * 64,
                         "size": 2113136,
                         "min_ha_integration": "1.0.0",
@@ -152,7 +152,7 @@ class GithubFirmwareTest(unittest.TestCase):
             self.github.async_get_clientsession = original_session
 
         self.assertEqual(release.device, "lilygo-t-embed-s3")
-        self.assertEqual(release.firmware_asset, "djconnect-device-v2.7.0.bin")
+        self.assertEqual(release.firmware_asset, "djconnect-device-v3.0.1.bin")
         self.assertEqual(release.sha256, "a" * 64)
         self.assertEqual(release.size, 2113136)
         self.assertEqual(release.min_ha_integration, "1.0.0")
@@ -189,11 +189,11 @@ class GithubFirmwareTest(unittest.TestCase):
 
     def test_missing_manifest_device_falls_back_to_default_target(self) -> None:
         release = self.github.FirmwareRelease(
-            version="2.7.0",
-            title="DJConnect v2.7.0",
+            version="3.0.1",
+            title="DJConnect v3.0.1",
             body=None,
-            firmware_url="https://example/djconnect-device-v2.7.0.bin",
-            firmware_asset="djconnect-device-v2.7.0.bin",
+            firmware_url="https://example/djconnect-device-v3.0.1.bin",
+            firmware_asset="djconnect-device-v3.0.1.bin",
             device="lilygo-t-embed-s3",
         )
 
@@ -203,7 +203,7 @@ class GithubFirmwareTest(unittest.TestCase):
         with self.assertLogs(self.github._LOGGER, level="WARNING") as captured:
             self.github._LOGGER.warning(
                 "DJConnect firmware manifest for %s targets unsupported device %s",
-                "2.7.0",
+                "3.0.1",
                 "other-board",
             )
 

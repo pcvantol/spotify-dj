@@ -294,14 +294,14 @@ class ConfigFlowHelperTest(unittest.TestCase):
 
         self.assertEqual(
             local_url_marker.default,
-            "http://djconnect-90B70990A994.local",
+            "http://djconnect-lilygo-90B70990A994.local",
         )
 
     def test_default_local_url_accepts_only_device_suffix(self) -> None:
         self.assertEqual(self.config_flow._default_local_url("123456"), "")
         self.assertEqual(
             self.config_flow._default_local_url("90B70990A994"),
-            "http://djconnect-90B70990A994.local",
+            "http://djconnect-lilygo-90B70990A994.local",
         )
         self.assertTrue(self.config_flow._valid_pair_code("123456"))
         self.assertTrue(self.config_flow._valid_pair_code("90B70990A994"))
