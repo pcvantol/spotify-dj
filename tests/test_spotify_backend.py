@@ -165,7 +165,17 @@ class SpotifyBackendTest(unittest.TestCase):
                 if method == "GET" and "/search?" in url:
                     return Response(
                         200,
-                        {"tracks": {"items": [{"uri": "spotify:track:pearl-jam"}]}},
+                        {
+                            "artists": {
+                                "total": 1,
+                                "items": [
+                                    {
+                                        "name": "Pearl Jam",
+                                        "uri": "spotify:artist:pearl-jam",
+                                    }
+                                ],
+                            }
+                        },
                     )
                 return Response(204)
 
@@ -195,20 +205,22 @@ class SpotifyBackendTest(unittest.TestCase):
 
         self.assertIn("/search?", session.calls[0]["url"])
         self.assertIn("q=ik+wil+pearl+jam+starten", session.calls[0]["url"])
+        self.assertIn("type=artist", session.calls[0]["url"])
         self.assertEqual(session.calls[0]["method"], "GET")
         self.assertEqual(session.calls[1]["method"], "PUT")
         self.assertEqual(
             session.calls[1]["json"],
-            {"uris": ["spotify:track:pearl-jam"]},
+            {"context_uri": "spotify:artist:pearl-jam"},
         )
         self.assertEqual(runtime.last_resolved_media["title"], "")
-        self.assertEqual(runtime.last_resolved_media["uri"], "spotify:track:pearl-jam")
+        self.assertEqual(runtime.last_resolved_media["artist"], "Pearl Jam")
+        self.assertEqual(runtime.last_resolved_media["uri"], "spotify:artist:pearl-jam")
         self.assertEqual(runtime.last_spotify_search["query"], "ik wil pearl jam starten")
-        self.assertEqual(runtime.last_spotify_search["type"], "track")
+        self.assertEqual(runtime.last_spotify_search["type"], "artist")
         self.assertEqual(runtime.last_spotify_search["returned"], 1)
         self.assertEqual(
             runtime.last_spotify_search["selected"]["uri"],
-            "spotify:track:pearl-jam",
+            "spotify:artist:pearl-jam",
         )
 
     def test_play_recovers_no_active_device_by_transferring_to_configured_source(self) -> None:

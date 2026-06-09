@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.0.24`
+- Home Assistant integration: `3.0.25`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -266,10 +266,12 @@ DJConnect does not use that sentence as the DJ announcement. It keeps the
 Spotify search intent based on the original command and falls back to the
 DJConnect DJ response text unless Assist returns explicit `djconnect` data.
 Plain voice/search commands such as "ik wil Pearl Jam starten" are resolved
-through Spotify Search before playback starts. If Spotify reports that no
-active playback device exists, DJConnect refreshes available Spotify devices,
-selects the configured Spotify source when possible, transfers playback there
-and retries the command once.
+through Spotify Search before playback starts. Text searches are intentionally
+restricted to Spotify artists, so a spoken artist request starts the artist
+context instead of picking an arbitrary track or album result. If Spotify
+reports that no active playback device exists, DJConnect refreshes available
+Spotify devices, selects the configured Spotify source when possible, transfers
+playback there and retries the command once.
 
 Developer action overview:
 
@@ -525,12 +527,12 @@ Example manifest:
 
 ```json
 {
-  "version": "3.0.24",
+  "version": "3.0.25",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.24.bin",
+  "asset": "djconnect-device-v3.0.25.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "3.0.24"
+  "min_ha_integration": "3.0.25"
 }
 ```
 
@@ -545,7 +547,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.0.24
+./release.sh 3.0.25
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -556,7 +558,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.0.24 --dry-run
+./release.sh 3.0.25 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -614,11 +616,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.0.24"
-git tag v3.0.24
+git commit -m "Release DJConnect v3.0.25"
+git tag v3.0.25
 git push origin main
-git push origin v3.0.24
-gh release create v3.0.24 --title "DJConnect v3.0.24" --notes-file CHANGELOG.md
+git push origin v3.0.25
+gh release create v3.0.25 --title "DJConnect v3.0.25" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

@@ -8,9 +8,11 @@ from .const import CONF_LIKED_PROXY, CONF_SPOTIFY_SOURCE
 from .spotify_backend import handle_spotify_command
 
 MEDIA_CONTENT_TYPES = {
-    "album": "album",
     "artist": "artist",
-    "track": "track",
+    "album": "artist",
+    "track": "artist",
+    "search": "artist",
+    "music": "artist",
 }
 
 
@@ -64,7 +66,7 @@ def _media_from_intent(
     if media_type == "playlist":
         return (intent.get("playlist") or media_content_id).strip(), "playlist"
     if media_type == "latest_album":
-        return _latest_album_media(intent, media_content_id)
+        return _artist_media(intent, media_content_id)
     return media_content_id, MEDIA_CONTENT_TYPES.get(media_type, "music")
 
 
@@ -75,10 +77,10 @@ def _liked_proxy_media(conf: dict[str, Any]) -> tuple[str, str]:
     return proxy, "playlist"
 
 
-def _latest_album_media(
+def _artist_media(
     intent: dict[str, Any],
     fallback_query: str,
 ) -> tuple[str, str]:
     artist = (intent.get("artist") or "").strip()
-    query = f"latest album {artist}" if artist else fallback_query
-    return query, "album"
+    query = artist if artist else fallback_query
+    return query, "artist"

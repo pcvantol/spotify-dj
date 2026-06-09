@@ -356,7 +356,7 @@ class SpotifyBackend:
     async def _playable_value(self, value: Any) -> str:
         if isinstance(value, dict):
             query = str(value.get("query") or value.get("value") or "").strip()
-            media_type = str(value.get("type") or "track").strip().lower()
+            media_type = str(value.get("type") or "artist").strip().lower()
             if not query:
                 raise ValueError("Provide a Spotify URI or search query")
             if query.startswith("spotify:"):
@@ -367,7 +367,7 @@ class SpotifyBackend:
             raise ValueError("Provide a Spotify URI or search query")
         if text.startswith("spotify:"):
             return text
-        return await self._search_uri(text, "track")
+        return await self._search_uri(text, "artist")
 
     async def _search_uri(self, query: str, media_type: str) -> str:
         spotify_type = _spotify_search_type(media_type)
@@ -497,9 +497,9 @@ def _normalize_playback(data: dict[str, Any]) -> dict[str, Any]:
 
 def _spotify_search_type(media_type: str) -> str:
     normalized = str(media_type or "").strip().lower()
-    if normalized in {"album", "artist", "playlist", "track"}:
-        return normalized
-    return "track"
+    if normalized == "playlist":
+        return "playlist"
+    return "artist"
 
 
 def _first_search_item(data: dict[str, Any], spotify_type: str) -> dict[str, Any]:
@@ -517,14 +517,20 @@ def _normalize_search_item(item: dict[str, Any], spotify_type: str, query: str) 
     artists = item.get("artists") or []
     owner = item.get("owner") or {}
     album = item.get("album") or {}
+    name = item.get("name") or ""
+    artist_name = (
+        name
+        if spotify_type == "artist"
+        else ", ".join(artist.get("name", "") for artist in artists if artist.get("name"))
+    )
     return {
         "type": spotify_type,
         "query": query,
         "uri": item.get("uri") or "",
-        "title": item.get("name") or "",
-        "track_name": item.get("name") or "",
-        "artist": ", ".join(artist.get("name", "") for artist in artists if artist.get("name")),
-        "artist_name": ", ".join(artist.get("name", "") for artist in artists if artist.get("name")),
+        "title": "" if spotify_type == "artist" else name,
+        "track_name": "" if spotify_type == "artist" else name,
+        "artist": artist_name,
+        "artist_name": artist_name,
         "album_name": album.get("name") or "",
         "owner": owner.get("display_name") or owner.get("id") or "",
     }
