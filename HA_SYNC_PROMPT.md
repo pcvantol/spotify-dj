@@ -4,7 +4,7 @@ Werk in de bestaande Home Assistant custom integration repo `pcvantol/djconnect`
 
 ## Doel
 
-Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmware contracten voor release `v3.0.6`.
+Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmware contracten voor release `v3.0.7`.
 
 ## 0. Repository / Release Hygiene
 
@@ -12,7 +12,7 @@ Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmwar
 - ESP source repo: `pcvantol/djconnect-app`.
 - Public OTA firmware repo: `pcvantol/djconnect-firmware`.
 - Firmware binaries/manifests must be consumed from `djconnect-firmware`; the ESP source repo is not the OTA asset host.
-- Current HA integration release/tag baseline is `v3.0.6`; do not reference old 2.x firmware assets or tags.
+- Current HA integration release/tag baseline is `v3.0.7`; do not reference old 2.x firmware assets or tags.
 - Current firmware asset naming convention is `djconnect-device-vX.Y.Z.bin`.
 - Current OTA manifest filename is `firmware_manifest.json`.
 - Current OTA manifest `device` target is `lilygo-t-embed-s3`.
@@ -43,6 +43,10 @@ Controleer pairing flow:
 Belangrijk:
 
 - HA mag een lokaal `device_token` voorbereiden, maar moet pairingstatus niet als `paired` rapporteren totdat de ESP tokenopslag bevestigt.
+- Een aangemaakte HA config entry, device registry entry of set entities betekent nog niet dat de ESP gepaired is. Als het ESP display na de HA flow nog de pairing code toont, is HA pairing hooguit `pending`.
+- Bij een 6-cijferige setupcode kent HA de echte ESP device-id nog niet. Resolve eerst de ESP URL via manual URL, `_djconnect._tcp` mDNS of single visible DJConnect mDNS service, roep daarna `GET /api/device/pairing-info` aan, verifieer dat `pair_code` overeenkomt en leer de echte `djconnect-lilygo-XXXXXXXXXXXX` `device_id`.
+- Gebruik de echte `device_id` uit `/api/device/pairing-info` in de daaropvolgende `POST /api/device/pair`. Stuur nooit een tijdelijke `djconnect-<6-cijferige-code>` als `device_id` naar de ESP.
+- Als `/api/device/pairing-info` niet bereikbaar is of de code niet matcht, rond de config flow niet af als succesvol gepaired; toon/retry als pending/recoverable pairing failure.
 - `POST /api/device/pair` naar ESP moet `device_token` plus `ha_local_url` en/of `ha_remote_url` sturen.
 - `ha_local_url` is de LAN URL die ESP eerst probeert, bijvoorbeeld `http://homeassistant.local:8123`.
 - `ha_remote_url` is de optionele Nabu Casa/cloud URL die ESP gebruikt als local niet bereikbaar is.
@@ -53,6 +57,18 @@ Belangrijk:
 - Als playback backend tijdelijk niet beschikbaar is, dat is geen pairing failure.
 
 Expected HA -> ESP pair payload:
+
+Expected ESP pairing-info response before direct pairing:
+
+```json
+{
+  "device_id": "djconnect-lilygo-XXXXXXXXXXXX",
+  "device_name": "DJConnect",
+  "pair_code": "123456",
+  "firmware": "3.0.7",
+  "local_url": "http://djconnect-lilygo-XXXXXXXXXXXX.local"
+}
+```
 
 ```json
 {
@@ -222,17 +238,20 @@ OTA payload naar ESP:
 
 ```json
 {
-  "version": "3.0.6",
-  "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.6/djconnect-device-v3.0.6.bin",
+  "version": "3.0.7",
+  "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.7/djconnect-device-v3.0.7.bin",
   "sha256": "...",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.6.bin"
+  "asset": "djconnect-device-v3.0.7.bin"
 }
 ```
 
 ## 8. Tests To Add / Update
 
 - Pairing pending until ESP confirms token storage through authenticated status/command/voice.
+- Six-digit setup-code pairing fetches ESP `/api/device/pairing-info`, verifies the displayed code, learns the real `djconnect-lilygo-XXXXXXXXXXXX` device id and uses that real id in `POST /api/device/pair`.
+- HA config flow/entities may exist while pairing is still `pending`; tests must fail if HA reports `paired` before ESP confirmation.
+- If `/api/device/pair` is never observed by the ESP and the ESP display stays on the pairing screen, HA must keep/recover `pending` state and retry explicit pairing instead of claiming success.
 - 401/403/404 marks pairing stale.
 - HTTP 200 with `backend_available:false` does not mark pairing stale.
 - Status payload updates native entities from top-level and nested `settings`/`screen`/`led`.
@@ -254,7 +273,8 @@ python3 -m unittest discover -s tests
 
 ## 9. Acceptance Criteria
 
-- ESP `v3.0.6` pairs without stale-pairing loops.
+- ESP `v3.0.7` pairs without stale-pairing loops.
+- After a 6-digit setup-code flow, ESP logs `Home Assistant direct pairing stored: device_token=present`, exits the pairing screen and after reboot logs `Home Assistant pairing: paired`.
 - ESP S indicator updates green/grey/red after reboot without user action.
 - HA entities reflect ESP state after reboot/status post.
 - Backend unavailable keeps HA pairing intact.

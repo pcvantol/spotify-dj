@@ -236,12 +236,16 @@ class GithubFirmwareTest(unittest.TestCase):
         self.github.ClientResponseError = ClientResponseError
         self.github.async_get_clientsession = lambda hass: Session()
         try:
-            release = asyncio.run(
-                self.github.fetch_latest_firmware_release(
-                    object(),
-                    {"firmware_repo": "pcvantol/djconnect-firmware"},
+            with self.assertNoLogs(
+                "custom_components.djconnect.github",
+                level="WARNING",
+            ):
+                release = asyncio.run(
+                    self.github.fetch_latest_firmware_release(
+                        object(),
+                        {"firmware_repo": "pcvantol/djconnect-firmware"},
+                    )
                 )
-            )
         finally:
             self.github.ClientResponseError = original_error
             self.github.async_get_clientsession = original_session

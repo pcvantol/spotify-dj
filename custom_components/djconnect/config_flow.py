@@ -365,21 +365,39 @@ def _spotify_schema_with_defaults(
 
 async def _async_default_external_url(hass: Any) -> str:
     """Return HA's configured external URL when available."""
-    try:
-        from homeassistant.helpers import network
-
-        url = await network.async_get_url(
-            hass,
-            prefer_external=True,
-            allow_internal=False,
-        )
-    except Exception:  # noqa: BLE001
-        url = ""
+    url = await _async_network_external_url(hass)
     if not url:
         url = await _async_cloud_external_url(hass)
     if not url:
         url = await _async_configured_external_url(hass)
     return url.strip().rstrip("/")
+
+
+async def _async_network_external_url(hass: Any) -> str:
+    """Return HA Network external URL, preferring Nabu Casa Cloud when available."""
+    try:
+        from homeassistant.helpers import network
+
+        get_url = getattr(network, "async_get_url", None) or getattr(network, "get_url", None)
+        if get_url is None:
+            return ""
+        kwargs = {
+            "prefer_external": True,
+            "prefer_cloud": True,
+            "allow_internal": False,
+            "allow_external": True,
+            "allow_cloud": True,
+            "require_ssl": True,
+        }
+        try:
+            url = await _async_maybe_await(get_url(hass, **kwargs))
+        except TypeError:
+            kwargs.pop("prefer_cloud", None)
+            url = await _async_maybe_await(get_url(hass, **kwargs))
+        return str(url or "")
+    except Exception:  # noqa: BLE001
+        _LOGGER.debug("DJConnect could not read Home Assistant Network external URL", exc_info=True)
+    return ""
 
 
 async def _async_cloud_external_url(hass: Any) -> str:
@@ -389,7 +407,7 @@ async def _async_cloud_external_url(hass: Any) -> str:
 
         remote_url = getattr(cloud, "async_remote_ui_url", None)
         if remote_url is not None:
-            return str(await remote_url(hass) or "")
+            return str(await _async_maybe_await(remote_url(hass)) or "")
     except Exception:  # noqa: BLE001
         _LOGGER.debug("DJConnect could not read Home Assistant Cloud URL", exc_info=True)
     cloud_data = getattr(hass, "data", {}).get("cloud") if hasattr(hass, "data") else None
@@ -405,6 +423,13 @@ async def _async_cloud_external_url(hass: Any) -> str:
     return ""
 
 
+async def _async_maybe_await(value: Any) -> Any:
+    """Await HA helper results only when the helper is asynchronous."""
+    if inspect.isawaitable(value):
+        return await value
+    return value
+
+
 async def _async_configured_external_url(hass: Any) -> str:
     """Return external URL from HA config objects across supported versions."""
     config = getattr(hass, "config", None)
@@ -417,9 +442,7 @@ async def _async_configured_external_url(hass: Any) -> str:
         if callable(getter):
             try:
                 value = getter()
-                if inspect.isawaitable(value):
-                    value = await value
-                candidates.append(value)
+                candidates.append(await _async_maybe_await(value))
             except Exception:  # noqa: BLE001
                 _LOGGER.debug("DJConnect could not read %s", getter_name, exc_info=True)
     data = getattr(hass, "data", {}) if hass is not None else {}

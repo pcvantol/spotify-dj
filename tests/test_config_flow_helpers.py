@@ -554,6 +554,38 @@ class ConfigFlowHelperTest(unittest.TestCase):
         finally:
             network.async_get_url = original
 
+    def test_default_external_url_uses_sync_network_helper_with_cloud_preference(self) -> None:
+        from homeassistant.helpers import network
+
+        original_async = network.async_get_url
+        original_sync = getattr(network, "get_url", None)
+
+        def network_url(hass, **kwargs):
+            self.assertTrue(kwargs["prefer_external"])
+            self.assertTrue(kwargs["prefer_cloud"])
+            self.assertFalse(kwargs["allow_internal"])
+            self.assertTrue(kwargs["allow_cloud"])
+            self.assertTrue(kwargs["require_ssl"])
+            return "https://cloud-sync.ui.nabu.casa/"
+
+        network.async_get_url = None
+        network.get_url = network_url
+        try:
+            self.assertEqual(
+                asyncio.run(
+                    self.config_flow._async_default_external_url(
+                        types.SimpleNamespace(config=types.SimpleNamespace())
+                    )
+                ),
+                "https://cloud-sync.ui.nabu.casa",
+            )
+        finally:
+            network.async_get_url = original_async
+            if original_sync is None:
+                delattr(network, "get_url")
+            else:
+                network.get_url = original_sync
+
     def test_default_external_url_uses_cloud_remote_ui_fallback(self) -> None:
         from homeassistant.components import cloud
         from homeassistant.helpers import network
@@ -577,6 +609,34 @@ class ConfigFlowHelperTest(unittest.TestCase):
                     )
                 ),
                 "https://cloud.ui.nabu.casa",
+            )
+        finally:
+            network.async_get_url = original_network
+            cloud.async_remote_ui_url = original_cloud
+
+    def test_default_external_url_uses_sync_cloud_remote_ui_fallback(self) -> None:
+        from homeassistant.components import cloud
+        from homeassistant.helpers import network
+
+        original_network = network.async_get_url
+        original_cloud = cloud.async_remote_ui_url
+
+        async def no_network_url(*args, **kwargs):
+            return ""
+
+        def cloud_url(hass):
+            return "https://sync-cloud.ui.nabu.casa/"
+
+        network.async_get_url = no_network_url
+        cloud.async_remote_ui_url = cloud_url
+        try:
+            self.assertEqual(
+                asyncio.run(
+                    self.config_flow._async_default_external_url(
+                        types.SimpleNamespace(config=types.SimpleNamespace())
+                    )
+                ),
+                "https://sync-cloud.ui.nabu.casa",
             )
         finally:
             network.async_get_url = original_network

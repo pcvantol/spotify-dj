@@ -83,7 +83,7 @@ async def fetch_latest_firmware_release(
         release = await _fetch_latest_release_json(session, repo)
     except ClientResponseError as exc:
         if exc.status == 403:
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "DJConnect firmware release check is currently rate limited by GitHub"
             )
             return None
