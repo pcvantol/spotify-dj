@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.0.31`
+- Home Assistant integration: `3.0.32`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -521,12 +521,12 @@ Example manifest:
 
 ```json
 {
-  "version": "3.0.31",
+  "version": "3.0.32",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.31.bin",
+  "asset": "djconnect-device-v3.0.32.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "3.0.31"
+  "min_ha_integration": "3.0.32"
 }
 ```
 
@@ -541,7 +541,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.0.31
+./release.sh 3.0.32
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -552,7 +552,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.0.31 --dry-run
+./release.sh 3.0.32 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -610,11 +610,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.0.31"
-git tag v3.0.31
+git commit -m "Release DJConnect v3.0.32"
+git tag v3.0.32
 git push origin main
-git push origin v3.0.31
-gh release create v3.0.31 --title "DJConnect v3.0.31" --notes-file CHANGELOG.md
+git push origin v3.0.32
+gh release create v3.0.32 --title "DJConnect v3.0.32" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

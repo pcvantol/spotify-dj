@@ -112,7 +112,7 @@ class AssistPipelineTest(unittest.TestCase):
                             "plain": {
                                 "speech": (
                                     "Sorry, ik kan geen apparaat vinden met de naam "
-                                    "twee zinnen klink als radio DJ Robert Jensen Media "
+                                    "twee zinnen klink als warme radio-DJ Example Artist "
                                     "{'type': 'artist', 'uri': 'spotify:artist:abc'}"
                                 )
                             }
@@ -124,8 +124,8 @@ class AssistPipelineTest(unittest.TestCase):
         text = asyncio.run(
             self.pipeline.generate_dj_response_with_assist(
                 hass,
-                media={"artist": "Robert Jensen Media", "uri": "spotify:artist:abc"},
-                fallback_text="Daar is Robert Jensen Media. Blijf erbij.",
+                media={"artist": "Example Artist", "uri": "spotify:artist:abc"},
+                fallback_text="Daar is Example Artist. Blijf erbij.",
                 conf={
                     "dj_response_prompt": "twee zinnen klink als radio DJ",
                     "tts_language": "nl-NL",
@@ -133,7 +133,7 @@ class AssistPipelineTest(unittest.TestCase):
             )
         )
 
-        self.assertEqual(text, "Daar is Robert Jensen Media. Blijf erbij.")
+        self.assertEqual(text, "Daar is Example Artist. Blijf erbij.")
         self.assertNotIn("geen apparaat", text)
         self.assertNotIn("spotify:artist", text)
 

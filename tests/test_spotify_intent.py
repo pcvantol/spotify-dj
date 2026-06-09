@@ -64,6 +64,7 @@ class SpotifyIntentTest(unittest.TestCase):
             "ik wil Metallica horen": "Metallica",
             "ik wil wel Metallica horen": "Metallica",
             "ik wil wel Metallica luisteren": "Metallica",
+            "Nirvana wil ik wel horen": "Nirvana",
             "zet Radiohead op": "Radiohead",
             "zet heavn aan": "heavn",
             "zet london grammer op": "london grammer",

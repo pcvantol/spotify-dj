@@ -4,9 +4,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 
 from .const import (
-    CONF_DJ_RESPONSE_PROMPT,
     CONF_TTS_LANGUAGE,
-    DEFAULT_DJ_RESPONSE_PROMPT,
     DEFAULT_TTS_LANGUAGE,
 )
 from .pipeline import generate_dj_response_with_assist, process_text_with_assist
@@ -56,7 +54,6 @@ def _dj_response_text(
     artist = _first_text(media, "artist", "artist_name")
     album = _first_text(media, "album_name", "album")
     playlist = _first_text(media, "playlist", "name")
-    prompt = str(conf.get(CONF_DJ_RESPONSE_PROMPT) or DEFAULT_DJ_RESPONSE_PROMPT)
     language = str(conf.get(CONF_TTS_LANGUAGE) or DEFAULT_TTS_LANGUAGE)
     is_nl = language.lower().startswith("nl")
 
@@ -65,11 +62,10 @@ def _dj_response_text(
             title=title,
             artist=artist,
             album=album,
-            prompt=prompt,
             is_nl=is_nl,
         )
     if playlist:
-        return _playlist_response(playlist, prompt=prompt, is_nl=is_nl)
+        return _playlist_response(playlist, is_nl=is_nl)
 
     announcement = str(intent.get("dj_announcement") or "").strip()
     if announcement and not _is_generic_announcement(announcement):
@@ -96,44 +92,15 @@ def _track_response(
     title: str,
     artist: str,
     album: str,
-    prompt: str,
     is_nl: bool,
 ) -> str:
     subject = _track_subject(title, artist, is_nl=is_nl)
-    prompt_words = prompt.lower()
-    if "minimaal" in prompt_words or "minimal" in prompt_words:
-        return subject
-    if "rustig" in prompt_words or "calm" in prompt_words:
-        if is_nl:
-            return f"Rustig erin: {subject}. Even laten landen."
-        return f"Ease into this one: {subject}. Let it breathe."
-    if "festival" in prompt_words or "energiek" in prompt_words:
-        if is_nl:
-            return f"Handen omhoog: {subject}. Dit is er eentje om wakker van te worden."
-        return f"Hands up: {subject}. This one should wake the room."
-    if "robert jensen" in prompt_words:
-        if is_nl:
-            return f"Daar is {subject}, scherp en lekker op de speakers. Blijf erbij, dit is DJConnect radio."
-        return f"Here is {subject}, sharp and ready on the speakers. Stay with it, this is DJConnect radio."
     if album and artist:
-        return f"Daar is {artist}, met {title}. Van {album}; zet 'm maar lekker open."
-    return f"Daar is {subject}. Zet 'm maar lekker open." if is_nl else f"Here is {subject}. Turn it up."
+        return f"Daar is {artist}, met {title}. Van {album}." if is_nl else f"Here is {title} by {artist}, from {album}."
+    return f"Daar is {subject}." if is_nl else f"Here is {subject}."
 
 
-def _playlist_response(playlist: str, *, prompt: str, is_nl: bool) -> str:
-    prompt_words = prompt.lower()
-    if "minimaal" in prompt_words or "minimal" in prompt_words:
-        return playlist
-    if "festival" in prompt_words or "energiek" in prompt_words:
-        return f"Daar gaan we: {playlist}. Tijd om los te komen." if is_nl else f"Here we go: {playlist}. Time to move."
-    if "rustig" in prompt_words or "calm" in prompt_words:
-        return f"Ik zet {playlist} rustig voor je op." if is_nl else f"I'll ease into {playlist} for you."
-    if "robert jensen" in prompt_words:
-        return (
-            f"Daar is {playlist}, strak gestart op DJConnect radio. Blijf erbij, er komt meer aan."
-            if is_nl
-            else f"Here is {playlist}, lined up on DJConnect radio. Stay with it, more is coming."
-        )
+def _playlist_response(playlist: str, *, is_nl: bool) -> str:
     return f"Ik zet {playlist} voor je klaar." if is_nl else f"I'll start {playlist} for you."
 
 

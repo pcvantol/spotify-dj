@@ -106,12 +106,12 @@ class ProcessorRuntimeTest(unittest.TestCase):
         self.assertEqual(runtime.last_intent["type"], "search")
         self.assertEqual(
             runtime.last_dj_text,
-            "Daar is Pearl Jam, met Black. Van Ten; zet 'm maar lekker open.",
+            "Daar is Pearl Jam, met Black. Van Ten.",
         )
         self.assertEqual(runtime.last_playback["resolved_media"]["title"], "Black")
         self.assertEqual(result["playback"]["resolved_media"]["artist"], "Pearl Jam")
 
-    def test_process_text_command_uses_festival_style_for_resolved_track(self) -> None:
+    def test_process_text_command_uses_generated_dj_response_for_resolved_track(self) -> None:
         async def assist(hass, user_text, conf):
             return {
                 "type": "search",
@@ -131,8 +131,16 @@ class ProcessorRuntimeTest(unittest.TestCase):
 
         original_assist = self.processor.process_text_with_assist
         original_play = self.processor.play_from_intent
+        async def generated_dj_response(hass, *, media, fallback_text, conf):
+            self.assertEqual(media["track_name"], "Alive")
+            self.assertEqual(media["artist"], "Pearl Jam")
+            self.assertIn("festival", conf["dj_response_prompt"])
+            return "Pearl Jam komt binnen alsof de festivalweide net wakker wordt."
+
         self.processor.process_text_with_assist = assist
         self.processor.play_from_intent = play
+        original_dj_response = self.processor.generate_dj_response_with_assist
+        self.processor.generate_dj_response_with_assist = generated_dj_response
         runtime = Runtime()
         runtime.config = {
             "dj_response_prompt": "Maak een energieke festival-DJ-aankondiging.",
@@ -150,13 +158,14 @@ class ProcessorRuntimeTest(unittest.TestCase):
         finally:
             self.processor.process_text_with_assist = original_assist
             self.processor.play_from_intent = original_play
+            self.processor.generate_dj_response_with_assist = original_dj_response
 
         self.assertEqual(
             result["dj_text"],
-            "Handen omhoog: Alive van Pearl Jam. Dit is er eentje om wakker van te worden.",
+            "Pearl Jam komt binnen alsof de festivalweide net wakker wordt.",
         )
 
-    def test_process_text_command_uses_radio_prompt_when_assist_generation_fails(self) -> None:
+    def test_process_text_command_uses_plain_fallback_when_assist_generation_fails(self) -> None:
         async def assist(hass, user_text, conf):
             return {
                 "type": "search",
@@ -167,7 +176,7 @@ class ProcessorRuntimeTest(unittest.TestCase):
         async def play(hass, runtime, intent, conf):
             return {
                 "resolved_media": {
-                    "artist": "Robert Jensen Media",
+                    "artist": "Example Artist",
                     "uri": "spotify:artist:abc",
                 }
             }
@@ -183,7 +192,7 @@ class ProcessorRuntimeTest(unittest.TestCase):
         self.processor.generate_dj_response_with_assist = bad_dj_response
         runtime = Runtime()
         runtime.config = {
-            "dj_response_prompt": "gebruik twee zinnen en klink als radio DJ Robert Jensen",
+            "dj_response_prompt": "gebruik twee zinnen en klink als een warme radio-DJ",
             "tts_language": "nl",
         }
         try:
@@ -191,7 +200,7 @@ class ProcessorRuntimeTest(unittest.TestCase):
                 self.processor.process_text_command(
                     object(),
                     runtime,
-                    "start Robert Jensen",
+                    "start Example Artist",
                     play=True,
                 )
             )
@@ -202,7 +211,7 @@ class ProcessorRuntimeTest(unittest.TestCase):
 
         self.assertEqual(
             result["dj_text"],
-            "Daar is Robert Jensen Media, scherp en lekker op de speakers. Blijf erbij, dit is DJConnect radio.",
+            "Daar is Example Artist.",
         )
         self.assertNotIn("spotify:artist", result["dj_text"])
 

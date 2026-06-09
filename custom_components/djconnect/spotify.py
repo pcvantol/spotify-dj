@@ -92,6 +92,7 @@ def _artist_media(
 _ARTIST_QUERY_PATTERNS = (
     r"^\s*ik\s+heb\s+(?:wel\s+)?(?:zin|trek)\s+in\s+(.+?)\s*$",
     r"^\s*ik\s+wil\s+(?:wel\s+|graag\s+)?(.+?)\s+(?:horen|luisteren|starten|opzetten|spelen)\s*$",
+    r"^\s*(.+?)\s+wil\s+ik\s+(?:wel\s+|graag\s+)?(?:horen|luisteren|starten|opzetten|spelen)\s*$",
     r"^\s*(?:zet|speel|start|draai)\s+(?:eens\s+|even\s+|maar\s+|graag\s+)?(?:af\s+|op\s+|aan\s+)?(.+?)\s*(?:op|af|aan)?\s*$",
     r"^\s*(?:play|start|put\s+on)\s+(.+?)\s*$",
     r"^\s*i\s+(?:feel\s+like|want\s+to\s+hear|want)\s+(.+?)\s*$",

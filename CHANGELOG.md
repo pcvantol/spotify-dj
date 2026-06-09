@@ -1,7 +1,11 @@
 # Changelog
 
-## 3.0.31
+## 3.0.32
 
+- Make DJ response generation rely on HA Assist output from resolved artist/track metadata plus the configured `dj_response_prompt`; remove hardcoded prompt-style response variants from the local fallback.
+- Keep local DJ response fallback deliberately neutral and factual, so failed/unsupported generative response is visible instead of being hidden behind template text.
+- Add support for reversed spoken artist requests such as `Nirvana wil ik wel horen`.
+- Replace specific named test/changelog examples with generic artist prompt wording.
 - Persist `last_track`, `last_command` and `last_dj_text` after voice/playback response handling, not only before processing starts, so Home Assistant reloads keep the actual latest values.
 - Keep the `Laatste nummer` and `Laatste opdracht` sensors available even when the device/backend is temporarily unreachable; with cached values they stay visible instead of switching to unavailable.
 - Add tests for runtime status persistence and last-value sensor availability.
@@ -14,7 +18,7 @@
 - Mirror non-empty runtime last command, DJ response and last track values into cached device status so sparse updates cannot erase them.
 - Add tests for restored DJ response text and runtime caching of last command/track values.
 - Filter unusable HA Assist DJ-response output before sending text to the ESP device, so Home Assistant device-lookup errors, Spotify URI dictionaries and prompt fragments are no longer spoken or displayed as DJ responses.
-- Fall back to clean local DJ response text when HA Assist cannot generate a usable response, including explicit radio-DJ style prompts such as Robert Jensen-style announcements.
+- Fall back to clean local DJ response text when HA Assist cannot generate a usable response, without pretending to implement prompt-specific DJ styles through hardcoded templates.
 - Add tests for malformed Assist DJ-response output and radio-prompt fallback behavior.
 - Update HA/ESP sync prompts and handoff documentation for the current `3.0.27` contract, including artist-only Spotify search, free-form `dj_response_prompt`, stable sensor caching and required `client_type`.
 - Add `IOS_MACOS_APP_HANDOFF.md` to document future `ios` and `macos` DJConnect clients without reintroducing `device_type` or client-side Spotify credentials.
