@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.0.5
+## 3.0.6
 
 - Use the dark DJConnect SVG banner in the README so GitHub and HACS do not show the old white PNG canvas.
 - Improve the product website hero so callout text no longer sits behind the LilyGO device illustration.
