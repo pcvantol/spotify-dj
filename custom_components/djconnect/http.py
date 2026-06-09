@@ -51,6 +51,8 @@ from .spotify_oauth import exchange_code_for_refresh_token
 
 _LOGGER = logging.getLogger(__name__)
 _LOGO_DATA_URI: str | None = None
+VOICE_DEBUG_KEY = "last_voice_debug"
+VOICE_DEBUG_URL = "/api/djconnect/debug/last_voice.wav"
 
 
 def _djconnect_logo_data_uri() -> str:
@@ -443,6 +445,29 @@ def _audio_type_from_url(audio_url: str | None) -> str | None:
     if lowered.endswith(".wav"):
         return "wav"
     return None
+
+
+def _store_debug_voice_wav(
+    hass: Any,
+    device_id: str | None,
+    content_type: str,
+    wav: bytes,
+) -> None:
+    if not _LOGGER.isEnabledFor(logging.DEBUG):
+        return
+    hass.data.setdefault(DOMAIN, {})[VOICE_DEBUG_KEY] = {
+        "wav": wav,
+        "device_id": device_id,
+        "content_type": content_type,
+        "bytes": len(wav),
+    }
+    _LOGGER.debug(
+        "DJConnect voice debug WAV captured: url=%s device_id=%s content_type=%s bytes=%s",
+        VOICE_DEBUG_URL,
+        device_id,
+        content_type,
+        len(wav),
+    )
 
 
 def _set_device_state(runtime: Any, state: str) -> None:
@@ -957,6 +982,7 @@ class DJConnectVoiceView(HomeAssistantView):
                     return _json_error(self, "missing_audio", 400)
                 if len(wav) > limit:
                     return _json_error(self, "audio_too_large", 413)
+                _store_debug_voice_wav(hass, device_id, content_type, wav)
                 entry = getattr(runtime, "entry", None)
                 stt_key, stt_value = _first_config_value(runtime.config, STT_OPTION_KEYS)
                 tts_key, tts_value = _first_config_value(runtime.config, ("tts_engine",))
@@ -1123,6 +1149,33 @@ class DJConnectTtsView(HomeAssistantView):
             body=audio.data,
             content_type=audio.content_type,
             headers={"Content-Length": str(len(audio.data))},
+        )
+
+
+class DJConnectVoiceDebugView(HomeAssistantView):
+    url = VOICE_DEBUG_URL
+    name = "api:djconnect:voice_debug"
+    requires_auth = True
+
+    def __init__(self, hass):
+        self.hass = hass
+
+    async def get(self, request):
+        debug = request.app["hass"].data.get(DOMAIN, {}).get(VOICE_DEBUG_KEY)
+        if not debug:
+            return web.Response(status=404, text="DJConnect voice debug WAV not available")
+        wav = debug.get("wav")
+        if not wav:
+            return web.Response(status=404, text="DJConnect voice debug WAV is empty")
+        filename = f"djconnect-last-voice-{debug.get('device_id') or 'device'}.wav"
+        return web.Response(
+            body=wav,
+            content_type="audio/wav",
+            headers={
+                "Content-Length": str(len(wav)),
+                "Content-Disposition": f'inline; filename="{filename}"',
+                "X-DJConnect-Device-ID": str(debug.get("device_id") or ""),
+            },
         )
 
 

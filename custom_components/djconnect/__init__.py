@@ -50,6 +50,7 @@ from .http import (
     DJConnectSpotifyCallbackView,
     DJConnectStatusView,
     DJConnectTtsView,
+    DJConnectVoiceDebugView,
     DJConnectVoiceView,
 )
 from .assist_stt import detect_stt_support
@@ -669,6 +670,7 @@ def register_http_views(hass: HomeAssistant) -> None:
             DJConnectStatusView(hass),
             DJConnectEventView(hass),
             DJConnectTtsView(hass),
+            DJConnectVoiceDebugView(hass),
             DJConnectSpotifyCallbackView(hass),
         ]:
             hass.http.register_view(view)

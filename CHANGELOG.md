@@ -1,7 +1,8 @@
 # Changelog
 
-## 3.0.14
+## 3.0.15
 
+- Add an authenticated voice debug endpoint at `/api/djconnect/debug/last_voice.wav`; when DJConnect debug logging is enabled, HA keeps the last raw ESP WAV in memory so you can listen to exactly what STT received.
 - Add `button.djconnect_refresh_up_next` to refresh the backend queue/up-next list from Home Assistant.
 - Refresh Spotify output devices from the sound-output select so HA shows available outputs without needing a manual `devices` command first.
 - Accept output aliases from `available_outputs`, `outputs`, `devices` and nested `items` payloads.

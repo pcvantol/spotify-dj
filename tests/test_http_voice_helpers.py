@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import asyncio
+import logging
 from pathlib import Path
 import sys
 import types
@@ -307,7 +308,12 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         log_output = "\n".join(captured.output)
         self.assertIn("audio_url=True", log_output)
+        self.assertIn("voice debug WAV captured", log_output)
         self.assertNotIn("http://ha/api/djconnect/tts/token.mp3", log_output)
+        self.assertEqual(
+            hass.data[const.DOMAIN][self.http.VOICE_DEBUG_KEY]["wav"],
+            b"RIFFxxxxWAVEdata",
+        )
         self.assertEqual(response["status_code"], 200)
         self.assertTrue(response["payload"]["success"])
         self.assertEqual(response["payload"]["recognized_text"], "Speel Pearl Jam")
@@ -317,6 +323,49 @@ class VoiceHttpHelperTest(unittest.TestCase):
             "http://ha/api/djconnect/tts/token.mp3",
         )
         self.assertEqual(response["payload"]["audio_type"], "mp3")
+
+    def test_voice_debug_view_returns_last_debug_wav(self) -> None:
+        const = importlib.import_module("custom_components.djconnect.const")
+        hass = types.SimpleNamespace(
+            data={
+                const.DOMAIN: {
+                    self.http.VOICE_DEBUG_KEY: {
+                        "wav": b"RIFFxxxxWAVEdata",
+                        "device_id": "djconnect-lilygo-90B70990A994",
+                    }
+                }
+            }
+        )
+
+        class Request:
+            app = {"hass": hass}
+
+        response = asyncio.run(self.http.DJConnectVoiceDebugView(None).get(Request()))
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.body, b"RIFFxxxxWAVEdata")
+        self.assertEqual(response.content_type, "audio/wav")
+        self.assertEqual(
+            response.headers["X-DJConnect-Device-ID"],
+            "djconnect-lilygo-90B70990A994",
+        )
+
+    def test_voice_debug_wav_is_not_stored_without_debug_logging(self) -> None:
+        const = importlib.import_module("custom_components.djconnect.const")
+        hass = types.SimpleNamespace(data={const.DOMAIN: {}})
+        previous = self.http._LOGGER.level
+        self.http._LOGGER.setLevel(logging.INFO)
+        try:
+            self.http._store_debug_voice_wav(
+                hass,
+                "djconnect-lilygo-90B70990A994",
+                "audio/wav",
+                b"RIFFxxxxWAVEdata",
+            )
+        finally:
+            self.http._LOGGER.setLevel(previous)
+
+        self.assertNotIn(self.http.VOICE_DEBUG_KEY, hass.data[const.DOMAIN])
 
     def test_voice_view_wav_command_failure_returns_friendly_200(self) -> None:
         const = importlib.import_module("custom_components.djconnect.const")

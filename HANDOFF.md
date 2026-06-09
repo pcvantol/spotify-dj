@@ -4,8 +4,8 @@
 
 - Repository: `pcvantol/djconnect`.
 - Integration domain: `djconnect`.
-- Current integration release: `3.0.14`.
-- Release status: DJConnect `3.0.14` is the current release target.
+- Current integration release: `3.0.15`.
+- Release status: DJConnect `3.0.15` is the current release target.
 - Home Assistant integration is HACS-distributed and MIT-licensed.
 - ESP firmware source remains proprietary in `pcvantol/djconnect-app`.
 - Public firmware release assets live in `pcvantol/djconnect-firmware`.
@@ -135,6 +135,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - `command=queue` returns top-level `context_uri` / `contextUri` and queue item artwork aliases so ESP/web Up Next can use `play_context_at` and show thumbnails.
 - `select.djconnect_sound_output` refreshes Spotify output devices itself and accepts `available_outputs`, `outputs`, `devices` and nested `items` aliases.
 - Playback proxy exposes album art through `album_image_url`, `media_image_url`, `image_url` and `entity_picture` aliases.
+- Voice debug is opt-in via debug logging: when `custom_components.djconnect` debug logging is enabled, HA stores the last raw ESP WAV in memory and exposes it at authenticated URL `/api/djconnect/debug/last_voice.wav`.
 - Developer Actions use explicit UI field names `command_text` and `dj_response_text`; legacy `text` remains accepted for existing YAML/scripts.
 - If HA Assist treats the DJConnect parsing prompt as a smart-home device command, DJConnect falls back to a simple Spotify search intent instead of raising a websocket script exception.
 - ESP sync prompt now requires menu-open LED ring off/volume-clear behavior and a blue LED ring/accent for Asteroids.

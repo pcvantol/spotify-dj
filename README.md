@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.0.14`
+- Home Assistant integration: `3.0.15`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -503,12 +503,12 @@ Example manifest:
 
 ```json
 {
-  "version": "3.0.14",
+  "version": "3.0.15",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.14.bin",
+  "asset": "djconnect-device-v3.0.15.bin",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "size": 2113136,
-  "min_ha_integration": "3.0.14"
+  "min_ha_integration": "3.0.15"
 }
 ```
 
@@ -523,7 +523,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.0.14
+./release.sh 3.0.15
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -534,7 +534,7 @@ calculate SHA256, update `firmware_manifest.json`, commit, tag and push.
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.0.14 --dry-run
+./release.sh 3.0.15 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -592,11 +592,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.0.14"
-git tag v3.0.14
+git commit -m "Release DJConnect v3.0.15"
+git tag v3.0.15
 git push origin main
-git push origin v3.0.14
-gh release create v3.0.14 --title "DJConnect v3.0.14" --notes-file CHANGELOG.md
+git push origin v3.0.15
+gh release create v3.0.15 --title "DJConnect v3.0.15" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:
@@ -667,6 +667,7 @@ These tests use local stubs for Home Assistant imports and focus on pure DJConne
 - If the pairing token is stale, open DJConnect options and choose `Retry pairing with current code`. If the device shows a new code, choose `Re-pair with new pairing code`.
 - If brightness, speaker volume or timeout entities stay at defaults, make sure the ESP firmware sends these settings in its periodic Home Assistant status payload; DJConnect accepts common aliases such as `brightness`, `cue_volume`, `screen_dim_timeout` and `turn_off_after_ms`.
 - If `/api/djconnect/voice` returns `No STT provider configured`, select an STT engine in DJConnect options, configure an Assist pipeline with STT such as Home Assistant Cloud STT, or clear the stale DJConnect pipeline option so the integration can use Home Assistant's preferred/default Assist pipeline.
+- If `/api/djconnect/voice` returns `HA Assist STT did not return recognized text`, enable debug logging for `custom_components.djconnect`, trigger one ESP voice request, then open `/api/djconnect/debug/last_voice.wav` while logged in to Home Assistant. DJConnect only keeps this last raw ESP WAV in memory while debug logging is enabled; use it to check for clear speech, clipped audio, silence, wrong sample rate or noise.
 - If WiFi/pairing works but Spotify does not, reauthorize Spotify in Home Assistant; pair/status payloads must not contain Spotify OAuth secrets.
 - If Home Assistant cannot find a private `DJConnect Liked Proxy` playlist, reauthorize Spotify so the refresh token includes `playlist-read-private`.
 - If a PTT command cannot start Spotify playback, the ESP should receive a friendly DJ response; check that Spotify is authorized in Home Assistant and that the backend has a reachable playback target.
