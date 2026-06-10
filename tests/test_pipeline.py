@@ -242,6 +242,38 @@ class AssistPipelineTest(unittest.TestCase):
         self.assertNotIn("geen apparaat", text)
         self.assertNotIn("spotify:artist", text)
 
+    def test_generate_dj_response_blocks_prompt_leak_device_lookup_error(self) -> None:
+        class Services:
+            async def async_call(self, domain, service, data, **kwargs):
+                return {
+                    "response": {
+                        "speech": {
+                            "plain": {
+                                "speech": (
+                                    "Sorry, ik kan Noem de artiest en het nummer "
+                                    "Geef een leuk feitje over de artiest Klink warm "
+                                    "en persoonlijk Media type artist artiest Red Hot "
+                                    "Chili Peppers niet vinden"
+                                )
+                            }
+                        }
+                    }
+                }
+
+        hass = types.SimpleNamespace(services=Services())
+        text = asyncio.run(
+            self.pipeline.generate_dj_response_with_assist(
+                hass,
+                media={"type": "artist", "artist": "Red Hot Chili Peppers"},
+                fallback_text="Daar is Red Hot Chili Peppers.",
+                conf={"tts_language": "nl-NL"},
+            )
+        )
+
+        self.assertEqual(text, "Daar is Red Hot Chili Peppers.")
+        self.assertNotIn("Noem de artiest", text)
+        self.assertNotIn("niet vinden", text)
+
     def test_ordinary_artist_dj_response_is_usable(self) -> None:
         self.assertTrue(
             self.pipeline._is_usable_dj_response(

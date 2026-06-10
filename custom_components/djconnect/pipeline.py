@@ -305,6 +305,8 @@ def _dj_response_block_reason(value: str) -> str | None:
     if not text:
         return "empty"
     normalized = " ".join(text.lower().split())
+    if _looks_like_device_lookup_error(normalized):
+        return "device lookup error"
     blocked_fragments = (
         "geen apparaat vinden",
         "kan geen apparaat",
@@ -327,3 +329,35 @@ def _dj_response_block_reason(value: str) -> str | None:
         if fragment in normalized:
             return fragment
     return None
+
+
+def _looks_like_device_lookup_error(normalized: str) -> bool:
+    if not (
+        normalized.startswith("sorry, ik kan ")
+        or normalized.startswith("sorry ik kan ")
+        or normalized.startswith("sorry, i can't ")
+        or normalized.startswith("sorry i can't ")
+    ):
+        return False
+    if not (
+        "niet vinden" in normalized
+        or "can't find" in normalized
+        or "cannot find" in normalized
+        or "not find" in normalized
+    ):
+        return False
+    prompt_or_media_fragments = (
+        "noem de artiest",
+        "geef een leuk",
+        "klink warm",
+        "media type",
+        "type artist",
+        "artiest ",
+        "artist ",
+        "antwoord alleen",
+        "geen json",
+        "geen uitleg",
+        "geen uri",
+        "dj response",
+    )
+    return any(fragment in normalized for fragment in prompt_or_media_fragments)
