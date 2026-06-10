@@ -24,6 +24,12 @@ Gebruik canoniek `client_type` om runtimes te onderscheiden:
 Regels:
 
 - `client_type` is verplicht op JSON pairing/status/command/voice routes.
+- iOS device ID: `djconnect-ios-XXXXXXXXXXXX`, met `XXXXXXXXXXXX` als de eerste 12 alfanumerieke chars van de install ID.
+- macOS device ID: `djconnect-macos-XXXXXXXXXXXX`, met `XXXXXXXXXXXX` als de eerste 12 alfanumerieke chars van de install ID.
+- iOS/macOS app IDs zijn echte DJConnect client IDs, maar geen ESP mDNS hostnames; HA mag hiervoor geen `http://<device_id>.local` device-command fallback genereren.
+- `client_type:"ios"` mag alleen met `djconnect-ios-XXXXXXXXXXXX`.
+- `client_type:"macos"` mag alleen met `djconnect-macos-XXXXXXXXXXXX`.
+- `client_type:"esp32"` blijft voor ESP model-specifieke IDs zoals `djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX` en `djconnect-esp32-s3-box-3-XXXXXXXXXXXX`.
 - Geen fallback naar oude `device_type`.
 - `device_type` niet opnieuw introduceren.
 - ESP firmware mag alleen `esp32` gebruiken.

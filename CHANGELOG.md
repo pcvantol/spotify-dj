@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.1.1
+## 3.1.2
 
 - Make DJ response generation rely on HA Assist output from resolved artist/track metadata plus the configured `dj_response_prompt`; remove hardcoded prompt-style response variants from the local fallback.
 - Keep local DJ response fallback deliberately neutral and factual, so failed/unsupported generative response is visible instead of being hidden behind template text.

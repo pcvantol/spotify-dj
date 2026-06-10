@@ -18,6 +18,7 @@ Architectuur beslissingen:
 - HA integration orchestreert pairing, OAuth, backend playback, OTA, status en Assist/TTS; ESP firmware blijft eigenaar van device runtime/audio/UI.
 - Huidige firmware gebruikt de lokale ESP API met bearer token voor device-acties.
 - Pairing/status gebruikt canoniek `client_type` om client runtimes te onderscheiden; huidige waarden zijn `esp32`, `ios` en `macos`. ESP firmware moet verplicht `client_type: "esp32"` meesturen op JSON payloads.
+- iOS/macOS app client IDs zijn respectievelijk `djconnect-ios-XXXXXXXXXXXX` en `djconnect-macos-XXXXXXXXXXXX`, met de eerste 12 alfanumerieke chars van de app install ID; `client_type` moet met het device-id prefix matchen.
 - Backend playback loopt via de HA integration en wordt user-facing aangeboden als optionele/native `media_player` proxy; device-instellingen lopen via `POST /api/device/command`.
 - ESP backend playback commands naar `POST /api/djconnect/command` gebruiken losse `set_shuffle` boolean en `set_repeat` met `off`/`track`/`context`; gebruik geen gecombineerde `set_play_mode` flow.
 - HA integration en ESP firmware moeten dezelfde `major.minor` protocolversie hebben: HA `3.0.z` praat alleen met ESP `3.0.z`, HA `3.1.z` alleen met ESP `3.1.z`; patchversies mogen verschillen.
@@ -57,7 +58,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `djconnect`
 - HACS custom integration.
-- Actuele integratieversie: `3.1.1`.
+- Actuele integratieversie: `3.1.2`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.

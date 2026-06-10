@@ -851,6 +851,8 @@ class ConfigFlowHelperTest(unittest.TestCase):
         markers = list(form["data_schema"].schema)
         self.assertEqual(markers[0].key, self.const.CONF_PAIR_CODE)
         self.assertIsNone(markers[0].default)
+        self.assertEqual(markers[1].key, self.const.CONF_LOCAL_URL)
+        self.assertIsNone(markers[1].default)
 
 
 if __name__ == "__main__":

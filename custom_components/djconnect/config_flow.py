@@ -1291,24 +1291,33 @@ class DJConnectOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
         if user_input is not None:
             pair_code = str(user_input.get(CONF_PAIR_CODE, "")).strip()
+            local_url = _clean(user_input.get(CONF_LOCAL_URL), "")
             if not pair_code:
                 errors[CONF_PAIR_CODE] = "missing_pair_code"
             elif not _valid_pair_code(pair_code):
                 errors[CONF_PAIR_CODE] = "invalid_pair_code"
             else:
-                return await self._async_retry_pairing(pair_code=pair_code)
+                return await self._async_retry_pairing(
+                    pair_code=pair_code,
+                    local_url=local_url,
+                )
 
         return self.async_show_form(
             step_id="repair_pairing",
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_PAIR_CODE): str,
+                    vol.Optional(CONF_LOCAL_URL): str,
                 }
             ),
             errors=errors,
         )
 
-    async def _async_retry_pairing(self, pair_code: str | None = None) -> FlowResult:
+    async def _async_retry_pairing(
+        self,
+        pair_code: str | None = None,
+        local_url: str | None = None,
+    ) -> FlowResult:
         """Generate a fresh device token and retry pairing with the ESP."""
         errors: dict[str, str] = {}
         try:
@@ -1322,13 +1331,16 @@ class DJConnectOptionsFlow(config_entries.OptionsFlow):
                     device_id = f"djconnect-{pair_code}"
                     data[CONF_PAIR_CODE] = pair_code
                     data[CONF_DEVICE_ID] = device_id
-                    data[CONF_LOCAL_URL] = _clean(
-                        data.get(CONF_LOCAL_URL),
-                        _default_local_url(pair_code),
+                    cleaned_local_url = _clean(
+                        local_url,
+                        _clean(data.get(CONF_LOCAL_URL), _default_local_url(pair_code)),
                     )
+                    data[CONF_LOCAL_URL] = cleaned_local_url
                     runtime.pairing_code = pair_code
                     runtime.pairing_device_id = device_id
                     runtime.device_status["device_id"] = device_id
+                    if cleaned_local_url:
+                        runtime.device_status["local_url"] = cleaned_local_url
                     runtime.device_status.pop("paired", None)
                 runtime.device_token = token
                 runtime.device_status["ha_pairing_status"] = "pending"

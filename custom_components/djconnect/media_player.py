@@ -166,7 +166,7 @@ class DJConnectPlaybackProxyMediaPlayer(MediaPlayerEntity):
         await self._backend_command("pause")
 
     async def async_media_play_pause(self) -> None:
-        playback = self.runtime.last_playback or {}
+        playback = await self._current_playback_for_toggle()
         command = "pause" if playback.get("is_playing") else "play"
         await self._backend_command(command)
 
@@ -220,6 +220,17 @@ class DJConnectPlaybackProxyMediaPlayer(MediaPlayerEntity):
             raise
         self.runtime.update(last_error=None)
         return result
+
+    async def _current_playback_for_toggle(self) -> dict[str, Any]:
+        """Fetch live backend state before deciding whether toggle means play or pause."""
+        try:
+            result = await self._backend_command("status")
+            playback = result.get("playback") if isinstance(result, dict) else None
+            if isinstance(playback, dict):
+                return playback
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.debug("DJConnect playback toggle status refresh failed: %s", exc)
+        return self.runtime.last_playback or {}
 
     async def _refresh_device_display(self) -> None:
         try:

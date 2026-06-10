@@ -89,7 +89,7 @@ class DJConnectCommandButton(DJConnectBaseButton):
             if self.command in {"next", "previous"}:
                 await self.runtime.async_device_command(self.hass, self.command)
             elif self.command == "play_pause":
-                playback = self.runtime.last_playback or {}
+                playback = await self._current_playback_for_toggle()
                 backend_command = "pause" if playback.get("is_playing") else "play"
                 await handle_spotify_command(self.hass, self.runtime, backend_command)
             else:
@@ -99,6 +99,16 @@ class DJConnectCommandButton(DJConnectBaseButton):
             _LOGGER.warning("DJConnect button command unavailable: %s", exc)
             return
         _LOGGER.debug("DJConnect button sent command %s", self.command)
+
+    async def _current_playback_for_toggle(self) -> dict[str, Any]:
+        try:
+            result = await handle_spotify_command(self.hass, self.runtime, "status")
+            playback = result.get("playback") if isinstance(result, dict) else None
+            if isinstance(playback, dict):
+                return playback
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.debug("DJConnect button playback status refresh failed: %s", exc)
+        return self.runtime.last_playback or {}
 
 
 class DJConnectRefreshInfoButton(DJConnectBaseButton):

@@ -1137,7 +1137,8 @@ class VoiceHttpHelperTest(unittest.TestCase):
                     "local_url": "http://djconnect.local",
                 }
 
-        response = asyncio.run(self.http.DJConnectPairView(None).post(Request()))
+        with self.assertLogs(self.http._LOGGER, level="DEBUG") as captured:
+            response = asyncio.run(self.http.DJConnectPairView(None).post(Request()))
 
         self.assertEqual(response["status_code"], 200)
         self.assertEqual(
@@ -1158,6 +1159,11 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["payload"]["language"], "nl")
         self.assertEqual(runtime.device_status["ha_pairing_status"], "pending")
         self.assertNotEqual(runtime.device_status.get("ha_pairing_status"), "paired")
+        logs = "\n".join(captured.output)
+        self.assertIn("DJConnect pairing request payload=", logs)
+        self.assertIn("DJConnect pairing response status=200", logs)
+        self.assertIn("'device_token': '<redacted>'", logs)
+        self.assertNotIn("device-token", logs)
 
     def test_status_view_reprovisions_when_spotify_configured_false(self) -> None:
         const = importlib.import_module("custom_components.djconnect.const")

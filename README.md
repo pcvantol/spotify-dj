@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.1.1`
+- Home Assistant integration: `3.1.2`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -59,7 +59,7 @@ runtime behavior. These decisions are part of the integration contract:
 
 ## Repository Layout
 
-- Home Assistant integration: `3.1.1`
+- Home Assistant integration: `3.1.2`
 - ESP firmware source: `pcvantol/djconnect-app`
 - Public firmware releases: `pcvantol/djconnect-firmware`
 
@@ -183,7 +183,7 @@ code` when the ESP shows a new code.
 
 - Pairing is unauthenticated by design, but requires the pairing code or 12-character device suffix shown on the DJConnect device.
 - After pairing, device endpoints use the per-device bearer token.
-- Pairing/status metadata must include `client_type`; ESP firmware sends `esp32`, while `ios` and `macos` are reserved for future app clients.
+- Pairing/status metadata must include `client_type`; ESP firmware sends `esp32`, while app clients send `ios` or `macos`. App device IDs use `djconnect-ios-XXXXXXXXXXXX` or `djconnect-macos-XXXXXXXXXXXX`, where the suffix is the first 12 alphanumeric characters of the app install ID.
 - Home Assistant keeps pairing status `pending` until the ESP confirms `ha_pairing_status=paired`; a local token alone is not treated as confirmed pairing.
 - Home Assistant calls `POST /api/device/pair` only during initial pairing, explicit re-pair/token rotation, or stale-pairing recovery. Normal status, playback and settings updates never trigger a new direct pair callback.
 - BLE WiFi provisioning sends only SSID/password to the BLE WiFi characteristic; it does not send Spotify credentials, device tokens or other secrets.
@@ -523,24 +523,24 @@ Example manifest:
 
 ```json
 {
-  "version": "3.1.1",
-  "version_tag": "v3.1.1",
+  "version": "3.1.2",
+  "version_tag": "v3.1.2",
   "channel": "stable",
-  "min_ha_integration": "3.1.1",
+  "min_ha_integration": "3.1.2",
   "firmwares": [
     {
       "board": "t_embed_cc1101",
       "device": "lilygo-t-embed-s3",
-      "asset": "djconnect-lilygo-t-embed-s3-v3.1.1.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.1/djconnect-lilygo-t-embed-s3-v3.1.1.bin",
+      "asset": "djconnect-lilygo-t-embed-s3-v3.1.2.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.2/djconnect-lilygo-t-embed-s3-v3.1.2.bin",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size": 2113136
     },
     {
       "board": "esp32_s3_box3",
       "device": "esp32-s3-box-3",
-      "asset": "djconnect-esp32-s3-box-3-v3.1.1.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.1/djconnect-esp32-s3-box-3-v3.1.1.bin",
+      "asset": "djconnect-esp32-s3-box-3-v3.1.2.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.2/djconnect-esp32-s3-box-3-v3.1.2.bin",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
       "size": 2113136
     }
@@ -563,7 +563,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.1.1
+./release.sh 3.1.2
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -575,14 +575,14 @@ PlatformIO builds, rename firmware binaries to device-specific assets such as
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.1.1 --dry-run
+./release.sh 3.1.2 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
 public-repo option if available:
 
 ```bash
-./release.sh 3.1.1 --publish-firmware-repo ../djconnect-firmware
+./release.sh 3.1.2 --publish-firmware-repo ../djconnect-firmware
 ```
 
 The public `djconnect-firmware` repository should contain only the release
@@ -617,7 +617,7 @@ Tag and publish:
 One-liner:
 
 ```bash
-./release.sh 3.1.1
+./release.sh 3.1.2
 ```
 
 The script updates the integration version in `manifest.json`, `const.py`,
@@ -626,18 +626,18 @@ The script updates the integration version in `manifest.json`, `const.py`,
 Preview without executing git/gh commands:
 
 ```bash
-./release.sh 3.1.1 --dry-run
+./release.sh 3.1.2 --dry-run
 ```
 
 Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.1.1"
-git tag v3.1.1
+git commit -m "Release DJConnect v3.1.2"
+git tag v3.1.2
 git push origin main
-git push origin v3.1.1
-gh release create v3.1.1 --title "DJConnect v3.1.1" --notes-file CHANGELOG.md
+git push origin v3.1.2
+gh release create v3.1.2 --title "DJConnect v3.1.2" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

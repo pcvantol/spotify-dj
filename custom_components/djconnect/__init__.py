@@ -22,6 +22,10 @@ from .const import (
     API_STATUS,
     API_TTS,
     API_VOICE,
+    CLIENT_TYPE_ESP32,
+    CLIENT_TYPE_IOS,
+    CLIENT_TYPE_MACOS,
+    CLIENT_TYPES,
     CONF_ASSIST_PIPELINE_ID,
     CONF_CLIENT_TYPE,
     CONF_DEVICE_ID,
@@ -76,12 +80,28 @@ MDNS_SERVICE_TYPE = "_djconnect._tcp.local."
 STATUS_SECRET_KEYS = {"device_token", "spotify_refresh_token", "refresh_token"}
 REAL_DJCONNECT_DEVICE_ID_PATTERN = re.compile(
     r"djconnect-(?:lilygo-t-embed-s3|esp32-s3-box-3|lilygo)-[0-9A-Fa-f]{12}"
+    r"|djconnect-(?:ios|macos)-[A-Za-z0-9]{12}"
 )
 CONF_LAST_DEVICE_STATUS = "last_device_status"
 
 
 def _is_empty_status_value(value: Any) -> bool:
     return value is None or value == "" or value == [] or value == {}
+
+
+def _redact_debug_payload(value: Any) -> Any:
+    if isinstance(value, dict):
+        result: dict[str, Any] = {}
+        for key, item in value.items():
+            normalized = str(key).lower()
+            if any(secret in normalized for secret in ("token", "password", "secret")):
+                result[key] = "<redacted>"
+            else:
+                result[key] = _redact_debug_payload(item)
+        return result
+    if isinstance(value, list):
+        return [_redact_debug_payload(item) for item in value]
+    return value
 
 
 def _merge_cached_device_status(
@@ -247,6 +267,18 @@ class DJConnectRuntime:
         if not token_match:
             self._log_device_auth_failure(
                 "missing_device_token" if not token else "invalid_device_token",
+                header_device,
+                body_device,
+                client_type,
+                bool(token),
+            )
+            return False
+        if device_id and client_type and not _device_id_matches_client_type(
+            device_id,
+            client_type,
+        ):
+            self._log_device_auth_failure(
+                "device_id_client_type_mismatch",
                 header_device,
                 body_device,
                 client_type,
@@ -521,11 +553,18 @@ class DJConnectRuntime:
         session = async_get_clientsession(hass)
         pairing_info: dict[str, Any] = {}
         try:
+            pairing_info_url = local_url.rstrip("/") + "/api/device/pairing-info"
+            _LOGGER.debug("DJConnect pairing-info request url=%s", pairing_info_url)
             async with session.get(
-                local_url.rstrip("/") + "/api/device/pairing-info",
+                pairing_info_url,
                 timeout=ClientTimeout(total=10),
             ) as resp:
                 text = await resp.text()
+                _LOGGER.debug(
+                    "DJConnect pairing-info response status=%s body=%s",
+                    resp.status,
+                    text,
+                )
                 if resp.status < 200 or resp.status >= 300:
                     raise RuntimeError(
                         f"ESP pairing info failed HTTP {resp.status}: {text}"
@@ -537,10 +576,23 @@ class DJConnectRuntime:
         expected_pair_code = str(conf.get(CONF_PAIR_CODE) or "").strip()
         reported_pair_code = str(pairing_info.get("pair_code") or "").strip()
         if expected_pair_code and reported_pair_code and expected_pair_code != reported_pair_code:
+            _LOGGER.debug(
+                "DJConnect pairing-info code mismatch expected_pair_code=%s "
+                "reported_pair_code=%s reported_device_id=%s reported_client_type=%s",
+                expected_pair_code,
+                reported_pair_code,
+                pairing_info.get("device_id") or "missing",
+                pairing_info.get(CONF_CLIENT_TYPE) or pairing_info.get("client_type") or "missing",
+            )
             raise RuntimeError("ESP pairing code does not match this setup")
         reported_device_id = str(pairing_info.get("device_id") or "").strip()
         if reported_device_id:
             self._learn_device_id(reported_device_id)
+        reported_client_type = str(
+            pairing_info.get(CONF_CLIENT_TYPE) or pairing_info.get("client_type") or ""
+        ).strip()
+        if reported_client_type in CLIENT_TYPES:
+            self.device_status[CONF_CLIENT_TYPE] = reported_client_type
         reported_local_url = str(pairing_info.get("local_url") or "").strip()
         if reported_local_url:
             self.device_status["local_url"] = reported_local_url
@@ -550,7 +602,7 @@ class DJConnectRuntime:
             "pair_code": conf.get(CONF_PAIR_CODE),
             "device_id": reported_device_id or conf.get(CONF_DEVICE_ID),
             "device_name": conf.get(CONF_DEVICE_NAME, "DJConnect"),
-            "client_type": self.client_type(),
+            "client_type": reported_client_type if reported_client_type in CLIENT_TYPES else self.client_type(),
             "device_language": self.device_language(),
             "language": self.device_language(),
             "device_token": token,
@@ -559,6 +611,11 @@ class DJConnectRuntime:
         payload.update(await async_ha_url_payload(hass, conf))
         if not payload.get("ha_local_url") and not payload.get("ha_remote_url"):
             raise RuntimeError("Home Assistant local or remote URL is required for pairing")
+        _LOGGER.debug(
+            "DJConnect device pair request url=%s payload=%s",
+            url,
+            _redact_debug_payload(payload),
+        )
         async with session.post(
             url,
             json=payload,
@@ -566,6 +623,11 @@ class DJConnectRuntime:
             timeout=ClientTimeout(total=30),
         ) as resp:
             text = await resp.text()
+            _LOGGER.debug(
+                "DJConnect device pair response status=%s body=%s",
+                resp.status,
+                text,
+            )
             if resp.status < 200 or resp.status >= 300:
                 raise RuntimeError(f"ESP pairing failed HTTP {resp.status}: {text}")
             return json.loads(text) if text else {"success": True}
@@ -698,9 +760,9 @@ def _runtime_device_id(runtime: DJConnectRuntime) -> str:
 
 
 def _device_id_mdns_fallback_url(device_id: Any) -> str | None:
-    """Return a fallback URL only for real DJConnect device IDs."""
+    """Return a fallback URL only for real ESP DJConnect device IDs."""
     normalized = str(device_id or "").strip()
-    if _is_real_djconnect_device_id(normalized):
+    if _is_real_esp_djconnect_device_id(normalized):
         return f"http://{normalized}.local"
     return None
 
@@ -709,8 +771,35 @@ def _is_real_djconnect_device_id(device_id: str) -> bool:
     return bool(REAL_DJCONNECT_DEVICE_ID_PATTERN.fullmatch(str(device_id or "").strip()))
 
 
+def _is_real_esp_djconnect_device_id(device_id: str) -> bool:
+    return bool(
+        re.fullmatch(
+            r"djconnect-(?:lilygo-t-embed-s3|esp32-s3-box-3|lilygo)-[0-9A-Fa-f]{12}",
+            str(device_id or "").strip(),
+        )
+    )
+
+
 def _is_setup_code_device_id(device_id: str) -> bool:
     return bool(re.fullmatch(r"djconnect-\d{6}", str(device_id or "").strip()))
+
+
+def _device_id_matches_client_type(device_id: str, client_type: str) -> bool:
+    normalized = str(device_id or "").strip()
+    normalized_client = str(client_type or "").strip()
+    if normalized_client == CLIENT_TYPE_IOS:
+        return bool(re.fullmatch(r"djconnect-ios-[A-Za-z0-9]{12}", normalized))
+    if normalized_client == CLIENT_TYPE_MACOS:
+        return bool(re.fullmatch(r"djconnect-macos-[A-Za-z0-9]{12}", normalized))
+    if normalized_client == CLIENT_TYPE_ESP32:
+        return bool(
+            re.fullmatch(
+                r"djconnect-(?:lilygo-t-embed-s3|esp32-s3-box-3|lilygo)-[0-9A-Fa-f]{12}",
+                normalized,
+            )
+            or _is_setup_code_device_id(normalized)
+        )
+    return False
 
 
 def _device_id_matches(known_device: str, request_device: str) -> bool:

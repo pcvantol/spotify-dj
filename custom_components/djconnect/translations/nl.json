@@ -116,10 +116,12 @@
         "title": "DJConnect opnieuw koppelen",
         "description": "Zet het DJConnect device in pairing mode en voer de nieuwe koppelcode in die op het scherm staat. Home Assistant maakt daarna een nieuw device token aan.",
         "data": {
-          "pair_code": "Nieuwe koppelcode"
+          "pair_code": "Nieuwe koppelcode",
+          "local_url": "Lokale API URL"
         },
         "data_description": {
-          "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het apparaatdisplay."
+          "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het apparaatdisplay.",
+          "local_url": "Optioneel. Vul de lokale API URL van de DJConnect app/device in als mDNS discovery niet werkt, bijvoorbeeld http://192.168.1.104:60955."
         }
       }
     },

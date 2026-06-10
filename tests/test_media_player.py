@@ -193,6 +193,8 @@ class DJConnectMediaPlayerTest(unittest.TestCase):
 
         async def fake_handler(hass, runtime_arg, command, value=None, *, play=None):
             calls.append((command, value, play))
+            if command == "status":
+                return {"success": True, "playback": dict(runtime_arg.last_playback)}
             return {"success": True}
 
         original = self.media_player.handle_spotify_command
@@ -221,6 +223,34 @@ class DJConnectMediaPlayerTest(unittest.TestCase):
         self.assertIn(("set_shuffle", True, None), calls)
         self.assertIn(("set_repeat", "context", None), calls)
         self.assertIn(("start_playlist", "spotify:playlist:abc", None), calls)
+
+    def test_media_player_play_pause_refreshes_backend_state_before_toggle(self) -> None:
+        calls = []
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            device_token="device-token",
+            device_status={},
+            last_error=None,
+            last_playback={"has_playback": True, "is_playing": False},
+            listeners=[],
+            update=lambda **kwargs: None,
+        )
+        entity = self.media_player.DJConnectPlaybackProxyMediaPlayer(runtime, object())
+
+        async def fake_handler(hass, runtime_arg, command, value=None, *, play=None):
+            calls.append((command, value, play))
+            if command == "status":
+                return {"success": True, "playback": {"has_playback": True, "is_playing": True}}
+            return {"success": True}
+
+        original = self.media_player.handle_spotify_command
+        self.media_player.handle_spotify_command = fake_handler
+        try:
+            asyncio.run(entity.async_media_play_pause())
+        finally:
+            self.media_player.handle_spotify_command = original
+
+        self.assertEqual(calls, [("status", None, None), ("pause", None, None)])
 
     def test_next_previous_media_player_commands_go_through_device(self) -> None:
         commands = []
@@ -264,6 +294,38 @@ class DJConnectMediaPlayerTest(unittest.TestCase):
         asyncio.run(self.button.DJConnectCommandButton(runtime, object(), "previous", "previous_track").async_press())
 
         self.assertEqual(commands, [("next", {}), ("previous", {})])
+
+    def test_play_pause_button_refreshes_backend_state_before_toggle(self) -> None:
+        calls = []
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            device_status={},
+            last_error=None,
+            last_playback={"has_playback": True, "is_playing": False},
+            update=lambda **kwargs: None,
+        )
+
+        async def fake_handler(hass, runtime_arg, command, value=None, *, play=None):
+            calls.append((command, value, play))
+            if command == "status":
+                return {"success": True, "playback": {"has_playback": True, "is_playing": True}}
+            return {"success": True}
+
+        original = self.button.handle_spotify_command
+        self.button.handle_spotify_command = fake_handler
+        try:
+            asyncio.run(
+                self.button.DJConnectCommandButton(
+                    runtime,
+                    object(),
+                    "play_pause",
+                    "play_pause",
+                ).async_press()
+            )
+        finally:
+            self.button.handle_spotify_command = original
+
+        self.assertEqual(calls, [("status", None, None), ("pause", None, None)])
 
     def test_refresh_up_next_button_fetches_queue(self) -> None:
         calls = []

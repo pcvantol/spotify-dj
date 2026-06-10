@@ -608,6 +608,79 @@ class TtsHelperTest(unittest.TestCase):
         self.assertNotIn("client_id", payload)
         self.assertNotIn("spotify_client_id", payload)
 
+    def test_pair_device_uses_reported_macos_client_type_and_local_url(self) -> None:
+        class Response:
+            status = 200
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def text(self):
+                return '{"success": true}'
+
+        class PairingInfoResponse(Response):
+            async def text(self):
+                return (
+                    '{"device_id":"djconnect-macos-68B74487726D",'
+                    '"firmware":"3.1.0",'
+                    '"device_name":"DJConnect Mac",'
+                    '"client_type":"macos",'
+                    '"local_url":"http://192.168.1.104:60955",'
+                    '"pair_code":"555293",'
+                    '"platform":"macos"}'
+                )
+
+        class Session:
+            def __init__(self):
+                self.calls = []
+
+            def get(self, url, **kwargs):
+                self.calls.append({"method": "GET", "url": url, **kwargs})
+                return PairingInfoResponse()
+
+            def post(self, url, **kwargs):
+                self.calls.append({"method": "POST", "url": url, **kwargs})
+                return Response()
+
+        entry = types.SimpleNamespace(
+            data={
+                self.const.CONF_DEVICE_ID: "djconnect-555293",
+                self.const.CONF_PAIR_CODE: "555293",
+                self.const.CONF_DEVICE_TOKEN: "device-token",
+                self.const.CONF_CLIENT_TYPE: "esp32",
+                self.const.CONF_LOCAL_URL: "http://192.168.1.104:60955",
+            },
+            options={},
+        )
+        runtime = self.integration.DJConnectRuntime(entry=entry)
+        runtime.device_token = "device-token"
+        session = Session()
+        original_session = self.integration.async_get_clientsession
+        self.integration.async_get_clientsession = lambda hass: session
+        try:
+            result = asyncio.run(runtime.pair_device(types.SimpleNamespace()))
+        finally:
+            self.integration.async_get_clientsession = original_session
+
+        self.assertTrue(result["success"])
+        self.assertEqual(
+            session.calls[0]["url"],
+            "http://192.168.1.104:60955/api/device/pairing-info",
+        )
+        self.assertEqual(
+            session.calls[1]["url"],
+            "http://192.168.1.104:60955/api/device/pair",
+        )
+        payload = session.calls[1]["json"]
+        self.assertEqual(payload["device_id"], "djconnect-macos-68B74487726D")
+        self.assertEqual(payload["client_type"], "macos")
+        self.assertEqual(payload["pair_code"], "555293")
+        self.assertEqual(runtime.device_status["device_id"], "djconnect-macos-68B74487726D")
+        self.assertEqual(runtime.device_status["client_type"], "macos")
+
     def test_ha_url_payload_falls_back_to_homeassistant_local_not_nabu_casa(self) -> None:
         ha_urls = importlib.import_module("custom_components.djconnect.ha_urls")
         hass = types.SimpleNamespace(
@@ -738,6 +811,58 @@ class TtsHelperTest(unittest.TestCase):
         self.assertTrue(runtime.authorize_device_request(headers, device_id, "esp32"))
         self.assertEqual(runtime.pairing_device_id, device_id)
         self.assertEqual(runtime.device_status["device_id"], device_id)
+
+    def test_device_auth_accepts_ios_app_id_with_matching_token(self) -> None:
+        entry = types.SimpleNamespace(entry_id="entry-1", data={}, options={})
+        runtime = self.integration.DJConnectRuntime(entry=entry)
+        runtime.device_token = "token-new"
+        runtime.pairing_device_id = "djconnect-328823"
+        runtime.device_status["device_id"] = "djconnect-328823"
+        device_id = "djconnect-ios-AbC123xYz789"
+        headers = {
+            "Authorization": "Bearer token-new",
+            "X-DJConnect-Device-ID": device_id,
+        }
+
+        self.assertTrue(runtime.authorize_device_request(headers, device_id, "ios"))
+        self.assertEqual(runtime.pairing_device_id, device_id)
+        self.assertEqual(runtime.device_status["device_id"], device_id)
+        self.assertIsNone(self.integration._device_id_mdns_fallback_url(device_id))
+
+    def test_device_auth_accepts_macos_app_id_with_matching_token(self) -> None:
+        entry = types.SimpleNamespace(entry_id="entry-1", data={}, options={})
+        runtime = self.integration.DJConnectRuntime(entry=entry)
+        runtime.device_token = "token-new"
+        runtime.pairing_device_id = "djconnect-328823"
+        runtime.device_status["device_id"] = "djconnect-328823"
+        device_id = "djconnect-macos-AbC123xYz789"
+        headers = {
+            "Authorization": "Bearer token-new",
+            "X-DJConnect-Device-ID": device_id,
+        }
+
+        self.assertTrue(runtime.authorize_device_request(headers, device_id, "macos"))
+        self.assertEqual(runtime.pairing_device_id, device_id)
+        self.assertEqual(runtime.device_status["device_id"], device_id)
+        self.assertIsNone(self.integration._device_id_mdns_fallback_url(device_id))
+
+    def test_device_auth_rejects_client_type_device_id_mismatch(self) -> None:
+        entry = types.SimpleNamespace(entry_id="entry-1", data={}, options={})
+        runtime = self.integration.DJConnectRuntime(entry=entry)
+        runtime.device_token = "token-new"
+        runtime.pairing_device_id = "djconnect-328823"
+        runtime.device_status["device_id"] = "djconnect-328823"
+        device_id = "djconnect-ios-AbC123xYz789"
+        headers = {
+            "Authorization": "Bearer token-new",
+            "X-DJConnect-Device-ID": device_id,
+        }
+
+        with self.assertLogs(self.integration._LOGGER, level="WARNING") as captured:
+            allowed = runtime.authorize_device_request(headers, device_id, "esp32")
+
+        self.assertFalse(allowed)
+        self.assertIn("reason=device_id_client_type_mismatch", "\n".join(captured.output))
 
     def test_device_auth_logs_401_reason_without_token_value(self) -> None:
         entry = types.SimpleNamespace(entry_id="entry-1", data={}, options={})

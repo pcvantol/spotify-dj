@@ -234,7 +234,8 @@ def _runtime_matches_device(runtime: Any, device_id: str) -> bool:
 def _is_real_device_id(device_id: str) -> bool:
     return bool(
         re.fullmatch(
-            r"djconnect-(?:lilygo-t-embed-s3|esp32-s3-box-3|lilygo)-[0-9A-Fa-f]{12}",
+            r"djconnect-(?:lilygo-t-embed-s3|esp32-s3-box-3|lilygo)-[0-9A-Fa-f]{12}"
+            r"|djconnect-(?:ios|macos)-[A-Za-z0-9]{12}",
             str(device_id or ""),
         )
     )
@@ -340,6 +341,21 @@ def _json_error(
         },
         status_code=status_code,
     )
+
+
+def _redact_debug_payload(value: Any) -> Any:
+    if isinstance(value, dict):
+        result: dict[str, Any] = {}
+        for key, item in value.items():
+            normalized = str(key).lower()
+            if any(secret in normalized for secret in ("token", "password", "secret")):
+                result[key] = "<redacted>"
+            else:
+                result[key] = _redact_debug_payload(item)
+        return result
+    if isinstance(value, list):
+        return [_redact_debug_payload(item) for item in value]
+    return value
 
 
 def _major_minor(version: Any) -> str | None:
@@ -767,24 +783,87 @@ class DJConnectPairView(HomeAssistantView):
         hass = request.app["hass"]
         runtime = _runtime(hass)
         if runtime is None:
-            return _json_error(self, "not_configured", 503)
+            payload = {
+                "success": False,
+                "error": "not_configured",
+                "message": ERROR_MESSAGES["not_configured"],
+            }
+            _LOGGER.debug(
+                "DJConnect pairing response status=503 payload=%s",
+                _redact_debug_payload(payload),
+            )
+            return self.json(payload, status_code=503)
         try:
             data = await request.json()
         except Exception:  # noqa: BLE001
-            return _json_error(self, "invalid_json", 400)
+            payload = {
+                "success": False,
+                "error": "invalid_json",
+                "message": ERROR_MESSAGES["invalid_json"],
+            }
+            _LOGGER.debug(
+                "DJConnect pairing response status=400 payload=%s",
+                _redact_debug_payload(payload),
+            )
+            return self.json(payload, status_code=400)
 
         device_id = data.get("device_id")
         pair_code = str(data.get("pair_code") or "")
-        if not device_id or not pair_code:
-            return _json_error(self, "missing_pair_data", 400)
-        client_type = _validate_required_client_type(data)
-        if client_type is None:
-            return _json_error(self, "invalid_client_type", 400)
         conf = runtime.config
         expected_pair_code = str(conf.get(CONF_PAIR_CODE) or "").strip()
+        _LOGGER.debug(
+            "DJConnect pairing request payload=%s expected_pair_code=%s "
+            "known_device_id=%s runtime_client_type=%s",
+            _redact_debug_payload(data),
+            expected_pair_code or "missing",
+            getattr(runtime, "device_status", {}).get("device_id")
+            or getattr(runtime, "pairing_device_id", None)
+            or "missing",
+            _runtime_client_type(runtime),
+        )
+        if not device_id or not pair_code:
+            payload = {
+                "success": False,
+                "error": "missing_pair_data",
+                "message": ERROR_MESSAGES["missing_pair_data"],
+            }
+            _LOGGER.debug(
+                "DJConnect pairing response status=400 payload=%s",
+                _redact_debug_payload(payload),
+            )
+            return self.json(payload, status_code=400)
+        client_type = _validate_required_client_type(data)
+        if client_type is None:
+            payload = {
+                "success": False,
+                "error": "invalid_client_type",
+                "message": ERROR_MESSAGES["invalid_client_type"],
+            }
+            _LOGGER.debug(
+                "DJConnect pairing response status=400 payload=%s",
+                _redact_debug_payload(payload),
+            )
+            return self.json(payload, status_code=400)
         if expected_pair_code and pair_code != expected_pair_code:
             runtime.update(last_error=ERROR_MESSAGES["invalid_pair_code"])
-            return _json_error(self, "invalid_pair_code", 401)
+            payload = {
+                "success": False,
+                "error": "invalid_pair_code",
+                "message": ERROR_MESSAGES["invalid_pair_code"],
+            }
+            _LOGGER.debug(
+                "DJConnect pairing code mismatch device_id=%s client_type=%s "
+                "expected_pair_code=%s received_pair_code=%s",
+                device_id,
+                client_type,
+                expected_pair_code,
+                pair_code or "missing",
+            )
+            _LOGGER.debug(
+                "DJConnect pairing response status=401 payload=%s",
+                _redact_debug_payload(payload),
+            )
+            return self.json(payload, status_code=401)
 
         # Pairing accepts the first device/code and returns a per-device token.
         token = runtime.ensure_device_token()
@@ -823,6 +902,10 @@ class DJConnectPairView(HomeAssistantView):
             "event_path": API_EVENT,
         }
         response.update(await async_ha_url_payload(hass, conf))
+        _LOGGER.debug(
+            "DJConnect pairing response status=200 payload=%s",
+            _redact_debug_payload(response),
+        )
         return self.json(response)
 
 

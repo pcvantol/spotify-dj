@@ -126,6 +126,8 @@ Taken:
 - Status payloads mogen nooit secrets loggen of in diagnostics tonen.
 - ESP JSON routes moeten `client_type` verplicht valideren; ontbrekend of onbekend `client_type` geeft een zichtbare contractfout, geen stille fallback.
 - Huidige waarden zijn `esp32`, `ios` en `macos`; ESP firmware gebruikt verplicht `esp32`.
+- iOS/macOS app clients gebruiken respectievelijk `djconnect-ios-XXXXXXXXXXXX` en `djconnect-macos-XXXXXXXXXXXX`, met de eerste 12 alfanumerieke chars van de app install ID.
+- `client_type` moet bij het device-id prefix passen: `ios` bij `djconnect-ios-*`, `macos` bij `djconnect-macos-*`, `esp32` bij ESP model-specifieke IDs.
 - HA en ESP firmware moeten dezelfde `major.minor` protocolversie gebruiken.
 - Patchversies mogen verschillen: HA `3.0.x` accepteert ESP `3.0.y`, maar niet ESP `3.1.y` of `2.9.y`.
 - Als de ESP `firmware` major/minor niet matcht met de HA integration versie, retourneer HTTP `426` met `error:"version_mismatch"` en velden `ha_version`, `ha_major_minor`, `firmware`, `firmware_major_minor`.

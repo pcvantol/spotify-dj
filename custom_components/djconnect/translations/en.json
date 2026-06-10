@@ -116,10 +116,12 @@
         "title": "Re-pair DJConnect",
         "description": "Put the DJConnect device in pairing mode and enter the new pairing code shown on its display. Home Assistant will create a new device token.",
         "data": {
-          "pair_code": "New pairing code"
+          "pair_code": "New pairing code",
+          "local_url": "Local API URL"
         },
         "data_description": {
-          "pair_code": "The 6 digit code or 12 character device suffix shown on the device display."
+          "pair_code": "The 6 digit code or 12 character device suffix shown on the device display.",
+          "local_url": "Optional. Enter the local API URL of the DJConnect app/device when mDNS discovery does not work, for example http://192.168.1.104:60955."
         }
       }
     },
