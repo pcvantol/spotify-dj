@@ -378,17 +378,15 @@ class ConfigFlowHelperTest(unittest.TestCase):
     def test_voice_errors_allow_device_owned_spotify_playback(self) -> None:
         self.assertEqual(self.config_flow._voice_errors({}), {})
 
-    def test_user_schema_hides_manual_device_url_until_advanced(self) -> None:
+    def test_user_schema_shows_client_type_and_local_url_without_advanced(self) -> None:
         flow = self.config_flow.DJConnectConfigFlow()
         flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="nl-NL"))
 
-        basic_keys = {marker.key for marker in flow._user_schema()}
-        flow._show_advanced_options = True
-        advanced_keys = {marker.key for marker in flow._user_schema()}
+        keys = {marker.key for marker in flow._user_schema()}
 
-        self.assertNotIn(self.const.CONF_LOCAL_URL, basic_keys)
-        self.assertIn(self.const.CONF_LOCAL_URL, advanced_keys)
-        self.assertIn(self.const.CONF_DEVICE_LANGUAGE, basic_keys)
+        self.assertIn(self.const.CONF_CLIENT_TYPE, keys)
+        self.assertIn(self.const.CONF_LOCAL_URL, keys)
+        self.assertIn(self.const.CONF_DEVICE_LANGUAGE, keys)
 
     def test_user_schema_prefills_manual_device_url_from_pair_code(self) -> None:
         flow = self.config_flow.DJConnectConfigFlow()

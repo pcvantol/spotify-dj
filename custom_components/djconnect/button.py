@@ -8,7 +8,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from . import DEFAULT_TEST_TTS_TEXT, async_speak_dj_test
-from .const import DOMAIN
+from .const import CLIENT_TYPE_ESP32, DOMAIN
 from .entity_ids import entry_unique_id
 from .spotify_backend import SpotifyBackendError, handle_spotify_command
 
@@ -20,17 +20,17 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     runtime = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(
-        [
-            DJConnectTestVoiceButton(runtime, hass),
-            DJConnectCommandButton(runtime, hass, "next", "next_track"),
-            DJConnectCommandButton(runtime, hass, "previous", "previous_track"),
-            DJConnectCommandButton(runtime, hass, "play_pause", "play_pause"),
-            DJConnectRefreshUpNextButton(runtime, hass),
-            DJConnectRefreshInfoButton(runtime, hass),
-            DJConnectRebootButton(runtime, hass),
-        ]
-    )
+    entities = [
+        DJConnectTestVoiceButton(runtime, hass),
+        DJConnectCommandButton(runtime, hass, "next", "next_track"),
+        DJConnectCommandButton(runtime, hass, "previous", "previous_track"),
+        DJConnectCommandButton(runtime, hass, "play_pause", "play_pause"),
+        DJConnectRefreshUpNextButton(runtime, hass),
+        DJConnectRefreshInfoButton(runtime, hass),
+    ]
+    if runtime.client_type() == CLIENT_TYPE_ESP32:
+        entities.append(DJConnectRebootButton(runtime, hass))
+    async_add_entities(entities)
 
 class DJConnectTestVoiceButton(ButtonEntity):
     _attr_has_entity_name = True

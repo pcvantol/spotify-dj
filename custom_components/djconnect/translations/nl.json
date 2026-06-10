@@ -13,22 +13,20 @@
       },
       "pair": {
         "title": "DJConnect apparaat koppelen",
-        "description": "Voer de koppelcode in die op het DJConnect device-scherm staat. De handmatige apparaat-URL is alleen nodig als mDNS discovery niet werkt. Spotify is een handelsmerk van Spotify AB. DJConnect is niet verbonden aan, goedgekeurd door of gesponsord door Spotify AB.",
+        "description": "Voer de koppelcode in die op het DJConnect device-scherm staat. De Client API URL is verplicht voor iOS/macOS en alleen nodig voor ESP devices als automatische discovery niet werkt. Spotify is een handelsmerk van Spotify AB. DJConnect is niet verbonden aan, goedgekeurd door of gesponsord door Spotify AB.",
         "data": {
           "pair_code": "Koppelcode",
           "device_name": "Apparaatnaam",
           "device_language": "Apparaattaal",
           "client_type": "Clienttype",
-          "local_url": "Handmatige apparaat-URL",
-          "show_advanced_options": "Toon geavanceerde opties"
+          "local_url": "Client API URL"
         },
         "data_description": {
           "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het apparaatdisplay.",
           "device_name": "Leesbare naam voor deze DJConnect remote.",
           "device_language": "Taal voor de UI op het DJConnect device. Deze wordt tijdens pairing naar het device gestuurd.",
           "client_type": "Type DJConnect client dat koppelt met Home Assistant: ESP32 device, iOS app of macOS app.",
-          "local_url": "Geavanceerde fallback. Gebruik een echte device-hostnaam zoals http://djconnect-[device-suffix].local; 6-cijferige setupcodes zijn geen device-hostnamen.",
-          "show_advanced_options": "Toon handmatige en firmware/OTA overridevelden."
+          "local_url": "Voor iOS/macOS verplicht: kopieer de Client API URL uit de DJConnect app via Instellingen -> Lokale API. Voor ESP devices meestal leeg laten, tenzij automatische discovery niet werkt."
         }
       },
       "ble_wifi": {
@@ -76,15 +74,15 @@
           "tts_engine": "TTS engine",
           "tts_language": "TTS taal",
           "tts_voice": "TTS stem",
-          "dj_response_enabled": "DJ response op apparaat afspelen",
-          "dj_response_prompt": "DJ response prompt",
+          "dj_response_enabled": "DJ aankondiging op apparaat afspelen",
+          "dj_response_prompt": "DJ aankondiging prompt",
           "spotify_source": "Spotify bron override",
           "liked_proxy_playlist_uri": "Standaard playlist URI",
           "firmware_channel": "Firmwarekanaal",
           "max_audio_bytes": "Maximale audio bytes",
           "allow_ota_on_battery": "OTA op batterij toestaan",
           "min_battery_for_ota": "Minimale batterij voor OTA",
-          "dj_response_ttl_seconds": "DJ response audio TTL seconden",
+          "dj_response_ttl_seconds": "DJ aankondiging audio TTL seconden",
           "show_advanced_options": "Toon geavanceerde opties",
           "options_action": "Actie"
         },
@@ -92,10 +90,10 @@
           "assist_pipeline_id": "Assist pipeline die DJConnect apparaten gebruiken voor spraakherkenning.",
           "stt_engine": "Home Assistant STT entity voor fysieke PTT spraakherkenning. Laat leeg om de STT provider uit de Assist pipeline te gebruiken.",
           "client_type": "Type DJConnect client dat koppelt met Home Assistant: ESP32 device, iOS app of macOS app.",
-          "tts_engine": "Home Assistant TTS entity voor DJ reacties.",
+          "tts_engine": "Home Assistant TTS entity voor DJ aankondigingen.",
           "tts_language": "Taal die aan de TTS engine wordt meegegeven.",
           "tts_voice": "Stem die aan de TTS engine wordt meegegeven als die bekend is.",
-          "dj_response_enabled": "Maak een tijdelijke WAV of MP3 audio URL en stuur die met de DJ tekst naar het DJConnect device.",
+          "dj_response_enabled": "Maak een tijdelijke WAV of MP3 audio URL en stuur die met de DJ aankondiging naar het DJConnect device.",
           "dj_response_prompt": "Vrije prompt voor de tekst die DJConnect na een verzoek op het device uitspreekt.",
           "spotify_source": "Geavanceerde optionele override voor een playback uitgang/bron. Laat leeg voor dynamische/standaard playback.",
           "liked_proxy_playlist_uri": "Optionele Spotify playlist URI die DJConnect als standaard playlist gebruikt.",
@@ -121,11 +119,11 @@
         "description": "Zet het DJConnect device in pairing mode en voer de nieuwe koppelcode in die op het scherm staat. Home Assistant maakt daarna een nieuw device token aan.",
         "data": {
           "pair_code": "Nieuwe koppelcode",
-          "local_url": "Lokale API URL"
+          "local_url": "Client API URL"
         },
         "data_description": {
           "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het apparaatdisplay.",
-          "local_url": "Optioneel. Vul de lokale API URL van de DJConnect app/device in als mDNS discovery niet werkt, bijvoorbeeld http://192.168.1.104:60955."
+          "local_url": "Voor iOS/macOS verplicht: kopieer de Client API URL uit de DJConnect app via Instellingen -> Lokale API. Voor ESP devices meestal leeg laten, tenzij automatische discovery niet werkt."
         }
       }
     },
@@ -160,15 +158,15 @@
           "tts_engine": "TTS engine",
           "tts_language": "TTS taal",
           "tts_voice": "TTS stem",
-          "dj_response_enabled": "DJ response op apparaat afspelen",
-          "dj_response_prompt": "DJ response prompt",
+          "dj_response_enabled": "DJ aankondiging op apparaat afspelen",
+          "dj_response_prompt": "DJ aankondiging prompt",
           "spotify_source": "Spotify bron override",
           "liked_proxy_playlist_uri": "Standaard playlist URI",
           "firmware_channel": "Firmwarekanaal",
           "max_audio_bytes": "Maximale audio bytes",
           "allow_ota_on_battery": "OTA op batterij toestaan",
           "min_battery_for_ota": "Minimale batterij voor OTA",
-          "dj_response_ttl_seconds": "DJ response audio TTL seconden",
+          "dj_response_ttl_seconds": "DJ aankondiging audio TTL seconden",
           "show_advanced_options": "Toon geavanceerde opties",
           "options_action": "Actie"
         },
@@ -176,7 +174,7 @@
           "assist_pipeline_id": "Assist pipeline die DJConnect apparaten gebruiken voor spraakherkenning.",
           "stt_engine": "Home Assistant STT entity voor fysieke PTT spraakherkenning. Laat leeg om de STT provider uit de Assist pipeline te gebruiken.",
           "client_type": "Type DJConnect client dat koppelt met Home Assistant: ESP32 device, iOS app of macOS app.",
-          "dj_response_enabled": "Maak een tijdelijke WAV of MP3 audio URL en stuur die met de DJ tekst naar het DJConnect device.",
+          "dj_response_enabled": "Maak een tijdelijke WAV of MP3 audio URL en stuur die met de DJ aankondiging naar het DJConnect device.",
           "firmware_channel": "Kies stable voor normale OTA updates of beta om prerelease firmware te testen.",
           "dj_response_ttl_seconds": "Aantal seconden dat de tijdelijke WAV download URL geldig blijft.",
           "allow_ota_on_battery": "Sta firmware updates toe als het apparaat niet via USB gevoed wordt.",
@@ -188,10 +186,12 @@
         "title": "DJConnect opnieuw koppelen",
         "description": "Zet het DJConnect device in pairing mode en voer de nieuwe koppelcode in die op het scherm staat. Home Assistant maakt daarna een nieuw device token aan.",
         "data": {
-          "pair_code": "Nieuwe koppelcode"
+          "pair_code": "Nieuwe koppelcode",
+          "local_url": "Client API URL"
         },
         "data_description": {
-          "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het apparaatdisplay."
+          "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het apparaatdisplay.",
+          "local_url": "Voor iOS/macOS verplicht: kopieer de Client API URL uit de DJConnect app via Instellingen -> Lokale API. Voor ESP devices meestal leeg laten, tenzij automatische discovery niet werkt."
         }
       }
     },
@@ -249,7 +249,7 @@
     },
     "button": {
       "test_dj_response": {
-        "name": "Test ESP DJ response"
+        "name": "Test DJ aankondiging"
       },
       "next_track": {
         "name": "Volgende track"

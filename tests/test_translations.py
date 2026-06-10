@@ -46,7 +46,11 @@ PAIR_DATA_KEYS = {
     "device_language",
     "client_type",
     "local_url",
-    "show_advanced_options",
+}
+
+REPAIR_PAIRING_DATA_KEYS = {
+    "pair_code",
+    "local_url",
 }
 
 VOICE_OPTION_DATA_KEYS = {
@@ -154,6 +158,30 @@ class TranslationTest(unittest.TestCase):
                     missing_descriptions,
                     f"Missing {language} pair descriptions: {sorted(missing_descriptions)}",
                 )
+
+    def test_repair_pairing_fields_are_translated(self) -> None:
+        base = json.loads((INTEGRATION / "strings.json").read_text())
+        for data, language in [(base, "base")] + [
+            (json.loads((TRANSLATIONS / f"{language}.json").read_text()), language)
+            for language in ("en", "nl")
+        ]:
+            with self.subTest(language=language):
+                for section in ("config", "options"):
+                    step = data[section]["step"].get("repair_pairing")
+                    if step is None:
+                        continue
+                    missing_labels = REPAIR_PAIRING_DATA_KEYS - set(step["data"])
+                    missing_descriptions = REPAIR_PAIRING_DATA_KEYS - set(
+                        step["data_description"]
+                    )
+                    self.assertFalse(
+                        missing_labels,
+                        f"Missing {language} {section} repair labels: {sorted(missing_labels)}",
+                    )
+                    self.assertFalse(
+                        missing_descriptions,
+                        f"Missing {language} {section} repair descriptions: {sorted(missing_descriptions)}",
+                    )
 
     def test_options_flow_voice_fields_are_translated(self) -> None:
         base = json.loads((INTEGRATION / "strings.json").read_text())

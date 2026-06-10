@@ -166,6 +166,38 @@ class DJConnectUpdateEntityTest(unittest.TestCase):
 
         self.assertFalse(entity._attr_should_poll)
 
+    def test_update_entity_is_skipped_for_app_clients(self) -> None:
+        added = []
+        runtime = types.SimpleNamespace(client_type=lambda: "ios")
+        hass = types.SimpleNamespace(data={"djconnect": {"entry-1": runtime}})
+        entry = types.SimpleNamespace(entry_id="entry-1")
+
+        asyncio.run(
+            self.update.async_setup_entry(hass, entry, lambda entities: added.extend(entities))
+        )
+
+        self.assertEqual(added, [])
+
+    def test_update_entity_is_added_for_esp32_clients(self) -> None:
+        added = []
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={},
+            device_status={},
+            ota_in_progress=False,
+            ota_last_error=None,
+            listeners=[],
+            client_type=lambda: "esp32",
+        )
+        hass = types.SimpleNamespace(data={"djconnect": {"entry-1": runtime}})
+        entry = types.SimpleNamespace(entry_id="entry-1")
+
+        asyncio.run(
+            self.update.async_setup_entry(hass, entry, lambda entities: added.extend(entities))
+        )
+
+        self.assertEqual(len(added), 1)
+
     def test_firmware_release_config_uses_device_status_model(self) -> None:
         runtime = types.SimpleNamespace(
             config={},

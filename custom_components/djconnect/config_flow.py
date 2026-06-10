@@ -917,7 +917,7 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     def _user_schema(self) -> dict[Any, Any]:
-        """Build pairing schema; manual device URL is advanced-only."""
+        """Build pairing schema."""
         pair_code = getattr(self, "_last_pair_code", "")
         schema: dict[Any, Any] = {
             vol.Optional(
@@ -933,14 +933,12 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_DEVICE_LANGUAGE,
                 default=_ha_device_language(getattr(self, "hass", None)),
             ): vol.In(DEVICE_LANGUAGE_NAMES),
+            vol.Optional(
+                CONF_CLIENT_TYPE,
+                default=DEFAULT_CLIENT_TYPE,
+            ): vol.In(CLIENT_TYPE_NAMES),
+            vol.Optional(CONF_LOCAL_URL, default=_default_local_url(pair_code)): str,
         }
-        if not _advanced_enabled(self):
-            schema[vol.Optional(ADVANCED_OPTIONS_FIELD, default=False)] = bool
-        else:
-            schema[
-                vol.Optional(CONF_CLIENT_TYPE, default=DEFAULT_CLIENT_TYPE)
-            ] = vol.In(CLIENT_TYPE_NAMES)
-            schema[vol.Optional(CONF_LOCAL_URL, default=_default_local_url(pair_code))] = str
         return schema
 
     async def async_step_spotify(

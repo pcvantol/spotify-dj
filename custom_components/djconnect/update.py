@@ -18,6 +18,7 @@ from .const import (
     CONF_FIRMWARE_DEVICE,
     CONF_FIRMWARE_REPO,
     CONF_MIN_BATTERY_FOR_OTA,
+    CLIENT_TYPE_ESP32,
     DEFAULT_FIRMWARE_CHANNEL,
     DEFAULT_FIRMWARE_DEVICE,
     DEFAULT_FIRMWARE_REPO,
@@ -43,6 +44,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     runtime = hass.data[DOMAIN][entry.entry_id]
+    if runtime.client_type() != CLIENT_TYPE_ESP32:
+        _LOGGER.debug(
+            "Skipping DJConnect firmware update entity for client_type=%s",
+            runtime.client_type(),
+        )
+        return
     async_add_entities([DJConnectFirmwareUpdate(runtime, hass)])
 
 class DJConnectFirmwareUpdate(UpdateEntity):

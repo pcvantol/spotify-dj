@@ -78,7 +78,7 @@
       <text x="430" y="230" text-anchor="middle" fill="#f7f7fb" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="900">DJConnect</text>
       <text x="430" y="276" text-anchor="middle" fill="#9de8ff" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" letter-spacing="2">PUSH TO TALK</text>
       <text x="430" y="316" text-anchor="middle" fill="#b7bccb" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Vraag muziek.</text>
-      <text x="430" y="346" text-anchor="middle" fill="#b7bccb" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Krijg DJ response.</text>
+      <text x="430" y="346" text-anchor="middle" fill="#b7bccb" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Krijg persoonlijk aangekondigd.</text>
     </g>
 
     <circle cx="748" cy="280" r="106" fill="#0a0d13" stroke="rgba(255,255,255,0.16)" stroke-width="4"/>

@@ -3,7 +3,7 @@ test_parse:
   description: >
     Developer test: send text through the configured Home Assistant Assist
     conversation pipeline and return the DJConnect intent. This action does not
-    start Spotify playback or send a DJ response.
+    start Spotify playback or send a DJ announcement.
   fields:
     command_text:
       name: Command text
@@ -15,15 +15,15 @@ test_parse:
           multiline: false
 
 test_tts:
-  name: Test ESP DJ response
+  name: Test DJ announcement
   description: >
-    Developer test: send a standalone DJ response to the paired DJConnect
+    Developer test: send a standalone DJ announcement to the paired DJConnect
     device. Home Assistant tries to create a temporary WAV or MP3 audio_url through
     the configured TTS engine; if that fails, DJConnect sends text only so the
-    device can display the response.
+    device can display the announcement.
   fields:
     dj_response_text:
-      name: DJ response text
+      name: DJ announcement text
       description: Text the DJConnect device should display and speak when possible.
       example: "Daar gaan we. DJConnect is gekoppeld, de stem werkt, en ik sta klaar voor je volgende plaat."
       required: true
@@ -36,7 +36,7 @@ test_command:
   description: >
     Developer test: use the same text-command route as the DJConnect device.
     Text goes through HA Assist to a DJConnect intent, can optionally start
-    Spotify playback, and then sends the DJ response to the ESP device.
+    Spotify playback, and then sends the DJ announcement to the ESP device.
   fields:
     command_text:
       name: Command text
