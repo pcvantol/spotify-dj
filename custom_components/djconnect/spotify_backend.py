@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import time
 import logging
 from urllib.parse import urlencode
@@ -103,11 +104,7 @@ class SpotifyBackend:
 
     async def _access_token(self, *, force_refresh: bool = False) -> str:
         client_id = str(self.conf.get(CONF_SPOTIFY_CLIENT_ID) or "").strip()
-        refresh_token = str(
-            getattr(self.runtime, "latest_spotify_refresh_token", None)
-            or self.conf.get(CONF_SPOTIFY_REFRESH_TOKEN)
-            or ""
-        ).strip()
+        refresh_token = _current_refresh_token(self.runtime, self.conf)
         if not client_id or not refresh_token:
             raise SpotifyBackendError("Spotify OAuth is not configured in Home Assistant")
         cached_token = getattr(self.runtime, "spotify_access_token", None)
@@ -118,6 +115,32 @@ class SpotifyBackend:
             and cached_expires_at - ACCESS_TOKEN_EXPIRY_SAFETY_SECONDS > time.time()
         ):
             return str(cached_token)
+        lock = _token_refresh_lock(self.runtime)
+        async with lock:
+            cached_token = getattr(self.runtime, "spotify_access_token", None)
+            cached_expires_at = float(
+                getattr(self.runtime, "spotify_access_token_expires_at", 0) or 0
+            )
+            if (
+                not force_refresh
+                and cached_token
+                and cached_expires_at - ACCESS_TOKEN_EXPIRY_SAFETY_SECONDS > time.time()
+            ):
+                return str(cached_token)
+            refresh_token = _current_refresh_token(self.runtime, self.conf)
+            if not refresh_token:
+                raise SpotifyBackendError("Spotify OAuth is not configured in Home Assistant")
+            return await self._refresh_access_token_locked(
+                client_id=client_id,
+                refresh_token=refresh_token,
+            )
+
+    async def _refresh_access_token_locked(
+        self,
+        *,
+        client_id: str,
+        refresh_token: str,
+    ) -> str:
         try:
             token = await refresh_access_token(
                 self.hass,
@@ -126,6 +149,15 @@ class SpotifyBackend:
             )
         except SpotifyTokenRefreshError as exc:
             if exc.error == "invalid_grant":
+                latest_refresh_token = _current_refresh_token(self.runtime, self.conf)
+                if latest_refresh_token and latest_refresh_token != refresh_token:
+                    _LOGGER.debug(
+                        "DJConnect Spotify refresh_token changed during refresh; retrying with latest token"
+                    )
+                    return await self._refresh_access_token_locked(
+                        client_id=client_id,
+                        refresh_token=latest_refresh_token,
+                    )
                 _create_spotify_reauth_issue(
                     self.hass,
                     getattr(self.runtime, "entry", None),
@@ -319,6 +351,14 @@ class SpotifyBackend:
             context_uri = str(playback.get("context_uri") or "").strip()
         if not context_uri:
             raise ValueError("Cannot start queue item without playback context")
+        if context_uri.startswith("spotify:artist:") and offset_uri.startswith("spotify:track:"):
+            await self._request(
+                "PUT",
+                "/me/player/play",
+                json={"uris": [offset_uri]},
+                expected_empty=True,
+            )
+            return
         await self._request(
             "PUT",
             "/me/player/play",
@@ -666,6 +706,25 @@ def _bool_value(value: Any) -> bool:
     if normalized in {"0", "false", "no", "off"}:
         return False
     raise ValueError("set_shuffle value must be true or false")
+
+
+def _current_refresh_token(runtime: Any, conf: dict[str, Any]) -> str:
+    entry = getattr(runtime, "entry", None)
+    entry_data = getattr(entry, "data", {}) if entry is not None else {}
+    return str(
+        getattr(runtime, "latest_spotify_refresh_token", None)
+        or entry_data.get(CONF_SPOTIFY_REFRESH_TOKEN)
+        or conf.get(CONF_SPOTIFY_REFRESH_TOKEN)
+        or ""
+    ).strip()
+
+
+def _token_refresh_lock(runtime: Any) -> asyncio.Lock:
+    lock = getattr(runtime, "spotify_token_refresh_lock", None)
+    if lock is None:
+        lock = asyncio.Lock()
+        runtime.spotify_token_refresh_lock = lock
+    return lock
 
 
 def _spotify_error_message(body: Any) -> str:

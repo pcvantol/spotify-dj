@@ -327,6 +327,85 @@ class SpotifyBackendTest(unittest.TestCase):
         self.assertEqual(self.issues[0]["translation_key"], "spotify_refresh_token_revoked")
         self.assertNotIn("secret-refresh", str(captured.exception))
 
+    def test_concurrent_access_token_refresh_uses_single_refresh_call(self) -> None:
+        calls = []
+
+        async def refresh(*args, **kwargs):
+            calls.append(kwargs["refresh_token"])
+            await asyncio.sleep(0)
+            return {"access_token": "new-access", "expires_in": 3600}
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={"spotify_client_id": "client-id", "spotify_refresh_token": "refresh"},
+            options={},
+        )
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            latest_spotify_refresh_token=None,
+            spotify_access_token=None,
+            spotify_access_token_expires_at=0,
+        )
+        runtime.config = dict(entry.data)
+        backend = self.backend.SpotifyBackend(object(), runtime)
+
+        original = self.backend.refresh_access_token
+        self.backend.refresh_access_token = refresh
+        try:
+            async def run_concurrent():
+                return await asyncio.gather(
+                    backend._access_token(),
+                    backend._access_token(),
+                )
+
+            tokens = asyncio.run(run_concurrent())
+        finally:
+            self.backend.refresh_access_token = original
+
+        self.assertEqual(tokens, ["new-access", "new-access"])
+        self.assertEqual(calls, ["refresh"])
+
+    def test_invalid_grant_retries_when_refresh_token_rotated_during_refresh(self) -> None:
+        calls = []
+
+        async def refresh(*args, **kwargs):
+            refresh_token = kwargs["refresh_token"]
+            calls.append(refresh_token)
+            if refresh_token == "old-refresh":
+                runtime.latest_spotify_refresh_token = "new-refresh"
+                raise self.oauth.SpotifyTokenRefreshError(
+                    400,
+                    {"error": "invalid_grant", "error_description": "Refresh token revoked"},
+                )
+            return {"access_token": "new-access", "expires_in": 3600}
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={"spotify_client_id": "client-id", "spotify_refresh_token": "old-refresh"},
+            options={},
+        )
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            latest_spotify_refresh_token=None,
+            spotify_access_token=None,
+            spotify_access_token_expires_at=0,
+        )
+        runtime.config = dict(entry.data)
+        runtime.update = lambda **kwargs: setattr(runtime, "last_update", kwargs)
+        backend = self.backend.SpotifyBackend(object(), runtime)
+
+        original = self.backend.refresh_access_token
+        self.backend.refresh_access_token = refresh
+        try:
+            token = asyncio.run(backend._access_token())
+        finally:
+            self.backend.refresh_access_token = original
+
+        self.assertEqual(token, "new-access")
+        self.assertEqual(calls, ["old-refresh", "new-refresh"])
+        self.assertEqual(self.issues, [])
+        self.assertFalse(hasattr(runtime, "last_update"))
+
     def test_access_token_cache_avoids_unnecessary_refresh(self) -> None:
         calls = []
 
@@ -590,6 +669,63 @@ class SpotifyBackendTest(unittest.TestCase):
         self.assertEqual(result["queue"][0]["album_image_url"], "https://example.test/queue.jpg")
         self.assertEqual(result["queue"][0]["imageUrl"], "https://example.test/queue.jpg")
         self.assertEqual(runtime.device_status["queue"]["items"], result["queue"])
+
+    def test_play_context_at_artist_context_plays_track_without_offset(self) -> None:
+        class Response:
+            status = 204
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def json(self, content_type=None):
+                return {}
+
+            async def text(self):
+                return ""
+
+        class Session:
+            def __init__(self):
+                self.calls = []
+
+            def request(self, method, url, **kwargs):
+                self.calls.append({"method": method, "url": url, **kwargs})
+                return Response()
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={"spotify_client_id": "client-id", "spotify_refresh_token": "refresh"},
+            options={},
+        )
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            latest_spotify_refresh_token=None,
+            spotify_access_token="access",
+            spotify_access_token_expires_at=time.time() + 1800,
+            device_status={},
+            last_playback={"context_uri": "spotify:artist:abc"},
+            update=lambda **kwargs: None,
+        )
+        runtime.config = dict(entry.data)
+        backend = self.backend.SpotifyBackend(object(), runtime)
+        session = Session()
+        backend.session = session
+
+        asyncio.run(
+            backend.play_context_at(
+                {
+                    "context_uri": "spotify:artist:abc",
+                    "offset_uri": "spotify:track:def",
+                }
+            )
+        )
+
+        self.assertEqual(
+            session.calls[0]["json"],
+            {"uris": ["spotify:track:def"]},
+        )
 
     def test_set_play_mode_is_no_longer_supported(self) -> None:
         runtime = types.SimpleNamespace(config={})

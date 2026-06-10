@@ -1,7 +1,10 @@
 # Changelog
 
-## 3.1.7
+## 3.1.8
 
+- Serialize Spotify access-token refreshes so simultaneous iOS/macOS/PTT playback calls cannot race a rotated refresh token into a false `invalid_grant` repair.
+- Retry once with the latest stored refresh token when Spotify returns `invalid_grant` after another concurrent call already rotated the token.
+- Avoid Spotify's invalid artist-context offset payload by playing selected track URIs directly when queue playback originates from an artist context.
 - Make DJ response generation rely on HA Assist output from resolved artist/track metadata plus the configured `dj_response_prompt`; remove hardcoded prompt-style response variants from the local fallback.
 - Remove `ha_remote_url` from all device pairing/status payloads; DJConnect devices now receive only `ha_local_url`, while cloud/Nabu Casa URLs remain limited to the Spotify OAuth config/repair flow.
 - Require `ha_local_url` for pairing instead of accepting a remote/cloud URL fallback.
