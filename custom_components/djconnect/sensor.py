@@ -39,6 +39,7 @@ async def async_setup_entry(
 
 class DJConnectBaseSensor(SensorEntity):
     _attr_has_entity_name = True
+    _attr_should_poll = False
 
     def __init__(self, runtime) -> None:
         self.runtime = runtime
@@ -96,6 +97,27 @@ class DJConnectLastTextSensor(DJConnectBaseSensor):
     def __init__(self, runtime) -> None:
         super().__init__(runtime)
         self._last_value = _last_command_value(runtime)
+        self._last_runtime_update_state: tuple | None = None
+
+    @callback
+    def _handle_runtime_update(self) -> None:
+        current = self._runtime_update_state()
+        if current == self._last_runtime_update_state:
+            return
+        self._last_runtime_update_state = current
+        self.async_write_ha_state()
+
+    def _runtime_update_state(self) -> tuple:
+        return (
+            self.native_value,
+            _last_command_first_raw_value(self.runtime),
+            getattr(self.runtime, "last_text", None),
+            getattr(self.runtime, "last_stt_text", None),
+            getattr(self.runtime, "last_dj_text", None),
+            _stable_repr(getattr(self.runtime, "last_intent", None)),
+            _stable_repr(getattr(self.runtime, "last_spotify_search", None)),
+            _stable_repr(getattr(self.runtime, "last_resolved_media", None)),
+        )
 
     @property
     def native_value(self):
@@ -160,6 +182,23 @@ class DJConnectLastTrackSensor(DJConnectBaseSensor):
     def __init__(self, runtime) -> None:
         super().__init__(runtime)
         self._last_value = _last_track_value(runtime)
+        self._last_runtime_update_state: tuple | None = None
+
+    @callback
+    def _handle_runtime_update(self) -> None:
+        current = self._runtime_update_state()
+        if current == self._last_runtime_update_state:
+            return
+        self._last_runtime_update_state = current
+        self.async_write_ha_state()
+
+    def _runtime_update_state(self) -> tuple:
+        return (
+            self.native_value,
+            _stable_repr(getattr(self.runtime, "last_playback", None)),
+            _stable_repr(getattr(self.runtime, "last_resolved_media", None)),
+            _stable_repr(_last_track_status_values(self.runtime)),
+        )
 
     @property
     def native_value(self):
@@ -378,6 +417,19 @@ def _last_track_value(runtime):
         if value not in (None, ""):
             return _safe_text_state(value)
     return None
+
+
+def _last_track_status_values(runtime):
+    status = getattr(runtime, "device_status", {}) or {}
+    return {
+        key: status.get(key)
+        for key in ("last_track", "track_name", "track", "title")
+        if status.get(key) not in (None, "")
+    }
+
+
+def _stable_repr(value) -> str:
+    return repr(value)
 
 
 def _safe_text_state(value):

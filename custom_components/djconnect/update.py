@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import timedelta
 import logging
 import time
 from typing import Any
@@ -22,6 +23,11 @@ from .const import (
     DOMAIN,
 )
 from .github import fetch_latest_firmware_release, is_newer
+
+try:
+    from homeassistant.helpers.event import async_track_time_interval
+except Exception:  # pragma: no cover - Home Assistant/stub compatibility
+    async_track_time_interval = None
 
 _LOGGER = logging.getLogger(__name__)
 FIRMWARE_CHECK_INTERVAL_SECONDS = 60 * 60
@@ -45,6 +51,7 @@ class DJConnectFirmwareUpdate(UpdateEntity):
         | UpdateEntityFeature.SPECIFIC_VERSION
         | UpdateEntityFeature.RELEASE_NOTES
     )
+    _attr_should_poll = False
 
     def __init__(self, runtime, hass: HomeAssistant) -> None:
         self.runtime = runtime
@@ -103,6 +110,18 @@ class DJConnectFirmwareUpdate(UpdateEntity):
 
     async def async_added_to_hass(self) -> None:
         await self.async_update()
+        if async_track_time_interval is not None:
+            remove_listener = async_track_time_interval(
+                self.hass,
+                self._async_scheduled_update,
+                timedelta(seconds=FIRMWARE_CHECK_INTERVAL_SECONDS),
+            )
+            if hasattr(self, "async_on_remove"):
+                self.async_on_remove(remove_listener)
+
+    async def _async_scheduled_update(self, now: Any) -> None:
+        await self.async_update()
+        self.async_write_ha_state()
 
     async def async_will_remove_from_hass(self) -> None:
         if self._handle_runtime_update in self.runtime.listeners:

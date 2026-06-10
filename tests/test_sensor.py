@@ -26,6 +26,7 @@ def install_sensor_stubs() -> None:
 
     class SensorEntity:
         def async_write_ha_state(self):
+            self.write_count = getattr(self, "write_count", 0) + 1
             self.wrote_state = True
 
     class ClientTimeout:
@@ -129,6 +130,25 @@ class DJConnectSensorTest(unittest.TestCase):
         runtime.last_resolved_media = {"artist": "Pearl Jam"}
         self.assertEqual(entity.native_value, "Pearl Jam")
 
+    def test_last_track_sensor_is_push_only_and_writes_only_on_change(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            device_status={"last_track": "Alive"},
+            last_playback={},
+            last_resolved_media={},
+            listeners=[],
+        )
+        entity = self.sensor.DJConnectLastTrackSensor(runtime)
+
+        self.assertFalse(entity._attr_should_poll)
+
+        entity._handle_runtime_update()
+        entity._handle_runtime_update()
+        runtime.device_status["last_track"] = "Black"
+        entity._handle_runtime_update()
+
+        self.assertEqual(entity.write_count, 2)
+
     def test_last_command_sensor_reads_runtime_last_text(self) -> None:
         runtime = types.SimpleNamespace(
             entry=types.SimpleNamespace(entry_id="entry-1"),
@@ -183,6 +203,29 @@ class DJConnectSensorTest(unittest.TestCase):
             entity.extra_state_attributes["last_stt_text"],
             "Daar is Pearl Jam",
         )
+
+    def test_last_command_sensor_is_push_only_and_writes_only_on_change(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            last_text="ik wil pearl jam starten",
+            last_stt_text="ik wil pearl jam starten",
+            last_dj_text="Daar is Pearl Jam",
+            last_intent=None,
+            last_spotify_search=None,
+            last_resolved_media=None,
+            device_status={},
+            listeners=[],
+        )
+        entity = self.sensor.DJConnectLastTextSensor(runtime)
+
+        self.assertFalse(entity._attr_should_poll)
+
+        entity._handle_runtime_update()
+        entity._handle_runtime_update()
+        runtime.last_dj_text = "Pearl Jam staat klaar."
+        entity._handle_runtime_update()
+
+        self.assertEqual(entity.write_count, 2)
 
     def test_last_command_sensor_restores_persisted_dj_response_text(self) -> None:
         runtime = types.SimpleNamespace(

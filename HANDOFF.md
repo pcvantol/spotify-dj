@@ -128,7 +128,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 ## Current Release Notes
 
 - Current release line is `3.0.x`; only the latest GitHub release/tag should be kept after release cleanup.
-- Current latest baseline is `3.0.40`.
+- Current latest baseline is `3.0.42`.
 - Voice/Assist search text such as "ik wil Pearl Jam starten" must resolve to a Spotify artist first; free-text PTT search is artist-only unless the request is an explicit playlist flow or direct Spotify URI.
 - Do not send arbitrary text as `context_uri`, and do not perform broad track/album search for generic artist requests.
 - Device DJ responses after successful PTT playback are generated from resolved Spotify/playback metadata and the configured `dj_response_prompt`, not from the generic Assist fallback announcement.
@@ -138,6 +138,8 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - `spotify_source` is a normal options-flow field again because it is needed for reliable voice playback routing; firmware/OTA overrides remain hidden behind the local advanced checkbox.
 - Pairing prevents Nabu Casa/cloud URLs from being sent as `ha_local_url` and falls back to HA network/source-IP local URL discovery, then `http://homeassistant.local:8123`.
 - The options-flow “re-pair with new pairing code” field stays empty instead of pre-filling the old stored pairing code.
+- Firmware update entity is non-polling. It checks GitHub on add/manual refresh/install and then on a one-hour internal schedule, so HA must not refresh the entity every 10 seconds.
+- Sensor entities are push-only through runtime listeners. `last_command` and `last_track` additionally write HA state only when their cached value or relevant debug attributes actually change.
 - Spotify repair OAuth popups include explicit title/description text directly on the Repairs external-step result so Home Assistant does not show a blank dialog when translation lookup misses a dynamic repair issue id.
 - Strict current ESP device identity is `djconnect-lilygo-XXXXXXXXXXXX`; legacy `djconnect-XXXXXXXXXXXX` IDs are not accepted.
 - HA blocks ESP calls with HTTP `426` `version_mismatch` when HA and ESP firmware `major.minor` differ, while preserving pairing/token state.
@@ -184,11 +186,13 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 3. Verify `button.djconnect_refresh_up_next` updates `sensor.djconnect_queue` attributes.
 4. Verify `select.djconnect_sound_output` populates Spotify outputs without manually calling `devices`.
 5. Verify sensors keep last-known values after ESP status, playback command polling, voice tests and local device-info refreshes.
-6. Test Repair flow for revoked Spotify token.
-7. Test options-flow Spotify reauthorize action.
-8. Pair a device from scratch and verify token synchronization with `ha_local_url` / `ha_remote_url`.
-9. Verify ESP `/status` includes current settings aliases consumed by HA.
-10. Run physical PTT end-to-end.
+6. Verify `sensor.djconnect_laatste_opdracht` and `sensor.djconnect_laatste_nummer` do not create repeated unchanged history entries during normal runtime refreshes.
+7. Verify the firmware update entity does not report a fresh update timestamp every 10 seconds when no firmware/OTA state changed.
+8. Test Repair flow for revoked Spotify token.
+9. Test options-flow Spotify reauthorize action.
+10. Pair a device from scratch and verify token synchronization with `ha_local_url` / `ha_remote_url`.
+11. Verify ESP `/status` includes current settings aliases consumed by HA.
+12. Run physical PTT end-to-end.
 11. Verify native playback proxy media player controls Spotify backend playback and shows album art.
 12. Verify no Spotify OAuth secrets are sent to ESP or logged.
 

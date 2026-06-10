@@ -18,6 +18,7 @@ def install_update_stubs() -> None:
     config_entries = types.ModuleType("homeassistant.config_entries")
     core = types.ModuleType("homeassistant.core")
     helpers = sys.modules.setdefault("homeassistant.helpers", types.ModuleType("homeassistant.helpers"))
+    aiohttp_client = types.ModuleType("homeassistant.helpers.aiohttp_client")
     device_registry = types.ModuleType("homeassistant.helpers.device_registry")
     entity_platform = types.ModuleType("homeassistant.helpers.entity_platform")
     awesomeversion = sys.modules.setdefault(
@@ -60,15 +61,22 @@ def install_update_stubs() -> None:
     core.HomeAssistant = object
     device_registry.DeviceInfo = dict
     entity_platform.AddEntitiesCallback = object
+    aiohttp_client.async_get_clientsession = lambda hass: None
     awesomeversion.AwesomeVersion = AwesomeVersion
     components.update = update
+    helpers.aiohttp_client = aiohttp_client
     helpers.device_registry = device_registry
     helpers.entity_platform = entity_platform
     homeassistant.components = components
 
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
+    sys.modules["custom_components.djconnect"] = package
+
     sys.modules["homeassistant.components.update"] = update
     sys.modules["homeassistant.config_entries"] = config_entries
     sys.modules["homeassistant.core"] = core
+    sys.modules["homeassistant.helpers.aiohttp_client"] = aiohttp_client
     sys.modules["homeassistant.helpers.device_registry"] = device_registry
     sys.modules["homeassistant.helpers.entity_platform"] = entity_platform
 
@@ -144,6 +152,19 @@ class DJConnectUpdateEntityTest(unittest.TestCase):
 
         self.assertEqual(calls, 2)
         self.assertEqual(entity.latest_version, "3.0.6")
+
+    def test_firmware_update_entity_does_not_poll(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={},
+            device_status={},
+            ota_in_progress=False,
+            ota_last_error=None,
+            listeners=[],
+        )
+        entity = self.update.DJConnectFirmwareUpdate(runtime, object())
+
+        self.assertFalse(entity._attr_should_poll)
 
     def test_firmware_release_config_uses_device_status_model(self) -> None:
         runtime = types.SimpleNamespace(

@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.0.41`
+- Home Assistant integration: `3.0.42`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -522,23 +522,23 @@ Example manifest:
 
 ```json
 {
-  "version": "3.0.41",
-  "version_tag": "v3.0.41",
+  "version": "3.0.42",
+  "version_tag": "v3.0.42",
   "channel": "stable",
-  "min_ha_integration": "3.0.41",
+  "min_ha_integration": "3.0.42",
   "firmwares": [
     {
       "board": "t_embed_cc1101",
       "device": "lilygo-t-embed-s3",
-      "asset": "djconnect-lilygo-t-embed-s3-v3.0.41.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.41/djconnect-lilygo-t-embed-s3-v3.0.36.bin",
+      "asset": "djconnect-lilygo-t-embed-s3-v3.0.42.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.42/djconnect-lilygo-t-embed-s3-v3.0.36.bin",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size": 2113136
     },
     {
       "board": "esp32_s3_box3",
       "device": "esp32-s3-box-3",
-      "asset": "djconnect-esp32-s3-box-3-v3.0.41.bin",
+      "asset": "djconnect-esp32-s3-box-3-v3.0.42.bin",
       "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.36/djconnect-esp32-s3-box-3-v3.0.36.bin",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
       "size": 2113136
@@ -558,7 +558,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.0.41
+./release.sh 3.0.42
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -570,7 +570,7 @@ PlatformIO builds, rename firmware binaries to device-specific assets such as
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.0.41 --dry-run
+./release.sh 3.0.42 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
@@ -628,11 +628,11 @@ Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.0.41"
-git tag v3.0.41
+git commit -m "Release DJConnect v3.0.42"
+git tag v3.0.42
 git push origin main
-git push origin v3.0.41
-gh release create v3.0.41 --title "DJConnect v3.0.41" --notes-file CHANGELOG.md
+git push origin v3.0.42
+gh release create v3.0.42 --title "DJConnect v3.0.42" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:
@@ -690,7 +690,7 @@ These tests use local stubs for Home Assistant imports and focus on pure DJConne
 - If opening DJConnect options returns an internal server error, update to this release or newer; older builds assigned HA's read-only `config_entry` property.
 - If OTA cannot start, make sure the device has reported `local_url` or can be reached as `http://[device_id].local`.
 - If OTA is blocked, check battery level, USB power, and the OTA battery options.
-- If the firmware update entity reports a GitHub rate limit, wait for GitHub's API limit to reset; DJConnect keeps the entity loaded and records the temporary error in its attributes.
+- If the firmware update entity reports a GitHub rate limit, wait for GitHub's API limit to reset; DJConnect keeps the entity loaded and records the temporary error in its attributes. The firmware update entity is non-polling and checks GitHub on add/manual refresh/install plus an internal one-hour schedule, not every few seconds.
 - If Spotify playback fails, reauthorize Spotify in Home Assistant and check that the selected backend has an active playback target.
 - If Spotify fails only after about an hour of idle time, update to this release or newer; normal access-token expiry is handled by HA with a cached token and one refresh retry.
 - If Spotify returns `invalid_grant` or `Refresh token revoked`, Spotify revoked the stored OAuth token. Open Home Assistant Repairs and choose `Fix` for the DJConnect authorization issue to run Spotify OAuth again.
