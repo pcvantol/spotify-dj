@@ -291,6 +291,35 @@ class GithubFirmwareTest(unittest.TestCase):
             "lilygo.bin",
         )
 
+    def test_example_manifest_uses_multi_device_contract(self) -> None:
+        manifest = json.loads((ROOT / "examples" / "firmware_manifest.json").read_text())
+
+        self.assertNotIn("asset", manifest)
+        self.assertNotIn("device", manifest)
+        self.assertIsInstance(manifest["firmwares"], list)
+
+        devices = {entry["device"] for entry in manifest["firmwares"]}
+        self.assertIn("lilygo-t-embed-s3", devices)
+        self.assertIn("esp32-s3-box-3", devices)
+
+        lilygo = self.github._select_manifest_firmware(
+            manifest,
+            "lilygo-t-embed-s3",
+        )
+        box3 = self.github._select_manifest_firmware(
+            manifest,
+            "esp32-s3-box-3",
+        )
+
+        self.assertEqual(
+            lilygo["asset"],
+            f"djconnect-lilygo-t-embed-s3-v{manifest['version']}.bin",
+        )
+        self.assertEqual(
+            box3["asset"],
+            f"djconnect-esp32-s3-box-3-v{manifest['version']}.bin",
+        )
+
     def test_unsupported_manifest_device_warning_is_clear(self) -> None:
         with self.assertLogs(self.github._LOGGER, level="WARNING") as captured:
             self.github._LOGGER.warning(

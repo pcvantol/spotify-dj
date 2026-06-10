@@ -121,14 +121,14 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - DJ response TTS is returned to ESP as text and optional temporary WAV/MP3 `audio_url`.
 - Device setting entities accept firmware aliases such as `brightness`, `screen_brightness`, `cue_volume`, `speaker_volume`, `screen_dim_timeout_ms` and `turn_off_after_ms`.
 - `number.djconnect_volume` and other numbers must publish `None/unavailable`, not invalid values outside HA ranges.
-- Firmware asset name is distributive, e.g. `djconnect-device-vX.Y.Z.bin`; OTA target device comes from `firmware_manifest.json` field `device`, currently `lilygo-t-embed-s3`.
+- Firmware assets are device-specific, e.g. `djconnect-lilygo-t-embed-s3-vX.Y.Z.bin` and `djconnect-esp32-s3-box-3-vX.Y.Z.bin`. HA selects the matching `firmwares[]` manifest entry and sends that entry's `device` as the OTA target.
 - Secrets must not appear in logs, diagnostics or state attributes.
 - Spotify trademark/non-affiliation notice remains in docs/UI/diagnostics.
 
 ## Current Release Notes
 
 - Current release line is `3.0.x`; only the latest GitHub release/tag should be kept after release cleanup.
-- Current latest baseline is `3.0.27`.
+- Current latest baseline is `3.0.40`.
 - Voice/Assist search text such as "ik wil Pearl Jam starten" must resolve to a Spotify artist first; free-text PTT search is artist-only unless the request is an explicit playlist flow or direct Spotify URI.
 - Do not send arbitrary text as `context_uri`, and do not perform broad track/album search for generic artist requests.
 - Device DJ responses after successful PTT playback are generated from resolved Spotify/playback metadata and the configured `dj_response_prompt`, not from the generic Assist fallback announcement.

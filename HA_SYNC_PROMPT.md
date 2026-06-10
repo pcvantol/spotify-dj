@@ -4,7 +4,7 @@ Werk in de bestaande Home Assistant custom integration repo `pcvantol/djconnect`
 
 ## Doel
 
-Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmware contracten voor release `v3.0.27`.
+Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmware contracten voor release `v3.0.40`.
 
 ## 0. Repository / Release Hygiene
 
@@ -12,10 +12,10 @@ Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmwar
 - ESP source repo: `pcvantol/djconnect-app`.
 - Public OTA firmware repo: `pcvantol/djconnect-firmware`.
 - Firmware binaries/manifests must be consumed from `djconnect-firmware`; the ESP source repo is not the OTA asset host.
-- Current HA integration release/tag baseline is `v3.0.27`; do not reference old 2.x firmware assets or tags.
-- Current firmware asset naming convention is `djconnect-device-vX.Y.Z.bin`.
+- Current HA integration release/tag baseline is `v3.0.40`; do not reference old 2.x firmware assets or tags.
+- Current firmware assets are device-specific, e.g. `djconnect-lilygo-t-embed-s3-vX.Y.Z.bin` and `djconnect-esp32-s3-box-3-vX.Y.Z.bin`.
 - Current OTA manifest filename is `firmware_manifest.json`.
-- Current OTA manifest `device` target is `lilygo-t-embed-s3`.
+- Current OTA manifest uses `firmwares[]` entries; HA selects the matching entry and sends that entry's `device` target to ESP.
 
 Belangrijke architectuur:
 
@@ -238,22 +238,23 @@ Als een `media_player` entity bestaat:
 Controleer:
 
 - HA leest firmware releases uit `pcvantol/djconnect-firmware`.
-- Release asset is `djconnect-device-vX.Y.Z.bin`.
+- Release assets are device-specific, such as `djconnect-lilygo-t-embed-s3-vX.Y.Z.bin` and `djconnect-esp32-s3-box-3-vX.Y.Z.bin`.
 - Manifest is `firmware_manifest.json`.
-- Manifest bevat `version`, `device`, `asset`, `sha256`, `size`, `min_ha_integration`.
-- HA stuurt manifest `device` ongewijzigd naar ESP `POST /api/device/ota`.
-- Voor huidige firmware is manifest `device` `lilygo-t-embed-s3`.
-- Gebruik niet de generieke assetprefix `djconnect-device` als OTA target device.
+- Manifest bevat manifest-level `version`, `version_tag`, `channel`, `min_ha_integration` en `firmwares[]`.
+- Elke `firmwares[]` entry bevat minimaal `device`, `asset`, `url`, `sha256` en `size`.
+- HA kiest de entry op basis van ESP status/info model/board/device en stuurt die entry's `device` ongewijzigd naar ESP `POST /api/device/ota`.
+- LilyGO gebruikt manifest device `lilygo-t-embed-s3`; ESP32-S3-BOX-3 gebruikt manifest device `esp32-s3-box-3`.
+- Gebruik geen generieke assetprefix als OTA target device.
 
 OTA payload naar ESP:
 
 ```json
 {
-  "version": "3.0.27",
-  "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.27/djconnect-device-v3.0.27.bin",
+  "version": "3.0.40",
+  "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.40/djconnect-lilygo-t-embed-s3-v3.0.40.bin",
   "sha256": "...",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.27.bin"
+  "asset": "djconnect-lilygo-t-embed-s3-v3.0.40.bin"
 }
 ```
 
@@ -292,7 +293,7 @@ python3 -m unittest discover -s tests
 
 ## 9. Acceptance Criteria
 
-- ESP `v3.0.27` pairs without stale-pairing loops.
+- ESP `v3.0.x` pairs without stale-pairing loops.
 - After a 6-digit setup-code flow, ESP logs `Home Assistant direct pairing stored: device_token=present`, exits the pairing screen and after reboot logs `Home Assistant pairing: paired`.
 - ESP S indicator updates green/grey/red after reboot without user action.
 - HA entities reflect ESP state after reboot/status post.

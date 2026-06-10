@@ -447,12 +447,12 @@ Controleer:
   "url": "https://...",
   "sha256": "...",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.x.bin"
+  "asset": "djconnect-lilygo-t-embed-s3-v3.0.x.bin"
 }
 ```
 
-- `device` moet matchen op `lilygo-t-embed-s3`.
-- Assetnaam hoeft geen boardnaam te bevatten.
+- `device` moet matchen op de OTA target uit de gekozen manifest entry, bijvoorbeeld `lilygo-t-embed-s3` of `esp32-s3-box-3`.
+- Assetnamen zijn device-specifiek, bijvoorbeeld `djconnect-lilygo-t-embed-s3-vX.Y.Z.bin` en `djconnect-esp32-s3-box-3-vX.Y.Z.bin`.
 - Tijdens OTA:
   - duidelijke UI status;
   - paarse snelle LED-ring animatie;
@@ -544,6 +544,6 @@ Voeg/update host tests waar mogelijk:
 - ESP bewaart geen Spotify credentials.
 - ESP stuurt generic playback commands naar HA.
 - ESP PTT uploadt raw WAV naar HA en speelt HA DJ response lokaal af.
-- OTA blijft werken met `djconnect-device-vX.Y.Z.bin` en target `lilygo-t-embed-s3`.
+- OTA blijft werken met device-specifieke assets zoals `djconnect-lilygo-t-embed-s3-vX.Y.Z.bin`; het device accepteert de manifest `device` target die bij zijn board hoort.
 - Het device gebruikt de echte DJConnect icon assets uit `pcvantol/djconnect` in plaats van een opnieuw getekende benadering.
 - Logs bevatten geen secrets.

@@ -111,7 +111,19 @@ replace_text(
     [
         (r"^- Home Assistant integration: `[^`]+`$", f"- Home Assistant integration: `{version}`"),
         (r'  "version": "[^"]+",', f'  "version": "{version}",'),
-        (r'  "asset": "djconnect-device-v[^"]+\.bin",', f'  "asset": "djconnect-device-{tag}.bin",'),
+        (r'  "version_tag": "v[^"]+",', f'  "version_tag": "{tag}",'),
+        (
+            r"releases/download/v[0-9]+\.[0-9]+\.[0-9]+/",
+            f"releases/download/{tag}/",
+        ),
+        (
+            r"djconnect-lilygo-t-embed-s3-v[0-9]+\.[0-9]+\.[0-9]+\.bin",
+            f"djconnect-lilygo-t-embed-s3-{tag}.bin",
+        ),
+        (
+            r"djconnect-esp32-s3-box-3-v[0-9]+\.[0-9]+\.[0-9]+\.bin",
+            f"djconnect-esp32-s3-box-3-{tag}.bin",
+        ),
         (r'  "min_ha_integration": "[^"]+"', f'  "min_ha_integration": "{version}"'),
         (r"\./release\.sh [0-9]+\.[0-9]+\.[0-9]+", f"./release.sh {version}"),
         (r"\./release\.sh [0-9]+\.[0-9]+\.[0-9]+ --dry-run", f"./release.sh {version} --dry-run"),
@@ -121,6 +133,30 @@ replace_text(
         (
             r'gh release create v[0-9]+\.[0-9]+\.[0-9]+ --title "DJConnect v[^"]+" --notes-file CHANGELOG\.md',
             f'gh release create {tag} --title "DJConnect {tag}" --notes-file CHANGELOG.md',
+        ),
+    ],
+)
+replace_text(
+    "examples/firmware_manifest.json",
+    [
+        (r'  "version": "[^"]+",', f'  "version": "{version}",'),
+        (r'  "version_tag": "v[^"]+",', f'  "version_tag": "{tag}",'),
+        (r'  "min_ha_integration": "[^"]+",', f'  "min_ha_integration": "{version}",'),
+        (
+            r"releases/download/v[0-9]+\.[0-9]+\.[0-9]+/",
+            f"releases/download/{tag}/",
+        ),
+        (
+            r"releases/download/v[0-9]+\.[0-9]+\.[0-9]+/",
+            f"releases/download/{tag}/",
+        ),
+        (
+            r"djconnect-lilygo-t-embed-s3-v[0-9]+\.[0-9]+\.[0-9]+\.bin",
+            f"djconnect-lilygo-t-embed-s3-{tag}.bin",
+        ),
+        (
+            r"djconnect-esp32-s3-box-3-v[0-9]+\.[0-9]+\.[0-9]+\.bin",
+            f"djconnect-esp32-s3-box-3-{tag}.bin",
         ),
     ],
 )

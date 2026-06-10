@@ -1,9 +1,25 @@
 {
-  "version": "3.0.0",
-  "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-device-v3.0.0.bin",
-  "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-  "size": 2113136,
-  "min_ha_integration": "3.0.0",
-  "notes": "Example DJConnect firmware release manifest. Asset name is the public distribution name; device is the OTA target."
+  "version": "3.0.41",
+  "version_tag": "v3.0.41",
+  "channel": "stable",
+  "min_ha_integration": "3.0.41",
+  "firmwares": [
+    {
+      "board": "t_embed_cc1101",
+      "device": "lilygo-t-embed-s3",
+      "asset": "djconnect-lilygo-t-embed-s3-v3.0.41.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.41/djconnect-lilygo-t-embed-s3-v3.0.40.bin",
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "size": 2113136
+    },
+    {
+      "board": "esp32_s3_box3",
+      "device": "esp32-s3-box-3",
+      "asset": "djconnect-esp32-s3-box-3-v3.0.41.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.40/djconnect-esp32-s3-box-3-v3.0.40.bin",
+      "sha256": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+      "size": 2097152
+    }
+  ],
+  "notes": "Example DJConnect firmware release manifest. HA selects a firmwares[] entry and sends that entry's device as the OTA target."
 }
