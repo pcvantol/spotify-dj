@@ -74,6 +74,9 @@ DEFAULT_TEST_TTS_TEXT = (
 )
 MDNS_SERVICE_TYPE = "_djconnect._tcp.local."
 STATUS_SECRET_KEYS = {"device_token", "spotify_refresh_token", "refresh_token"}
+REAL_DJCONNECT_DEVICE_ID_PATTERN = re.compile(
+    r"djconnect-(?:lilygo-t-embed-s3|esp32-s3-box-3|lilygo)-[0-9A-Fa-f]{12}"
+)
 CONF_LAST_DEVICE_STATUS = "last_device_status"
 
 
@@ -223,6 +226,7 @@ class DJConnectRuntime:
         self,
         headers: Any,
         body_device_id: str | None = None,
+        client_type: str | None = None,
     ) -> bool:
         auth = str(headers.get("Authorization", "") or "").strip()
         token = auth.removeprefix("Bearer ").strip()
@@ -241,14 +245,56 @@ class DJConnectRuntime:
             getattr(self.entry, "entry_id", None),
         )
         if not token_match:
+            self._log_device_auth_failure(
+                "missing_device_token" if not token else "invalid_device_token",
+                header_device,
+                body_device,
+                client_type,
+                bool(token),
+            )
             return False
         known_device = self.device_status.get("device_id") or self.pairing_device_id
         if known_device and header_device and not _device_id_matches(known_device, header_device):
+            self._log_device_auth_failure(
+                "header_device_id_mismatch",
+                header_device,
+                body_device,
+                client_type,
+                bool(token),
+            )
             return False
         if known_device and body_device and not _device_id_matches(known_device, body_device):
+            self._log_device_auth_failure(
+                "body_device_id_mismatch",
+                header_device,
+                body_device,
+                client_type,
+                bool(token),
+            )
             return False
         self._learn_device_id(header_device or body_device)
         return True
+
+    def _log_device_auth_failure(
+        self,
+        reason: str,
+        header_device_id: str,
+        body_device_id: str,
+        client_type: str | None,
+        token_present: bool,
+    ) -> None:
+        known_device = self.device_status.get("device_id") or self.pairing_device_id
+        received_device = header_device_id or body_device_id or ""
+        _LOGGER.warning(
+            "DJConnect ESP request rejected: reason=%s received_device_id=%s "
+            "known_device_id=%s client_type=%s token_present=%s entry_id=%s",
+            reason,
+            received_device or "missing",
+            known_device or "missing",
+            str(client_type or "").strip() or "missing",
+            token_present,
+            getattr(self.entry, "entry_id", None),
+        )
 
     def _learn_device_id(self, device_id: str | None) -> None:
         """Adopt the ESP's real device ID after setup-code based pairing."""
@@ -257,7 +303,10 @@ class DJConnectRuntime:
         known_device = self.device_status.get("device_id") or self.pairing_device_id
         if known_device == device_id:
             return
-        if known_device and not _is_setup_code_device_id(str(known_device)):
+        if known_device and not (
+            _is_setup_code_device_id(str(known_device))
+            or _is_real_djconnect_device_id(str(known_device))
+        ):
             return
         self.pairing_device_id = device_id
         self.device_status["device_id"] = device_id
@@ -657,12 +706,7 @@ def _device_id_mdns_fallback_url(device_id: Any) -> str | None:
 
 
 def _is_real_djconnect_device_id(device_id: str) -> bool:
-    return bool(
-        re.fullmatch(
-            r"djconnect-lilygo-[0-9A-Fa-f]{12}",
-            str(device_id or "").strip(),
-        )
-    )
+    return bool(REAL_DJCONNECT_DEVICE_ID_PATTERN.fullmatch(str(device_id or "").strip()))
 
 
 def _is_setup_code_device_id(device_id: str) -> bool:
@@ -675,7 +719,9 @@ def _device_id_matches(known_device: str, request_device: str) -> bool:
     requested = str(request_device or "").strip()
     if not known or not requested or known == requested:
         return True
-    return _is_setup_code_device_id(known) and _is_real_djconnect_device_id(requested)
+    if _is_setup_code_device_id(known) and _is_real_djconnect_device_id(requested):
+        return True
+    return _is_real_djconnect_device_id(known) and _is_real_djconnect_device_id(requested)
 
 
 def _is_pair_code_mdns_url(value: str) -> bool:

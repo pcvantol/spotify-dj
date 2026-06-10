@@ -38,10 +38,12 @@ De ESP blijft eigenaar van:
 - ESP speaker is alleen voor local cues en DJ/voice response audio.
 - `/api/device/provision_spotify` mag niet bestaan of gebruikt worden.
 - Pairing/status/voice/command auth gebruikt alleen het device bearer token.
-- Device ID format voor actuele firmware is `djconnect-lilygo-XXXXXXXXXXXX`.
+- Device ID formats voor actuele firmware:
+  - LilyGO T-Embed S3: `djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX`
+  - ESP32-S3-BOX-3: `djconnect-esp32-s3-box-3-XXXXXXXXXXXX`
 - Accepteer geen legacy `djconnect-XXXXXXXXXXXX` device IDs en bouw geen compatibility fallback voor dat oude formaat.
 - Pairing/status gebruikt canoniek `client_type` om DJConnect client runtimes te onderscheiden.
-- ESP/LilyGO firmware moet altijd `client_type: "esp32"` meesturen en bewaren; dit is verplicht, geen fallback.
+- ESP firmware moet altijd `client_type: "esp32"` meesturen en bewaren; dit is verplicht, geen fallback.
 - `ios` en `macos` zijn gereserveerde waarden voor toekomstige DJConnect app-clients; ESP firmware mag die niet voor zichzelf gebruiken.
 - HA integration en ESP firmware moeten dezelfde `major.minor` protocolversie gebruiken: HA `3.0.z` praat alleen met ESP `3.0.z`, HA `3.1.z` alleen met ESP `3.1.z`.
 - Patchversies mogen verschillen; major/minor mismatch is een protocolblokkade, geen pairing-token failure.
@@ -93,7 +95,7 @@ Headers:
 
 ```http
 Authorization: Bearer <device_token>
-X-DJConnect-Device-ID: djconnect-lilygo-XXXXXXXXXXXX
+X-DJConnect-Device-ID: djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX
 Content-Type: application/json
 ```
 
@@ -101,7 +103,7 @@ Voor PTT:
 
 ```http
 Authorization: Bearer <device_token>
-X-DJConnect-Device-ID: djconnect-lilygo-XXXXXXXXXXXX
+X-DJConnect-Device-ID: djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX
 Content-Type: audio/wav
 ```
 
@@ -133,20 +135,20 @@ Controleer en fix:
 - ESP ontvangt `device_token` via `POST /api/device/pair`.
 - ESP ontvangt `client_type` via `POST /api/device/pair`; verwacht voor deze firmware `esp32`.
 - ESP ontvangt `ha_local_url` en/of `ha_remote_url` via `POST /api/device/pair`.
-- ESP gebruikt `ha_local_url` LAN-first en `ha_remote_url` als cloud fallback.
+- ESP gebruikt `ha_local_url` LAN-first voor status, command en voice. `ha_remote_url` is alleen fallback/diagnostiek/toekomstig gebruik.
 - `ha_local_url` moet een echte lokale HA URL zijn en mag nooit een `*.ui.nabu.casa` URL zijn.
 - `ha_remote_url` mag wel een Nabu Casa/cloud URL zijn.
-- Als HA geen betere lokale URL of LAN source-IP vindt, gebruikt HA `http://homeassistant.local:8123` als laatste `ha_local_url` fallback.
+- HA hoort bij voorkeur een LAN-IP URL te sturen, bijvoorbeeld `http://192.168.1.x:8123`; als Home Assistant alleen `homeassistant.local` kent, kan dat nog als laatste fallback voorkomen.
 - Gebruik `ha_remote_url` alleen als cloud/remote fallback, niet als primair local pad.
 - ESP accepteert en verwacht geen legacy `ha_url` pairingveld meer.
-- Als HA alleen met een 6-cijferige setupcode begint, moet HA eerst `GET /api/device/pairing-info` kunnen gebruiken om `pair_code` te verifiëren en de echte `djconnect-lilygo-XXXXXXXXXXXX` device-id te leren.
+- Als HA alleen met een 6-cijferige setupcode begint, moet HA eerst `GET /api/device/pairing-info` kunnen gebruiken om `pair_code` te verifiëren en de echte model-specifieke device-id te leren.
 - ESP moet in `/api/device/pairing-info` de echte device-id, `pair_code`, `client_type:"esp32"` en bereikbare local info teruggeven zolang het pairing/setup scherm actief is.
-- HA mag nooit een tijdelijke `djconnect-<6-cijferige-code>` als `device_id` naar `POST /api/device/pair` sturen; ESP moet de echte LilyGO device-id verwachten.
+- HA mag nooit een tijdelijke `djconnect-<6-cijferige-code>` als `device_id` naar `POST /api/device/pair` sturen; ESP moet zijn echte model-specifieke device-id verwachten.
 - Als HA `/api/device/pair` niet succesvol bij ESP aflevert, blijft ESP op het pairing scherm en moet HA pairing hooguit `pending` blijven.
-- ESP accepteert als persistent device ID alleen `djconnect-lilygo-XXXXXXXXXXXX`.
+- ESP accepteert als persistent device ID alleen zijn model-specifieke id.
 - ESP slaat `client_type=esp32` persistent of runtime-bekend op en stuurt dit verplicht mee in pairing-info, status, command/event JSON payloads waar JSON wordt gebruikt.
 - HA behandelt ontbrekende of onbekende `client_type` op ESP JSON routes als contractfout (`invalid_client_type`).
-- Een tijdelijke setup-code identiteit mag alleen tijdens captive/setup flow bestaan; na pairing moet de firmware de echte LilyGO device ID gebruiken.
+- Een tijdelijke setup-code identiteit mag alleen tijdens captive/setup flow bestaan; na pairing moet de firmware de echte model-specifieke device ID gebruiken.
 - ESP slaat exact die token persistent op.
 - Eerste call naar HA `/api/djconnect/command` gebruikt exact die token.
 - Eerste call naar HA `/api/djconnect/status` gebruikt exact die token.
@@ -171,13 +173,13 @@ Verwachte HA -> ESP pair payload:
 ```json
 {
   "pair_code": "123456",
-  "device_id": "djconnect-lilygo-XXXXXXXXXXXX",
+  "device_id": "djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX",
   "device_name": "DJConnect",
   "client_type": "esp32",
   "device_language": "nl",
   "language": "nl",
   "device_token": "<device-token>",
-  "ha_local_url": "http://homeassistant.local:8123",
+  "ha_local_url": "http://192.168.1.x:8123",
   "ha_remote_url": "https://example.ui.nabu.casa",
   "assist_pipeline_id": "..."
 }
@@ -194,11 +196,11 @@ Stuur minimaal:
 
 ```json
 {
-  "device_id": "djconnect-lilygo-XXXXXXXXXXXX",
+  "device_id": "djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX",
   "client_type": "esp32",
   "ha_pairing_status": "paired|pending|stale|unpaired",
-  "local_url": "http://djconnect-lilygo-XXXXXXXXXXXX.local",
-  "firmware": "3.0.x",
+  "local_url": "http://djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX.local",
+  "firmware": "3.1.x",
   "battery_percent": 85,
   "wifi_rssi": -55,
   "uptime": 123456,
@@ -258,21 +260,21 @@ POST /api/djconnect/command
 Payload voorbeelden:
 
 ```json
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"status"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"devices"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"queue"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"playlists"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"pause"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"play"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"next"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"previous"}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"set_output","value":"iPhone","play":true}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"set_volume","value":35}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"start_liked_proxy","play":true}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"start_playlist","value":"spotify:playlist:...","play":true}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"play_context_at","value":{"context_uri":"spotify:playlist:...","offset_uri":"spotify:track:..."}}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"set_shuffle","value":true}
-{"device_id":"djconnect-lilygo-XXXXXXXXXXXX","client_type":"esp32","command":"set_repeat","value":"context"}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"status"}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"devices"}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"queue"}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"playlists"}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"pause"}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"play"}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"next"}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"previous"}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"set_output","value":"iPhone","play":true}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"set_volume","value":35}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"start_liked_proxy","play":true}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"start_playlist","value":"spotify:playlist:...","play":true}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"play_context_at","value":{"context_uri":"spotify:playlist:...","offset_uri":"spotify:track:..."}}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"set_shuffle","value":true}
+{"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"set_repeat","value":"context"}
 ```
 
 Verwachte response shapes:
@@ -536,7 +538,7 @@ Voeg/update host tests waar mogelijk:
 ## Acceptatiecriteria
 
 - ESP pairt met HA en blijft paired na de eerste `/api/djconnect/command`.
-- ESP gebruikt uitsluitend `djconnect-lilygo-XXXXXXXXXXXX` als echte device ID en accepteert geen legacy `djconnect-XXXXXXXXXXXX`.
+- ESP gebruikt uitsluitend zijn model-specifieke device ID en accepteert geen legacy `djconnect-XXXXXXXXXXXX`.
 - ESP stuurt firmwareversie bij status en behandelt HA `426 version_mismatch` als major/minor protocolblokkade zonder pairing/token te wissen.
 - ESP wist pairing niet door Spotify OAuth/backend failures.
 - ESP status houdt HA native entities actueel.

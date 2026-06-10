@@ -233,7 +233,10 @@ def _runtime_matches_device(runtime: Any, device_id: str) -> bool:
 
 def _is_real_device_id(device_id: str) -> bool:
     return bool(
-        re.fullmatch(r"djconnect-(?:lilygo-)?[0-9A-Fa-f]{12}", str(device_id or ""))
+        re.fullmatch(
+            r"djconnect-(?:lilygo-t-embed-s3|esp32-s3-box-3|lilygo)-[0-9A-Fa-f]{12}",
+            str(device_id or ""),
+        )
     )
 
 
@@ -560,6 +563,20 @@ def _runtime_client_type(runtime: Any) -> str:
     )
 
 
+def _authorize_runtime_device_request(
+    runtime: Any,
+    headers: Any,
+    device_id: str | None,
+    client_type: str | None,
+) -> bool:
+    """Authorize an ESP request while keeping lightweight test doubles compatible."""
+    authorize = getattr(runtime, "authorize_device_request")
+    try:
+        return bool(authorize(headers, device_id, client_type))
+    except TypeError:
+        return bool(authorize(headers, device_id))
+
+
 def _current_spotify_credentials(runtime: Any) -> dict[str, Any]:
     getter = getattr(runtime, "get_current_spotify_credentials", None)
     if callable(getter):
@@ -830,7 +847,12 @@ class DJConnectStatusView(HomeAssistantView):
         )
         if runtime is None:
             return _json_error(self, "not_configured", 503)
-        if not runtime.authorize_device_request(request.headers, data.get("device_id")):
+        if not _authorize_runtime_device_request(
+            runtime,
+            request.headers,
+            data.get("device_id"),
+            _payload_client_type(data),
+        ):
             return _json_error(self, "unauthorized", 401)
         status_update = _normalized_status_payload(data)
         client_type = _validate_required_client_type(status_update)
@@ -917,7 +939,12 @@ class DJConnectCommandView(HomeAssistantView):
         )
         if runtime is None:
             return _json_error(self, "not_configured", 503)
-        if not runtime.authorize_device_request(request.headers, data.get("device_id")):
+        if not _authorize_runtime_device_request(
+            runtime,
+            request.headers,
+            data.get("device_id"),
+            _payload_client_type(data),
+        ):
             return _json_error(self, "unauthorized", 401)
         client_type = _validate_required_client_type(data)
         if client_type is None:
@@ -1002,7 +1029,12 @@ class DJConnectEventView(HomeAssistantView):
             data = await request.json()
         except Exception:  # noqa: BLE001
             return _json_error(self, "invalid_json", 400)
-        if not runtime.authorize_device_request(request.headers, data.get("device_id")):
+        if not _authorize_runtime_device_request(
+            runtime,
+            request.headers,
+            data.get("device_id"),
+            _payload_client_type(data),
+        ):
             return _json_error(self, "unauthorized", 401)
         client_type = _validate_required_client_type(data)
         if client_type is None:
@@ -1033,7 +1065,12 @@ class DJConnectVoiceView(HomeAssistantView):
         runtime = _runtime(hass, device_id, request.headers)
         if runtime is None:
             return _json_error(self, "not_configured", 503)
-        if not runtime.authorize_device_request(request.headers, device_id):
+        if not _authorize_runtime_device_request(
+            runtime,
+            request.headers,
+            device_id,
+            request.headers.get(CONF_CLIENT_TYPE),
+        ):
             return _json_error(self, "unauthorized", 401)
         if not _runtime_versions_compatible(runtime):
             return _runtime_version_mismatch_response(self, runtime)

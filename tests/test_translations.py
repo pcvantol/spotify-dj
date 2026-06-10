@@ -40,6 +40,17 @@ BLE_WIFI_DATA_KEYS = {
     "wifi_password",
 }
 
+VOICE_OPTION_DATA_KEYS = {
+    "assist_pipeline_id",
+    "stt_engine",
+    "dj_response_enabled",
+    "firmware_channel",
+    "dj_response_ttl_seconds",
+    "allow_ota_on_battery",
+    "show_advanced_options",
+    "options_action",
+}
+
 ENTITY_TRANSLATION_KEYS = {
     ("sensor", "status"),
     ("sensor", "last_command"),
@@ -113,6 +124,36 @@ class TranslationTest(unittest.TestCase):
                 self.assertFalse(
                     missing_descriptions,
                     f"Missing {language} BLE descriptions: {sorted(missing_descriptions)}",
+                )
+
+    def test_options_flow_voice_fields_are_translated(self) -> None:
+        base = json.loads((INTEGRATION / "strings.json").read_text())
+        missing_base = VOICE_OPTION_DATA_KEYS - set(
+            base["options"]["step"]["init"]["data"]
+        )
+        missing_base_descriptions = VOICE_OPTION_DATA_KEYS - set(
+            base["options"]["step"]["init"]["data_description"]
+        )
+        self.assertFalse(missing_base, f"Missing base option labels: {sorted(missing_base)}")
+        self.assertFalse(
+            missing_base_descriptions,
+            f"Missing base option descriptions: {sorted(missing_base_descriptions)}",
+        )
+        for language in ("en", "nl"):
+            with self.subTest(language=language):
+                data = json.loads((TRANSLATIONS / f"{language}.json").read_text())
+                step = data["options"]["step"]["init"]
+                missing_labels = VOICE_OPTION_DATA_KEYS - set(step["data"])
+                missing_descriptions = VOICE_OPTION_DATA_KEYS - set(
+                    step["data_description"]
+                )
+                self.assertFalse(
+                    missing_labels,
+                    f"Missing {language} option labels: {sorted(missing_labels)}",
+                )
+                self.assertFalse(
+                    missing_descriptions,
+                    f"Missing {language} option descriptions: {sorted(missing_descriptions)}",
                 )
 
     def test_entity_translation_keys_are_translated(self) -> None:

@@ -32,7 +32,9 @@ Belangrijke architectuur:
 Controleer pairing flow:
 
 - Integration domain: `djconnect`.
-- ESP device ID format: `djconnect-lilygo-XXXXXXXXXXXX`.
+- ESP device ID formats:
+  - `djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX`
+  - `djconnect-esp32-s3-box-3-XXXXXXXXXXXX`
 - Accepteer geen legacy `djconnect-XXXXXXXXXXXX` device IDs.
 - ESP mDNS service: `_djconnect._tcp`.
 - ESP local pairing/info endpoints:
@@ -44,18 +46,19 @@ Belangrijk:
 
 - HA mag een lokaal `device_token` voorbereiden, maar moet pairingstatus niet als `paired` rapporteren totdat de ESP tokenopslag bevestigt.
 - Een aangemaakte HA config entry, device registry entry of set entities betekent nog niet dat de ESP gepaired is. Als het ESP display na de HA flow nog de pairing code toont, is HA pairing hooguit `pending`.
-- Bij een 6-cijferige setupcode kent HA de echte ESP device-id nog niet. Resolve eerst de ESP URL via manual URL, `_djconnect._tcp` mDNS of single visible DJConnect mDNS service, roep daarna `GET /api/device/pairing-info` aan, verifieer dat `pair_code` overeenkomt en leer de echte `djconnect-lilygo-XXXXXXXXXXXX` `device_id`.
+- Bij een 6-cijferige setupcode kent HA de echte ESP device-id nog niet. Resolve eerst de ESP URL via manual URL, `_djconnect._tcp` mDNS of single visible DJConnect mDNS service, roep daarna `GET /api/device/pairing-info` aan, verifieer dat `pair_code` overeenkomt en leer de echte model-specifieke `device_id`.
 - Gebruik de echte `device_id` uit `/api/device/pairing-info` in de daaropvolgende `POST /api/device/pair`. Stuur nooit een tijdelijke `djconnect-<6-cijferige-code>` als `device_id` naar de ESP.
 - Als `/api/device/pairing-info` niet bereikbaar is of de code niet matcht, rond de config flow niet af als succesvol gepaired; toon/retry als pending/recoverable pairing failure.
 - `POST /api/device/pair` naar ESP moet `device_token` plus `ha_local_url` en/of `ha_remote_url` sturen.
-- `ha_local_url` is de LAN URL die ESP eerst probeert, bijvoorbeeld `http://192.168.1.x:8123` of als laatste fallback `http://homeassistant.local:8123`.
+- `ha_local_url` is de LAN URL die ESP eerst probeert, bijvoorbeeld `http://192.168.1.x:8123`.
+- Als Home Assistant `homeassistant.local` kent maar ook een LAN source-IP kan bepalen, moet HA de LAN-IP URL sturen.
 - `ha_local_url` mag nooit een `*.ui.nabu.casa` cloud URL zijn.
 - `ha_remote_url` is de optionele Nabu Casa/cloud URL die ESP gebruikt als local niet bereikbaar is.
 - `ha_remote_url` mag wel een Nabu Casa/cloud URL zijn en mag niet als primair local pad gebruikt worden.
 - Pairing zonder `ha_local_url` en zonder `ha_remote_url` moet als configuratiefout worden behandeld.
 - Stuur geen legacy `ha_url` pairingveld.
 - Treat ESP pairing as `pending` totdat een authenticated ESP status/command/voice post naar HA succesvol verwerkt is met dezelfde bearer token.
-- Als HA 401/403/404 teruggeeft op ESP status/command/voice, pairing is stale/invalid.
+- Als HA 401/403/404 teruggeeft op ESP status/command/voice, pairing is stale/invalid; log `received_device_id`, `known_device_id`, `client_type`, `token_present` en reden zonder tokenwaarde.
 - Als playback backend tijdelijk niet beschikbaar is, dat is geen pairing failure.
 
 Expected HA -> ESP pair payload:
@@ -64,23 +67,23 @@ Expected ESP pairing-info response before direct pairing:
 
 ```json
 {
-  "device_id": "djconnect-lilygo-XXXXXXXXXXXX",
+  "device_id": "djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX",
   "device_name": "DJConnect",
   "pair_code": "123456",
-  "firmware": "3.0.27",
-  "local_url": "http://djconnect-lilygo-XXXXXXXXXXXX.local"
+  "firmware": "3.1.x",
+  "local_url": "http://djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX.local"
 }
 ```
 
 ```json
 {
   "pair_code": "123456",
-  "device_id": "djconnect-lilygo-XXXXXXXXXXXX",
+  "device_id": "djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX",
   "device_name": "DJConnect",
   "device_language": "nl",
   "language": "nl",
   "device_token": "<device-token>",
-  "ha_local_url": "http://homeassistant.local:8123",
+  "ha_local_url": "http://192.168.1.x:8123",
   "ha_remote_url": "https://example.ui.nabu.casa",
   "assist_pipeline_id": "..."
 }
@@ -93,14 +96,14 @@ ESP post periodiek en bij boot:
 ```http
 POST /api/djconnect/status
 Authorization: Bearer <device_token>
-X-DJConnect-Device-ID: djconnect-lilygo-XXXXXXXXXXXX
+X-DJConnect-Device-ID: djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX
 Content-Type: application/json
 ```
 
 Payload bevat onder andere:
 
 - `device_id`
-- `client_type` met waarde `esp32` voor ESP/LilyGO clients
+- `client_type` met waarde `esp32` voor ESP clients
 - `firmware`
 - `ha_pairing_status`
 - `playback_configured`
@@ -122,7 +125,7 @@ Taken:
 - OTA/update entity moet `ota_state/update_state=idle` plus firmware version verwerken om `updating` te clearen na reboot.
 - Status payloads mogen nooit secrets loggen of in diagnostics tonen.
 - ESP JSON routes moeten `client_type` verplicht valideren; ontbrekend of onbekend `client_type` geeft een zichtbare contractfout, geen stille fallback.
-- Huidige waarden zijn `esp32`, `ios` en `macos`; ESP/LilyGO firmware gebruikt verplicht `esp32`.
+- Huidige waarden zijn `esp32`, `ios` en `macos`; ESP firmware gebruikt verplicht `esp32`.
 - HA en ESP firmware moeten dezelfde `major.minor` protocolversie gebruiken.
 - Patchversies mogen verschillen: HA `3.0.x` accepteert ESP `3.0.y`, maar niet ESP `3.1.y` of `2.9.y`.
 - Als de ESP `firmware` major/minor niet matcht met de HA integration versie, retourneer HTTP `426` met `error:"version_mismatch"` en velden `ha_version`, `ha_major_minor`, `firmware`, `firmware_major_minor`.
@@ -135,7 +138,7 @@ ESP stuurt playback commands naar:
 ```http
 POST /api/djconnect/command
 Authorization: Bearer <device_token>
-X-DJConnect-Device-ID: djconnect-lilygo-XXXXXXXXXXXX
+X-DJConnect-Device-ID: djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX
 Content-Type: application/json
 ```
 
@@ -264,10 +267,12 @@ OTA payload naar ESP:
 ## 8. Tests To Add / Update
 
 - Pairing pending until ESP confirms token storage through authenticated status/command/voice.
-- Six-digit setup-code pairing fetches ESP `/api/device/pairing-info`, verifies the displayed code, learns the real `djconnect-lilygo-XXXXXXXXXXXX` device id and uses that real id in `POST /api/device/pair`.
+- Six-digit setup-code pairing fetches ESP `/api/device/pairing-info`, verifies the displayed code, learns the real model-specific device id and uses that real id in `POST /api/device/pair`.
 - HA config flow/entities may exist while pairing is still `pending`; tests must fail if HA reports `paired` before ESP confirmation.
 - If `/api/device/pair` is never observed by the ESP and the ESP display stays on the pairing screen, HA must keep/recover `pending` state and retry explicit pairing instead of claiming success.
 - 401/403/404 marks pairing stale.
+- Status/command/voice auth accepts `djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX` and `djconnect-esp32-s3-box-3-XXXXXXXXXXXX` when the bearer token matches the stored HA device token.
+- Token/device mismatch logging includes received device id, known device id, client type, token-present flag and reason, never the token value.
 - HTTP 200 with `backend_available:false` does not mark pairing stale.
 - Status payload updates native entities from top-level and nested `settings`/`screen`/`led`.
 - OTA status clears after ESP posts idle + firmware version.

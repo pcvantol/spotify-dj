@@ -707,6 +707,62 @@ class TtsHelperTest(unittest.TestCase):
             )
         )
 
+    def test_device_auth_accepts_model_specific_lilygo_id_with_matching_token(self) -> None:
+        entry = types.SimpleNamespace(entry_id="entry-1", data={}, options={})
+        runtime = self.integration.DJConnectRuntime(entry=entry)
+        runtime.device_token = "token-new"
+        runtime.pairing_device_id = "djconnect-lilygo-90B70990A994"
+        runtime.device_status["device_id"] = "djconnect-lilygo-90B70990A994"
+        device_id = "djconnect-lilygo-t-embed-s3-90B70990A994"
+        headers = {
+            "Authorization": "Bearer token-new",
+            "X-DJConnect-Device-ID": device_id,
+        }
+
+        self.assertTrue(runtime.authorize_device_request(headers, device_id, "esp32"))
+        self.assertEqual(runtime.pairing_device_id, device_id)
+        self.assertEqual(runtime.device_status["device_id"], device_id)
+
+    def test_device_auth_accepts_model_specific_box3_id_with_matching_token(self) -> None:
+        entry = types.SimpleNamespace(entry_id="entry-1", data={}, options={})
+        runtime = self.integration.DJConnectRuntime(entry=entry)
+        runtime.device_token = "token-new"
+        runtime.pairing_device_id = "djconnect-328823"
+        runtime.device_status["device_id"] = "djconnect-328823"
+        device_id = "djconnect-esp32-s3-box-3-90B70990A994"
+        headers = {
+            "Authorization": "Bearer token-new",
+            "X-DJConnect-Device-ID": device_id,
+        }
+
+        self.assertTrue(runtime.authorize_device_request(headers, device_id, "esp32"))
+        self.assertEqual(runtime.pairing_device_id, device_id)
+        self.assertEqual(runtime.device_status["device_id"], device_id)
+
+    def test_device_auth_logs_401_reason_without_token_value(self) -> None:
+        entry = types.SimpleNamespace(entry_id="entry-1", data={}, options={})
+        runtime = self.integration.DJConnectRuntime(entry=entry)
+        runtime.device_token = "token-new"
+        runtime.pairing_device_id = "djconnect-lilygo-t-embed-s3-90B70990A994"
+        runtime.device_status["device_id"] = "djconnect-lilygo-t-embed-s3-90B70990A994"
+        request_device = "djconnect-esp32-s3-box-3-90B70990A994"
+        headers = {
+            "Authorization": "Bearer wrong-token",
+            "X-DJConnect-Device-ID": request_device,
+        }
+
+        with self.assertLogs(self.integration._LOGGER, level="WARNING") as captured:
+            allowed = runtime.authorize_device_request(headers, request_device, "esp32")
+
+        self.assertFalse(allowed)
+        logs = "\n".join(captured.output)
+        self.assertIn("reason=invalid_device_token", logs)
+        self.assertIn(f"received_device_id={request_device}", logs)
+        self.assertIn("client_type=esp32", logs)
+        self.assertIn("token_present=True", logs)
+        self.assertNotIn("wrong-token", logs)
+        self.assertNotIn("token-new", logs)
+
     def test_status_command_and_voice_share_same_runtime_token_lookup(self) -> None:
         const = self.const
         entry = types.SimpleNamespace(

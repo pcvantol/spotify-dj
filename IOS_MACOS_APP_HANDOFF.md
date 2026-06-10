@@ -17,7 +17,7 @@ De app is een DJConnect remote/client. Home Assistant blijft de trusted backend 
 
 Gebruik canoniek `client_type` om runtimes te onderscheiden:
 
-- `esp32`: fysieke DJConnect ESP/LilyGO device
+- `esp32`: fysiek DJConnect ESP device
 - `ios`: toekomstige iOS app
 - `macos`: toekomstige macOS app
 

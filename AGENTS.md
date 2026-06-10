@@ -17,7 +17,7 @@ Belangrijke repos:
 Architectuur beslissingen:
 - HA integration orchestreert pairing, OAuth, backend playback, OTA, status en Assist/TTS; ESP firmware blijft eigenaar van device runtime/audio/UI.
 - Huidige firmware gebruikt de lokale ESP API met bearer token voor device-acties.
-- Pairing/status gebruikt canoniek `client_type` om client runtimes te onderscheiden; huidige waarden zijn `esp32`, `ios` en `macos`. ESP/LilyGO firmware moet verplicht `client_type: "esp32"` meesturen op JSON payloads.
+- Pairing/status gebruikt canoniek `client_type` om client runtimes te onderscheiden; huidige waarden zijn `esp32`, `ios` en `macos`. ESP firmware moet verplicht `client_type: "esp32"` meesturen op JSON payloads.
 - Backend playback loopt via de HA integration en wordt user-facing aangeboden als optionele/native `media_player` proxy; device-instellingen lopen via `POST /api/device/command`.
 - ESP backend playback commands naar `POST /api/djconnect/command` gebruiken losse `set_shuffle` boolean en `set_repeat` met `off`/`track`/`context`; gebruik geen gecombineerde `set_play_mode` flow.
 - HA integration en ESP firmware moeten dezelfde `major.minor` protocolversie hebben: HA `3.0.z` praat alleen met ESP `3.0.z`, HA `3.1.z` alleen met ESP `3.1.z`; patchversies mogen verschillen.
@@ -31,7 +31,7 @@ Architectuur beslissingen:
 - Spotify access tokens zijn kortlevend; cache ze HA-intern tot vlak voor expiry, refresh on demand en retry één keer bij Spotify API `401` voordat je een refresh-token repair overweegt.
 - Als ESP `/api/djconnect/status` `spotify_configured=false` meldt, behandel dit alleen als compat/statushint voor backend playback; stuur geen Spotify OAuth credentials naar ESP.
 - BLE provisioning doet alleen WiFi SSID/password; geen Spotify credentials, device tokens of andere secrets via BLE.
-- Runtime discovery prefereert device-reported `local_url`, exacte `_djconnect._tcp` mDNS matches en daarna alleen een enkele zichtbare DJConnect mDNS service; genereer alleen `http://djconnect-lilygo-[device-suffix].local` voor echte device IDs met 12-hex suffix, inclusief `djconnect-lilygo-XXXXXXXXXXXX`, nooit voor 6-cijferige setupcodes.
+- Runtime discovery prefereert device-reported `local_url`, exacte `_djconnect._tcp` mDNS matches en daarna alleen een enkele zichtbare DJConnect mDNS service; genereer alleen model-specifieke hostnames zoals `http://djconnect-lilygo-t-embed-s3-[device-suffix].local` voor echte device IDs met 12-hex suffix, nooit voor 6-cijferige setupcodes.
 - Normale config-flow blijft klein; Spotify source, firmware channel, max audio bytes en OTA battery settings blijven waar nodig zichtbaar/advanced. Firmware repo/asset/device settings horen niet meer in de flow; OTA selecteert automatisch uit het public firmware manifest op basis van ESP device status/info. Gebruikers mogen wel wisselen tussen firmwarekanaal `stable` en `beta`.
 - Alle entities horen onder één HA device met één stabiele device identifier.
 - Firmware source blijft proprietary; HA integration blijft gratis MIT-licensed.
@@ -57,7 +57,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `djconnect`
 - HACS custom integration.
-- Actuele integratieversie: `3.1.0`.
+- Actuele integratieversie: `3.1.1`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -81,7 +81,7 @@ HA integration:
 - Options-flow mag `config_entry` niet assignen; gebruik een eigen attribuut omdat recente Home Assistant versies `config_entry` read-only maken.
 - Options-flow bevat aparte acties voor instellingen opslaan, pairing opnieuw proberen met de huidige code, en volledig opnieuw koppelen met een nieuwe koppelcode; re-pair maakt een nieuw device token, bewaart dat persistent en probeert `/api/device/pair` opnieuw.
 - `POST /api/device/pair` mag alleen bij initiële config-flow pairing, expliciete re-pair/token rotation of stale-pairing recovery worden aangeroepen; nooit bij normale status sync, playback commands, settings sync of HA startup als er al een device token is opgeslagen.
-- Setup-code based pairing mag tijdelijk `djconnect-[6-cijferige-code]` gebruiken, maar HA moet na de eerste ESP status/command/voice call met dezelfde bearer token alleen de echte `djconnect-lilygo-XXXXXXXXXXXX` device-id accepteren, leren en persistent opslaan.
+- Setup-code based pairing mag tijdelijk `djconnect-[6-cijferige-code]` gebruiken, maar HA moet na de eerste ESP status/command/voice call met dezelfde bearer token alleen de echte model-specifieke `djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX` of `djconnect-esp32-s3-box-3-XXXXXXXXXXXX` device-id accepteren, leren en persistent opslaan.
 - Device UI language wordt tijdens pairing gekozen als `en`/`nl`, default op HA taal indien ondersteund, en meegestuurd als `device_language` en `language`; ESP slaat dit op als `provision.language`.
 - HA stuurt tijdens pairing `client_type` mee en bewaart dit persistent; ESP firmware gebruikt `esp32`, toekomstige iOS/macOS app-clients gebruiken respectievelijk `ios` of `macos`.
 - Koppelcode/device-suffix uit de HA config-flow moet worden opgeslagen en ESP pairing moet een afwijkende code weigeren.
@@ -105,7 +105,7 @@ HA integration:
   - `affiliation`: `DJConnect is not affiliated with, endorsed by, or sponsored by Spotify AB.`
 - Config-flow/options-flow UI moet subtiel en kort de Spotify trademark/non-affiliation notice tonen zonder UX te vervuilen.
 - Verberg lokale/manual device URL in de normale flow; toon die alleen onder HA advanced options als mDNS/manual override nodig is.
-- Als manual device URL leeg is tijdens setup, sla alleen automatisch `http://djconnect-lilygo-[device-suffix].local` op als de pairingwaarde een echte 12-hex device suffix is; runtime blijft device-reported `local_url` en `_djconnect._tcp` mDNS prefereren en negeert oude `djconnect-[6-digit-code].local` fallbacks.
+- Als manual device URL leeg is tijdens setup, sla alleen automatisch een model-specifieke hostname zoals `http://djconnect-lilygo-t-embed-s3-[device-suffix].local` op als de pairingwaarde een echte 12-hex device suffix is; runtime blijft device-reported `local_url` en `_djconnect._tcp` mDNS prefereren en negeert oude `djconnect-[6-digit-code].local` fallbacks.
 - Alle DJConnect entities moeten onder één HA device vallen met hetzelfde device identifier.
 - ESP status payloads naar HA moeten actuele device settings meesturen voor native entities, zoals screen_brightness_percent/screen_brightness, speaker_volume_percent/speaker_volume, screen_off_timeout_ms, turn_off_after/turn_off_after_ms, nested `settings`, `screen` en `led`; HA accepteert aliases en converteert milliseconden naar seconden/minuten.
 - `number.djconnect_volume` mag onbekende devicewaarden zoals `-1` nooit publiceren; geef dan `None/unavailable` terug binnen HA range 0–60.
@@ -126,7 +126,7 @@ HA integration:
 ESP firmware:
 - Voeg pairing, mDNS, OTA en Spotify provisioning toe zonder bestaande Spotify/audio/UI code te herschrijven.
 - mDNS service: `_djconnect._tcp`
-- Device ID: `djconnect-lilygo-XXXXXXXXXXXX`; accepteer geen legacy `djconnect-XXXXXXXXXXXX` device IDs.
+- Device ID: `djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX` of `djconnect-esp32-s3-box-3-XXXXXXXXXXXX`; accepteer geen legacy `djconnect-XXXXXXXXXXXX` device IDs.
 - NVS namespace: `djconnect`
 - OTA endpoint: `POST /api/device/ota`
 - ESP device command endpoint voor device-instellingen: `POST /api/device/command`

@@ -63,7 +63,7 @@ DJConnect ESP device
 All protected ESP -> HA routes use:
 
 - `Authorization: Bearer <device_token>`
-- `X-DJConnect-Device-ID: djconnect-lilygo-XXXXXXXXXXXX`
+- `X-DJConnect-Device-ID: djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX` or `djconnect-esp32-s3-box-3-XXXXXXXXXXXX`
 
 Version contract:
 
@@ -103,10 +103,10 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - Options flow also has a “Spotify opnieuw autoriseren” action using the same callback storage path.
 - Token sent by HA to ESP in `POST /api/device/pair` must be exactly the token accepted by HA `/status`, `/command` and `/voice`.
 - HA -> ESP pairing payload uses `ha_local_url` and `ha_remote_url`; legacy `ha_url` must not be sent or expected.
-- At least one of `ha_local_url` or `ha_remote_url` must be present. ESP should try `ha_local_url` first and use `ha_remote_url` as cloud fallback.
-- `ha_local_url` must never be a `*.ui.nabu.casa` cloud URL; resolve HA Network/internal/source-IP local URL first, then use `http://homeassistant.local:8123` as final local fallback and send cloud only as `ha_remote_url`.
+- At least one of `ha_local_url` or `ha_remote_url` must be present. ESP should try `ha_local_url` first and keep `ha_remote_url` as fallback/diagnostic metadata.
+- `ha_local_url` must never be a `*.ui.nabu.casa` cloud URL; resolve HA Network/internal/source-IP local URL first, prefer a LAN source-IP over `homeassistant.local`, then use `http://homeassistant.local:8123` only as final local fallback and send cloud only as `ha_remote_url`.
 - HA may call `POST /api/device/pair` only for initial pairing, explicit re-pair/token rotation or stale-pairing recovery. Startup with a stored token, normal status sync, playback commands and settings sync must not call it.
-- Setup-code pairing can start with a temporary six-digit identity, but HA must learn and persist only the real `djconnect-lilygo-XXXXXXXXXXXX` ID from the first authenticated ESP call. Legacy `djconnect-XXXXXXXXXXXX` IDs are not accepted.
+- Setup-code pairing can start with a temporary six-digit identity, but HA must learn and persist only the real model-specific device ID from the first authenticated ESP call. Current IDs are `djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX` and `djconnect-esp32-s3-box-3-XXXXXXXXXXXX`; legacy `djconnect-XXXXXXXXXXXX` IDs are not accepted.
 - HA and ESP firmware compatibility is strict on `major.minor`: patch versions may differ, but `3.0.z` must not talk to `3.1.z`. HA returns HTTP `426` `version_mismatch` with HA/firmware metadata and keeps pairing intact.
 - ESP status payloads can report device settings as top-level fields or nested `settings`, `screen` and `led` objects; HA flattens those aliases for native entities.
 - HA pairing status is `pending` until ESP confirms `ha_pairing_status=paired`; a locally stored token alone is not enough.
@@ -142,7 +142,8 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - Firmware channel is a user-facing options-flow dropdown: `stable` uses GitHub `/releases/latest`; `beta` uses the newest prerelease from `pcvantol/djconnect-firmware`. Firmware repo/device remain automatic and hidden.
 - Sensor entities are push-only through runtime listeners. `last_command` and `last_track` additionally write HA state only when their cached value or relevant debug attributes actually change.
 - Spotify repair OAuth popups include explicit title/description text directly on the Repairs external-step result so Home Assistant does not show a blank dialog when translation lookup misses a dynamic repair issue id.
-- Strict current ESP device identity is `djconnect-lilygo-XXXXXXXXXXXX`; legacy `djconnect-XXXXXXXXXXXX` IDs are not accepted.
+- Strict current ESP device identity is model-specific: `djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX` or `djconnect-esp32-s3-box-3-XXXXXXXXXXXX`; legacy `djconnect-XXXXXXXXXXXX` IDs are not accepted.
+- If ESP status/command/voice auth returns `401`, HA must log the received device id, known device id, client type, token-present flag and rejection reason without logging token values.
 - HA blocks ESP calls with HTTP `426` `version_mismatch` when HA and ESP firmware `major.minor` differ, while preserving pairing/token state.
 - ESP status payloads are merged as partial updates, so sparse heartbeat/status posts do not clear known HA sensor values.
 - `/api/djconnect/status` is the only authoritative ESP device-status source. Command, voice, backend playback and local ESP info/command refreshes must never replace the full cached sensor snapshot with empty/unknown values.

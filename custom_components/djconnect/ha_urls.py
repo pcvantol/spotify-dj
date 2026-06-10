@@ -30,12 +30,14 @@ async def async_ha_local_url(hass: Any, conf: dict[str, Any]) -> str:
 
         url = await network.async_get_url(hass, prefer_external=False)
         cleaned = _clean_local_url(url)
-        if cleaned:
-            return cleaned
         source_ip = await _maybe_await(network.async_get_source_ip(hass))
         fallback = _local_url_from_source_ip(source_ip)
+        if cleaned and not _is_homeassistant_local_url(cleaned):
+            return cleaned
         if fallback:
             return fallback
+        if cleaned:
+            return cleaned
     except Exception:  # noqa: BLE001
         _LOGGER.debug("DJConnect could not determine HA local URL from network helper", exc_info=True)
 
@@ -70,6 +72,11 @@ def _clean_local_url(value: Any) -> str:
 def _is_nabu_casa_url(value: str) -> bool:
     host = (urlparse(value).hostname or "").lower()
     return host.endswith(".ui.nabu.casa")
+
+
+def _is_homeassistant_local_url(value: str) -> bool:
+    host = (urlparse(value).hostname or "").lower()
+    return host == "homeassistant.local"
 
 
 def _local_url_from_source_ip(value: Any) -> str:

@@ -222,7 +222,7 @@ def _default_local_url(pair_code: str | None) -> str:
     normalized = str(pair_code or "").strip()
     if not re.fullmatch(r"[0-9A-Fa-f]{12}", normalized):
         return ""
-    return f"http://djconnect-lilygo-{normalized}.local"
+    return f"http://djconnect-lilygo-t-embed-s3-{normalized}.local"
 
 
 def _valid_pair_code(pair_code: str) -> bool:
@@ -542,6 +542,7 @@ def _base_voice_schema(
     """Build the non-advanced voice settings schema."""
     stt_validator = vol.In(stt_options) if len(stt_options) > 1 else str
     voice_validator = vol.In(tts_voice_options) if len(tts_voice_options) > 1 else str
+    firmware_channel_selector = _firmware_channel_selector()
     schema: dict[Any, Any] = {}
     if options_actions is not None:
         schema[
@@ -583,9 +584,26 @@ def _base_voice_schema(
         vol.Optional(
             CONF_FIRMWARE_CHANNEL,
             default=defaults.get(CONF_FIRMWARE_CHANNEL, DEFAULT_FIRMWARE_CHANNEL),
-        ): vol.In(FIRMWARE_CHANNELS),
+        ): firmware_channel_selector,
     })
     return schema
+
+
+def _firmware_channel_selector() -> Any:
+    """Return a labeled firmware channel selector when HA exposes selector helpers."""
+    select_selector = getattr(selector, "SelectSelector", None)
+    select_config = getattr(selector, "SelectSelectorConfig", None)
+    select_option = getattr(selector, "SelectOptionDict", None)
+    if select_selector and select_config and select_option:
+        return select_selector(
+            select_config(
+                options=[
+                    select_option(value="stable", label="Stable"),
+                    select_option(value="beta", label="Beta"),
+                ]
+            )
+        )
+    return vol.In(FIRMWARE_CHANNELS)
 
 
 def _advanced_voice_schema(defaults: dict[str, Any]) -> dict[Any, Any]:

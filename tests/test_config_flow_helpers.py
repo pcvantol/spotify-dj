@@ -133,8 +133,23 @@ def install_homeassistant_stubs() -> None:
         def __init__(self, config):
             self.config = config
 
+    class SelectSelectorConfig:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    class SelectSelector:
+        def __init__(self, config):
+            self.config = config
+
+    class SelectOptionDict(dict):
+        def __init__(self, *, value, label):
+            super().__init__(value=value, label=label)
+
     selector.TextSelectorConfig = TextSelectorConfig
     selector.TextSelector = TextSelector
+    selector.SelectSelectorConfig = SelectSelectorConfig
+    selector.SelectSelector = SelectSelector
+    selector.SelectOptionDict = SelectOptionDict
 
     package = types.ModuleType("custom_components.djconnect")
     package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
@@ -298,6 +313,29 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertTrue(advanced_only.issubset(advanced_keys))
         self.assertIn(self.const.CONF_DJ_RESPONSE_ENABLED, basic_keys)
 
+    def test_firmware_channel_uses_labeled_selector(self) -> None:
+        hass = types.SimpleNamespace(states=None)
+
+        schema = asyncio.run(
+            self.config_flow._voice_schema(
+                hass,
+                self.config_flow._voice_defaults(),
+                include_advanced=False,
+            )
+        )
+
+        validator = next(
+            value
+            for marker, value in schema.schema.items()
+            if marker.key == self.const.CONF_FIRMWARE_CHANNEL
+        )
+        labels = {
+            option["value"]: option["label"]
+            for option in validator.config.kwargs["options"]
+        }
+
+        self.assertEqual(labels, {"stable": "Stable", "beta": "Beta"})
+
     def test_voice_defaults_fill_empty_values(self) -> None:
         data = self.config_flow._voice_defaults(
             {
@@ -352,14 +390,14 @@ class ConfigFlowHelperTest(unittest.TestCase):
 
         self.assertEqual(
             local_url_marker.default,
-            "http://djconnect-lilygo-90B70990A994.local",
+            "http://djconnect-lilygo-t-embed-s3-90B70990A994.local",
         )
 
     def test_default_local_url_accepts_only_device_suffix(self) -> None:
         self.assertEqual(self.config_flow._default_local_url("123456"), "")
         self.assertEqual(
             self.config_flow._default_local_url("90B70990A994"),
-            "http://djconnect-lilygo-90B70990A994.local",
+            "http://djconnect-lilygo-t-embed-s3-90B70990A994.local",
         )
         self.assertTrue(self.config_flow._valid_pair_code("123456"))
         self.assertTrue(self.config_flow._valid_pair_code("90B70990A994"))
