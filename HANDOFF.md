@@ -127,8 +127,8 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 
 ## Current Release Notes
 
-- Current release line is `3.0.x`; only the latest GitHub release/tag should be kept after release cleanup.
-- Current latest baseline is `3.0.42`.
+- Current release line is `3.1.x`; only the latest GitHub release/tag should be kept after release cleanup.
+- Current latest baseline is `3.1.0`.
 - Voice/Assist search text such as "ik wil Pearl Jam starten" must resolve to a Spotify artist first; free-text PTT search is artist-only unless the request is an explicit playlist flow or direct Spotify URI.
 - Do not send arbitrary text as `context_uri`, and do not perform broad track/album search for generic artist requests.
 - Device DJ responses after successful PTT playback are generated from resolved Spotify/playback metadata and the configured `dj_response_prompt`, not from the generic Assist fallback announcement.
@@ -182,7 +182,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 
 ## Next Tasks
 
-1. Install the latest `3.0.x` release via HACS and restart Home Assistant.
+1. Install the latest `3.1.x` release via HACS and restart Home Assistant.
 2. Verify the README/HACS banner and product website hero render as intended.
 3. Verify `button.djconnect_refresh_up_next` updates `sensor.djconnect_queue` attributes.
 4. Verify `select.djconnect_sound_output` populates Spotify outputs without manually calling `devices`.

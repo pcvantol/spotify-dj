@@ -79,7 +79,7 @@ def replace_text(path: str, replacements: list[tuple[str, str]]) -> None:
     text = file_path.read_text()
     updated = text
     for pattern, replacement in replacements:
-        updated = re.sub(pattern, replacement, updated, count=1, flags=re.MULTILINE)
+        updated = re.sub(pattern, replacement, updated, flags=re.MULTILINE)
     if updated == text:
         print(f"  unchanged {path}")
         return

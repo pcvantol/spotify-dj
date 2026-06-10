@@ -4,7 +4,7 @@ Werk in de bestaande Home Assistant custom integration repo `pcvantol/djconnect`
 
 ## Doel
 
-Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmware contracten voor release `v3.0.42`.
+Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmware contracten voor release `v3.1.0`.
 
 ## 0. Repository / Release Hygiene
 
@@ -12,7 +12,7 @@ Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmwar
 - ESP source repo: `pcvantol/djconnect-app`.
 - Public OTA firmware repo: `pcvantol/djconnect-firmware`.
 - Firmware binaries/manifests must be consumed from `djconnect-firmware`; the ESP source repo is not the OTA asset host.
-- Current HA integration release/tag baseline is `v3.0.42`; do not reference old 2.x firmware assets or tags.
+- Current HA integration release/tag baseline is `v3.1.0`; do not reference old 2.x firmware assets or tags.
 - Current firmware assets are device-specific, e.g. `djconnect-lilygo-t-embed-s3-vX.Y.Z.bin` and `djconnect-esp32-s3-box-3-vX.Y.Z.bin`.
 - Current OTA manifest filename is `firmware_manifest.json`.
 - Current OTA manifest uses `firmwares[]` entries; HA selects the matching entry and sends that entry's `device` target to ESP.
@@ -253,11 +253,11 @@ OTA payload naar ESP:
 
 ```json
 {
-  "version": "3.0.42",
-  "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.42/djconnect-lilygo-t-embed-s3-v3.0.42.bin",
+  "version": "3.1.0",
+  "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.0/djconnect-lilygo-t-embed-s3-v3.1.0.bin",
   "sha256": "...",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-lilygo-t-embed-s3-v3.0.42.bin"
+  "asset": "djconnect-lilygo-t-embed-s3-v3.1.0.bin"
 }
 ```
 
@@ -296,7 +296,7 @@ python3 -m unittest discover -s tests
 
 ## 9. Acceptance Criteria
 
-- ESP `v3.0.x` pairs without stale-pairing loops.
+- ESP `v3.1.x` pairs without stale-pairing loops.
 - After a 6-digit setup-code flow, ESP logs `Home Assistant direct pairing stored: device_token=present`, exits the pairing screen and after reboot logs `Home Assistant pairing: paired`.
 - ESP S indicator updates green/grey/red after reboot without user action.
 - HA entities reflect ESP state after reboot/status post.
