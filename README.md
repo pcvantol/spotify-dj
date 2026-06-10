@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.1.3`
+- Home Assistant integration: `3.1.4`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -59,7 +59,7 @@ runtime behavior. These decisions are part of the integration contract:
 
 ## Repository Layout
 
-- Home Assistant integration: `3.1.3`
+- Home Assistant integration: `3.1.4`
 - ESP firmware source: `pcvantol/djconnect-app`
 - Public firmware releases: `pcvantol/djconnect-firmware`
 
@@ -334,19 +334,20 @@ decides whether the temporary URL is WAV, MP3 or unknown based on content type
 and/or file header. DJConnect does not send Opus or M4A URLs.
 
 During pairing, DJConnect sends only non-secret device settings to the ESP, such
-as `device_token`, `ha_local_url`, `ha_remote_url`, `assist_pipeline_id`,
-`client_type`, `device_language` and `language`. `client_type` identifies the
-paired DJConnect client runtime; current values are `esp32`, `ios` and `macos`,
-with `esp32` as the default for ESP firmware. The ESP should try
-`ha_local_url` first and use `ha_remote_url` only as fallback/diagnostic metadata. Spotify OAuth
+as `device_token`, `ha_local_url`, `assist_pipeline_id`, `client_type`,
+`device_language` and `language`. `client_type` identifies the paired
+DJConnect client runtime; current values are `esp32`, `ios` and `macos`, with
+`esp32` as the default for ESP firmware. Device-to-Home Assistant traffic
+always uses `ha_local_url`; cloud/Nabu Casa URLs are not sent to devices and
+are only used by the Spotify OAuth config/repair flow. Spotify OAuth
 credentials stay in Home Assistant and are used only by the HA playback backend.
 Pair/status payloads must not contain `ha_url`, `refresh_token`,
-`spotify_refresh_token`, `client_id` or a `spotify` OAuth object.
+`ha_remote_url`, `spotify_refresh_token`, `client_id` or a `spotify` OAuth object.
 `ha_local_url` is resolved from Home Assistant's internal/network URL or LAN
 source IP and must never be a `*.ui.nabu.casa` URL. When Home Assistant reports
 `homeassistant.local` but a LAN source IP is available, DJConnect sends the LAN
 IP URL instead. If no LAN URL can be discovered, `http://homeassistant.local:8123`
-is the final local fallback and the cloud URL is sent only as `ha_remote_url`.
+is the final local fallback.
 
 Spotify refresh tokens can rotate after OAuth. DJConnect stores newly returned refresh tokens immediately and treats that latest stored value as canonical for HA backend playback. If the ESP later reports `spotify_configured=false`, Home Assistant treats this as a compatibility/status hint, not as a request to send OAuth credentials to the ESP.
 
@@ -358,7 +359,6 @@ Provisioning fields sent to the ESP can include:
 {
   "device_token": "<per-device-token>",
   "ha_local_url": "http://192.168.1.x:8123",
-  "ha_remote_url": "https://example.ui.nabu.casa",
   "assist_pipeline_id": "...",
   "client_type": "esp32",
   "device_language": "nl",
@@ -367,8 +367,8 @@ Provisioning fields sent to the ESP can include:
 }
 ```
 
-At least one of `ha_local_url` or `ha_remote_url` must be present. The ESP should
-prefer `device_language` over `language` and store it as `provision.language`.
+`ha_local_url` must be present. The ESP should prefer `device_language` over
+`language` and store it as `provision.language`.
 
 ## Home Assistant HTTP Endpoints
 
@@ -523,24 +523,24 @@ Example manifest:
 
 ```json
 {
-  "version": "3.1.3",
-  "version_tag": "v3.1.3",
+  "version": "3.1.4",
+  "version_tag": "v3.1.4",
   "channel": "stable",
-  "min_ha_integration": "3.1.3",
+  "min_ha_integration": "3.1.4",
   "firmwares": [
     {
       "board": "t_embed_cc1101",
       "device": "lilygo-t-embed-s3",
-      "asset": "djconnect-lilygo-t-embed-s3-v3.1.3.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.3/djconnect-lilygo-t-embed-s3-v3.1.3.bin",
+      "asset": "djconnect-lilygo-t-embed-s3-v3.1.4.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.4/djconnect-lilygo-t-embed-s3-v3.1.4.bin",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size": 2113136
     },
     {
       "board": "esp32_s3_box3",
       "device": "esp32-s3-box-3",
-      "asset": "djconnect-esp32-s3-box-3-v3.1.3.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.3/djconnect-esp32-s3-box-3-v3.1.3.bin",
+      "asset": "djconnect-esp32-s3-box-3-v3.1.4.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.4/djconnect-esp32-s3-box-3-v3.1.4.bin",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
       "size": 2113136
     }
@@ -563,7 +563,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.1.3
+./release.sh 3.1.4
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -575,14 +575,14 @@ PlatformIO builds, rename firmware binaries to device-specific assets such as
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.1.3 --dry-run
+./release.sh 3.1.4 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
 public-repo option if available:
 
 ```bash
-./release.sh 3.1.3 --publish-firmware-repo ../djconnect-firmware
+./release.sh 3.1.4 --publish-firmware-repo ../djconnect-firmware
 ```
 
 The public `djconnect-firmware` repository should contain only the release
@@ -617,7 +617,7 @@ Tag and publish:
 One-liner:
 
 ```bash
-./release.sh 3.1.3
+./release.sh 3.1.4
 ```
 
 The script updates the integration version in `manifest.json`, `const.py`,
@@ -626,18 +626,18 @@ The script updates the integration version in `manifest.json`, `const.py`,
 Preview without executing git/gh commands:
 
 ```bash
-./release.sh 3.1.3 --dry-run
+./release.sh 3.1.4 --dry-run
 ```
 
 Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.1.3"
-git tag v3.1.3
+git commit -m "Release DJConnect v3.1.4"
+git tag v3.1.4
 git push origin main
-git push origin v3.1.3
-gh release create v3.1.3 --title "DJConnect v3.1.3" --notes-file CHANGELOG.md
+git push origin v3.1.4
+gh release create v3.1.4 --title "DJConnect v3.1.4" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

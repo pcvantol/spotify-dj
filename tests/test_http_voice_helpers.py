@@ -1145,10 +1145,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             response["payload"]["ha_local_url"],
             "http://homeassistant.local:8123",
         )
-        self.assertEqual(
-            response["payload"]["ha_remote_url"],
-            "https://example.ui.nabu.casa",
-        )
+        self.assertNotIn("ha_remote_url", response["payload"])
         self.assertNotIn("ha_url", response["payload"])
         self.assertNotIn("spotify", response["payload"])
         self.assertNotIn("refresh_token", response["payload"])
@@ -1216,7 +1213,7 @@ class VoiceHttpHelperTest(unittest.TestCase):
             response["payload"]["ha_local_url"],
             "http://homeassistant.local:8123",
         )
-        self.assertEqual(response["payload"]["ha_remote_url"], "https://ha.example")
+        self.assertNotIn("ha_remote_url", response["payload"])
         self.assertNotIn("ha_url", response["payload"])
         self.assertTrue(response["payload"]["backend_available"])
         self.assertNotIn("refresh_token", response["payload"])

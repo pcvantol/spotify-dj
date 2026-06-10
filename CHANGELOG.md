@@ -1,8 +1,13 @@
 # Changelog
 
-## 3.1.3
+## 3.1.4
 
 - Make DJ response generation rely on HA Assist output from resolved artist/track metadata plus the configured `dj_response_prompt`; remove hardcoded prompt-style response variants from the local fallback.
+- Remove `ha_remote_url` from all device pairing/status payloads; DJConnect devices now receive only `ha_local_url`, while cloud/Nabu Casa URLs remain limited to the Spotify OAuth config/repair flow.
+- Require `ha_local_url` for pairing instead of accepting a remote/cloud URL fallback.
+- Make the TTS engine default truly use Home Assistant's default provider by storing/sending an empty engine instead of the invalid generic `tts` provider id.
+- Prevent stale Spotify resolved-media cache from leaking into the DJ response prompt when a new artist query is being handled.
+- Skip HA Assist DJ-response generation when no conversation agent is configured, avoiding Home Assistant device-lookup errors being spoken/displayed as DJ responses.
 - Keep local DJ response fallback deliberately neutral and factual, so failed/unsupported generative response is visible instead of being hidden behind template text.
 - Add support for reversed spoken artist requests such as `Nirvana wil ik wel horen`.
 - Replace specific named test/changelog examples with generic artist prompt wording.
@@ -35,7 +40,7 @@
 - Retry playback once when Spotify reports no active playback device: DJConnect now refreshes Spotify devices, selects the configured source by visible name or device ID when possible, transfers playback there and retries.
 - Show Spotify source override in the normal config/options flow again, because it is needed for reliable voice playback routing.
 - Preserve the parsed DJConnect intent when playback fails and include it in command-failed voice responses for easier Assist/Spotify debugging.
-- Prevent Nabu Casa/cloud URLs from being sent as `ha_local_url`; pairing now uses Home Assistant's local/network URL, LAN source-IP fallback, or `http://homeassistant.local:8123` for `ha_local_url`, and sends cloud only as `ha_remote_url`.
+- Prevent Nabu Casa/cloud URLs from being sent as `ha_local_url`; pairing now uses Home Assistant's local/network URL, LAN source-IP fallback, or `http://homeassistant.local:8123` for `ha_local_url`.
 - Keep the options-flow “re-pair with new pairing code” field empty instead of pre-filling the old stored pairing code.
 - Set the Spotify repair OAuth popup title and description directly on the Repairs external-step result, so Home Assistant no longer shows a blank dialog when translation lookup misses the dynamic repair issue id.
 - Add explicit Spotify repair-flow popup text for the initial repair action, so the Home Assistant repair dialog no longer opens as a blank external-website step.

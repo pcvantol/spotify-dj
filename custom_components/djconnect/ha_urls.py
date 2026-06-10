@@ -5,21 +5,16 @@ import logging
 from urllib.parse import urlparse
 from typing import Any
 
-from .const import CONF_HA_EXTERNAL_URL
-
 _LOGGER = logging.getLogger(__name__)
 HOMEASSISTANT_LOCAL_FALLBACK = "http://homeassistant.local:8123"
 
 
 async def async_ha_url_payload(hass: Any, conf: dict[str, Any]) -> dict[str, str]:
-    """Build HA URLs for ESP local-first/cloud-fallback pairing."""
+    """Build HA URL payload for device pairing/status responses."""
     local_url = await async_ha_local_url(hass, conf)
-    remote_url = _clean_url(conf.get(CONF_HA_EXTERNAL_URL))
     payload: dict[str, str] = {}
     if local_url:
         payload["ha_local_url"] = local_url
-    if remote_url:
-        payload["ha_remote_url"] = remote_url
     return payload
 
 

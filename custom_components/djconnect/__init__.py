@@ -609,8 +609,8 @@ class DJConnectRuntime:
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
         }
         payload.update(await async_ha_url_payload(hass, conf))
-        if not payload.get("ha_local_url") and not payload.get("ha_remote_url"):
-            raise RuntimeError("Home Assistant local or remote URL is required for pairing")
+        if not payload.get("ha_local_url"):
+            raise RuntimeError("Home Assistant local URL is required for pairing")
         _LOGGER.debug(
             "DJConnect device pair request url=%s payload=%s",
             url,

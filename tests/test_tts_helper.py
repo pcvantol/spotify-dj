@@ -599,7 +599,7 @@ class TtsHelperTest(unittest.TestCase):
         self.assertEqual(payload["device_id"], "djconnect-lilygo-90B70990A994")
         self.assertEqual(payload["client_type"], "esp32")
         self.assertEqual(payload["ha_local_url"], "http://homeassistant.local:8123")
-        self.assertEqual(payload["ha_remote_url"], "https://example.ui.nabu.casa")
+        self.assertNotIn("ha_remote_url", payload)
         self.assertNotIn("ha_url", payload)
         self.assertEqual(payload["device_language"], "nl")
         self.assertEqual(payload["language"], "nl")
@@ -682,7 +682,7 @@ class TtsHelperTest(unittest.TestCase):
         self.assertEqual(runtime.device_status["device_id"], "djconnect-macos-68B74487726D")
         self.assertEqual(runtime.device_status["client_type"], "macos")
 
-    def test_ha_url_payload_falls_back_to_homeassistant_local_not_nabu_casa(self) -> None:
+    def test_ha_url_payload_only_sends_local_url_not_nabu_casa_remote(self) -> None:
         ha_urls = importlib.import_module("custom_components.djconnect.ha_urls")
         hass = types.SimpleNamespace(
             config=types.SimpleNamespace(external_url="https://fallback.ui.nabu.casa")
@@ -696,7 +696,7 @@ class TtsHelperTest(unittest.TestCase):
         )
 
         self.assertEqual(payload["ha_local_url"], "http://homeassistant.local:8123")
-        self.assertEqual(payload["ha_remote_url"], "https://example.ui.nabu.casa")
+        self.assertNotIn("ha_remote_url", payload)
 
     def test_ha_local_url_uses_source_ip_fallback(self) -> None:
         helpers = sys.modules["homeassistant.helpers"]
