@@ -36,6 +36,9 @@ def install_stubs() -> None:
     core.HomeAssistant = object
     aiohttp_client.async_get_clientsession = lambda hass: None
     helpers.aiohttp_client = aiohttp_client
+    package = types.ModuleType("custom_components.djconnect")
+    package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
+    sys.modules["custom_components.djconnect"] = package
 
 
 class FakeResponse:
@@ -224,6 +227,32 @@ class DjResponseTest(unittest.TestCase):
         self.assertFalse(result["success"])
         self.assertIn("HTTP 500", result["message"])
         self.assertIn("HTTP 500", runtime.updated["last_error"])
+
+    def test_best_effort_reports_exception_type_when_message_is_empty(self) -> None:
+        hass = types.SimpleNamespace(data={})
+        runtime = Runtime({self.const.CONF_HA_EXTERNAL_URL: "http://ha.local:8123"})
+
+        async def fail_send(hass, runtime, text):
+            raise TimeoutError()
+
+        original_send = self.dj_response.async_send_dj_response
+        self.dj_response.async_send_dj_response = fail_send
+        try:
+            with self.assertLogs(self.dj_response._LOGGER, level="WARNING") as logs:
+                result = asyncio.run(
+                    self.dj_response.async_send_dj_response_best_effort(
+                        hass,
+                        runtime,
+                        "Tekst",
+                    )
+                )
+        finally:
+            self.dj_response.async_send_dj_response = original_send
+
+        self.assertFalse(result["success"])
+        self.assertEqual(result["message"], "TimeoutError")
+        self.assertEqual(runtime.updated["last_error"], "TimeoutError")
+        self.assertTrue(any("TimeoutError" in line for line in logs.output))
 
 
 if __name__ == "__main__":

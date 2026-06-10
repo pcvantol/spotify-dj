@@ -184,18 +184,26 @@ async def async_send_dj_response_best_effort(
     try:
         return await async_send_dj_response(hass, runtime, text)
     except Exception as exc:  # noqa: BLE001
-        runtime.update(last_error=str(exc))
-        _LOGGER.warning("DJConnect DJ response delivery failed: %s", exc)
+        error = _format_exception(exc)
+        runtime.update(last_error=error)
+        _LOGGER.warning("DJConnect DJ response delivery failed: %s", error)
         return {
             "success": False,
             "spoken": False,
             "displayed": False,
-            "message": str(exc),
+            "message": error,
         }
 
 
 def _is_supported_audio(audio: TtsAudio) -> bool:
     return audio.extension in {"wav", "mp3"} and bool(audio.data)
+
+
+def _format_exception(exc: Exception) -> str:
+    message = str(exc).strip()
+    if message:
+        return message
+    return type(exc).__name__
 
 
 async def _async_ha_base_url(hass: HomeAssistant, conf: dict[str, Any]) -> str:
