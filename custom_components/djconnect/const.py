@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "djconnect"
 NAME = "DJConnect"
-VERSION = "3.0.33"
+VERSION = "3.0.34"
 
 API_BASE = "/api/djconnect"
 API_PAIR = f"{API_BASE}/pair"
@@ -85,9 +85,9 @@ DEFAULT_TTS_VOICE = ""
 DEFAULT_DJ_RESPONSE_ENABLED = True
 DEFAULT_DJ_RESPONSE_TTL_SECONDS = 120
 DEFAULT_DJ_RESPONSE_PROMPT = (
-    "Maak een korte gesproken DJ-aankondiging in het Nederlands. "
-    "Noem waar mogelijk de artiest en/of het nummer, gebruik maximaal twee zinnen, "
-    "klink warm, persoonlijk en als een herkenbare radio-DJ."
+    "Noem de artiest en het nummer.\n"
+    "Geef een leuk feitje over de artiest.\n"
+    "Klink warm en persoonlijk."
 )
 SPOTIFY_SCOPES = [
     "user-read-playback-state",

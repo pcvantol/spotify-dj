@@ -74,6 +74,34 @@ class AssistPipelineTest(unittest.TestCase):
         self.assertNotIn("DJ response prompt", prompt)
         self.assertIn("Play Pearl Jam", prompt)
 
+    def test_command_assist_prompt_is_debug_logged(self) -> None:
+        calls = []
+
+        class Services:
+            async def async_call(self, domain, service, data, **kwargs):
+                calls.append(data)
+                return {"response": {"response_type": "action_done", "data": {}}}
+
+        hass = types.SimpleNamespace(services=Services())
+        with self.assertLogs("custom_components.djconnect.pipeline", level="DEBUG") as logs:
+            asyncio.run(
+                self.pipeline._conversation_process(
+                    hass,
+                    "Speel Pearl Jam",
+                    {
+                        "language": "nl-NL",
+                        "agent_id": "conversation.openai",
+                        "pipeline_id": "preferred",
+                    },
+                )
+            )
+
+        self.assertIn("Speel Pearl Jam", calls[0]["text"])
+        self.assertTrue(
+            any("DJConnect Assist command prompt" in line for line in logs.output)
+        )
+        self.assertTrue(any("Speel Pearl Jam" in line for line in logs.output))
+
     def test_generate_dj_response_with_assist_uses_custom_response_prompt(self) -> None:
         calls = []
 
@@ -105,6 +133,36 @@ class AssistPipelineTest(unittest.TestCase):
         self.assertNotIn("spotify:artist", calls[0][2]["text"])
         self.assertNotIn("{'artist'", calls[0][2]["text"])
         self.assertNotIn("'uri'", calls[0][2]["text"])
+
+    def test_dj_response_assist_prompt_is_debug_logged(self) -> None:
+        class Services:
+            async def async_call(self, domain, service, data, **kwargs):
+                return {
+                    "response": {
+                        "speech": {"plain": {"speech": "Pearl Jam komt eraan."}}
+                    }
+                }
+
+        hass = types.SimpleNamespace(services=Services())
+        with self.assertLogs("custom_components.djconnect.pipeline", level="DEBUG") as logs:
+            text = asyncio.run(
+                self.pipeline.generate_dj_response_with_assist(
+                    hass,
+                    media={"artist": "Pearl Jam"},
+                    fallback_text="Daar is Pearl Jam.",
+                    conf={
+                        "dj_response_prompt": "Klink warm.",
+                        "tts_language": "nl-NL",
+                    },
+                )
+            )
+
+        self.assertEqual(text, "Pearl Jam komt eraan.")
+        self.assertTrue(
+            any("DJConnect Assist DJ response prompt" in line for line in logs.output)
+        )
+        self.assertTrue(any("Klink warm." in line for line in logs.output))
+        self.assertTrue(any("artiest: Pearl Jam" in line for line in logs.output))
 
     def test_generate_dj_response_prompt_uses_safe_media_lines(self) -> None:
         calls = []

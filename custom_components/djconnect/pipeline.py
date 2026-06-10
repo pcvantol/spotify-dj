@@ -72,13 +72,21 @@ async def _conversation_process(
     assist_context: dict[str, Any],
 ) -> dict[str, Any]:
     language = assist_context.get("language") or DEFAULT_TTS_LANGUAGE
+    prompt = _djconnect_assist_prompt(user_text, str(language))
     data = {
-        "text": _djconnect_assist_prompt(user_text, str(language)),
+        "text": prompt,
         "language": language,
     }
     if assist_context.get("agent_id"):
         data["agent_id"] = assist_context["agent_id"]
 
+    _LOGGER.debug(
+        "DJConnect Assist command prompt language=%s agent_id=%s pipeline_id=%s prompt=%r",
+        language,
+        assist_context.get("agent_id"),
+        assist_context.get("pipeline_id"),
+        prompt,
+    )
     result = await hass.services.async_call(
         "conversation",
         "process",
@@ -131,17 +139,21 @@ async def generate_dj_response_with_assist(
     text = (
         "Je schrijft alleen een korte gesproken DJ response voor het DJConnect device. "
         "Dit is geen Home Assistant apparaatopdracht. Bedien geen apparaten. "
-        "Gebruik deze DJ response prompt als stijl-/inhoudsinstructie: "
         f"{prompt}\n\nMedia:\n{media_lines}\n\n"
         "Antwoord alleen met de tekst die uitgesproken moet worden. Geen JSON, geen uitleg, geen URI."
         if str(language).lower().startswith("nl")
         else "Write only a short spoken DJ response for the DJConnect device. "
         "This is not a Home Assistant device command. Do not control devices. "
-        f"Use this DJ response prompt as style/content guidance: {prompt}\n\n"
+        f"Style/content guidance:\n{prompt}\n\n"
         f"Media:\n{media_lines}\n\n"
         "Return only the text that should be spoken. No JSON, no explanation, no URI."
     )
     try:
+        _LOGGER.debug(
+            "DJConnect Assist DJ response prompt language=%s prompt=%r",
+            language,
+            text,
+        )
         result = await hass.services.async_call(
             "conversation",
             "process",

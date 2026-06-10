@@ -102,6 +102,10 @@ def install_homeassistant_stubs() -> None:
         "homeassistant.helpers.network",
         types.ModuleType("homeassistant.helpers.network"),
     )
+    selector = sys.modules.setdefault(
+        "homeassistant.helpers.selector",
+        types.ModuleType("homeassistant.helpers.selector"),
+    )
     aiohttp_client = sys.modules.setdefault(
         "homeassistant.helpers.aiohttp_client",
         types.ModuleType("homeassistant.helpers.aiohttp_client"),
@@ -118,7 +122,19 @@ def install_homeassistant_stubs() -> None:
     network.async_get_url = lambda *args, **kwargs: ""
     cloud.async_remote_ui_url = lambda hass: ""
     helpers.network = network
+    helpers.selector = selector
     components.cloud = cloud
+
+    class TextSelectorConfig:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    class TextSelector:
+        def __init__(self, config):
+            self.config = config
+
+    selector.TextSelectorConfig = TextSelectorConfig
+    selector.TextSelector = TextSelector
 
     package = types.ModuleType("custom_components.djconnect")
     package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
@@ -217,6 +233,32 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertEqual(marker_defaults[self.const.CONF_STT_ENGINE], "")
         self.assertEqual(marker_defaults[self.const.CONF_TTS_ENGINE], "")
         self.assertEqual(marker_defaults[self.const.CONF_TTS_VOICE], "")
+
+    def test_voice_schema_uses_multiline_dj_response_prompt(self) -> None:
+        hass = types.SimpleNamespace(states=None)
+        schema = asyncio.run(
+            self.config_flow._voice_schema(
+                hass,
+                self.config_flow._voice_defaults(),
+            )
+        )
+        validators = {
+            marker.key: validator
+            for marker, validator in schema.schema.items()
+        }
+        prompt_selector = validators[self.const.CONF_DJ_RESPONSE_PROMPT]
+
+        self.assertTrue(prompt_selector.config.kwargs["multiline"])
+
+    def test_default_dj_response_prompt_is_multiline_guidance(self) -> None:
+        prompt = self.const.DEFAULT_DJ_RESPONSE_PROMPT
+
+        self.assertNotIn("Gebruik deze DJ response prompt", prompt)
+        self.assertNotIn("stijl-/inhoudsinstructie", prompt)
+        self.assertIn("Noem de artiest en het nummer.", prompt)
+        self.assertIn("Geef een leuk feitje over de artiest.", prompt)
+        self.assertIn("Klink warm en persoonlijk.", prompt)
+        self.assertEqual(prompt.count("\n"), 2)
 
     def test_voice_schema_hides_firmware_and_ota_fields_until_advanced(self) -> None:
         hass = types.SimpleNamespace(states=None)

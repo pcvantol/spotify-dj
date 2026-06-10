@@ -15,6 +15,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
 
 from custom_components.djconnect import register_http_views
 
@@ -581,7 +582,9 @@ def _base_voice_schema(
         vol.Optional(
             CONF_DJ_RESPONSE_PROMPT,
             default=defaults.get(CONF_DJ_RESPONSE_PROMPT, DEFAULT_DJ_RESPONSE_PROMPT),
-        ): str,
+        ): selector.TextSelector(
+            selector.TextSelectorConfig(multiline=True),
+        ),
         vol.Optional(CONF_LIKED_PROXY, default=defaults.get(CONF_LIKED_PROXY, "")): str,
         vol.Optional(
             CONF_SPOTIFY_SOURCE,
