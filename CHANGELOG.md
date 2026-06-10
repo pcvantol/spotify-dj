@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.1.6
+## 3.1.7
 
 - Make DJ response generation rely on HA Assist output from resolved artist/track metadata plus the configured `dj_response_prompt`; remove hardcoded prompt-style response variants from the local fallback.
 - Remove `ha_remote_url` from all device pairing/status payloads; DJConnect devices now receive only `ha_local_url`, while cloud/Nabu Casa URLs remain limited to the Spotify OAuth config/repair flow.

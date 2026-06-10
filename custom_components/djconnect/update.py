@@ -44,10 +44,11 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     runtime = hass.data[DOMAIN][entry.entry_id]
-    if runtime.client_type() != CLIENT_TYPE_ESP32:
+    client_type = _runtime_client_type(runtime)
+    if client_type != CLIENT_TYPE_ESP32:
         _LOGGER.debug(
             "Skipping DJConnect firmware update entity for client_type=%s",
-            runtime.client_type(),
+            client_type,
         )
         return
     async_add_entities([DJConnectFirmwareUpdate(runtime, hass)])
@@ -73,6 +74,10 @@ class DJConnectFirmwareUpdate(UpdateEntity):
         self._next_update_check = 0.0
         self._last_runtime_update_state: tuple[Any, ...] | None = None
         runtime.listeners.append(self._handle_runtime_update)
+
+    @property
+    def available(self) -> bool:
+        return _runtime_client_type(self.runtime) == CLIENT_TYPE_ESP32
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -122,6 +127,10 @@ class DJConnectFirmwareUpdate(UpdateEntity):
         }
 
     async def async_added_to_hass(self) -> None:
+        if not self.available:
+            self._latest = None
+            self._update_error = "Firmware OTA is only available for ESP32 clients"
+            return
         await self.async_update()
         if async_track_time_interval is not None:
             remove_listener = async_track_time_interval(
@@ -133,6 +142,11 @@ class DJConnectFirmwareUpdate(UpdateEntity):
                 self.async_on_remove(remove_listener)
 
     async def _async_scheduled_update(self, now: Any) -> None:
+        if not self.available:
+            self._latest = None
+            self._update_error = "Firmware OTA is only available for ESP32 clients"
+            self.async_write_ha_state()
+            return
         await self.async_update()
         self.async_write_ha_state()
 
@@ -150,6 +164,7 @@ class DJConnectFirmwareUpdate(UpdateEntity):
     def _runtime_update_state(self) -> tuple[Any, ...]:
         status = self.runtime.device_status
         return (
+            _runtime_client_type(self.runtime),
             status.get("firmware"),
             status.get("ota_state"),
             status.get("update_state"),
@@ -158,6 +173,10 @@ class DJConnectFirmwareUpdate(UpdateEntity):
         )
 
     async def async_update(self, *, force: bool = False) -> None:
+        if not self.available:
+            self._latest = None
+            self._update_error = "Firmware OTA is only available for ESP32 clients"
+            return
         now = time.monotonic()
         if not force and self._next_update_check > now:
             return
@@ -179,6 +198,8 @@ class DJConnectFirmwareUpdate(UpdateEntity):
             _LOGGER.warning("DJConnect firmware update check failed: %s", exc)
 
     async def async_release_notes(self) -> str | None:
+        if not self.available:
+            return None
         return self.release_summary
 
     async def async_install(
@@ -187,6 +208,8 @@ class DJConnectFirmwareUpdate(UpdateEntity):
         backup: bool = False,
         **kwargs: Any,
     ) -> None:
+        if not self.available:
+            raise RuntimeError("Firmware OTA is only available for ESP32 clients")
         await self.async_update(force=True)
         if not self._latest:
             raise RuntimeError("No DJConnect firmware release found")
@@ -251,6 +274,15 @@ def _firmware_release_config(runtime: Any) -> dict[str, Any]:
         CONF_FIRMWARE_CHANNEL: _firmware_channel_from_config(runtime),
         CONF_FIRMWARE_DEVICE: _firmware_device_from_status(runtime),
     }
+
+
+def _runtime_client_type(runtime: Any) -> str:
+    getter = getattr(runtime, "client_type", None)
+    if callable(getter):
+        return str(getter() or CLIENT_TYPE_ESP32)
+    status = getattr(runtime, "device_status", {}) or {}
+    config = getattr(runtime, "config", {}) or {}
+    return str(status.get("client_type") or config.get("client_type") or CLIENT_TYPE_ESP32)
 
 
 def _firmware_channel_from_config(runtime: Any) -> str:

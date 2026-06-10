@@ -178,6 +178,42 @@ class DJConnectUpdateEntityTest(unittest.TestCase):
 
         self.assertEqual(added, [])
 
+    def test_existing_update_entity_is_unavailable_for_app_clients(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={},
+            device_status={"client_type": "macos"},
+            ota_in_progress=False,
+            ota_last_error=None,
+            listeners=[],
+            client_type=lambda: "macos",
+        )
+        entity = self.update.DJConnectFirmwareUpdate(runtime, object())
+
+        asyncio.run(entity.async_update(force=True))
+
+        self.assertFalse(entity.available)
+        self.assertEqual(entity.latest_version, "0.0.0")
+        self.assertEqual(
+            entity.extra_state_attributes["firmware_update_error"],
+            "Firmware OTA is only available for ESP32 clients",
+        )
+
+    def test_existing_update_entity_rejects_install_for_app_clients(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={},
+            device_status={"client_type": "ios"},
+            ota_in_progress=False,
+            ota_last_error=None,
+            listeners=[],
+            client_type=lambda: "ios",
+        )
+        entity = self.update.DJConnectFirmwareUpdate(runtime, object())
+
+        with self.assertRaisesRegex(RuntimeError, "only available for ESP32"):
+            asyncio.run(entity.async_install())
+
     def test_update_entity_is_added_for_esp32_clients(self) -> None:
         added = []
         runtime = types.SimpleNamespace(
