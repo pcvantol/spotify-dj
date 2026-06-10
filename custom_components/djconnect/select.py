@@ -10,6 +10,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
+from .entity_ids import entry_unique_id
 from .spotify_backend import handle_spotify_command
 
 _LOGGER = logging.getLogger(__name__)
@@ -95,7 +96,7 @@ class DJConnectCommandSelect(SelectEntity):
         self.command = command
         self._fallback_options = list(options)
         self._attr_translation_key = translation_key
-        self._attr_unique_id = f"djconnect_{translation_key}"
+        self._attr_unique_id = entry_unique_id(runtime, translation_key)
         runtime.listeners.append(self._handle_runtime_update)
 
     @property

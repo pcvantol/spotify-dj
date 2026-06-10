@@ -19,6 +19,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
+from .entity_ids import entry_unique_id
 from .spotify_backend import SpotifyBackendError, handle_spotify_command
 
 _LOGGER = logging.getLogger(__name__)
@@ -57,6 +58,7 @@ class DJConnectPlaybackProxyMediaPlayer(MediaPlayerEntity):
     def __init__(self, runtime: Any, hass: HomeAssistant) -> None:
         self.runtime = runtime
         self.hass = hass
+        self._attr_unique_id = entry_unique_id(runtime, "playback_proxy")
         runtime.listeners.append(self._handle_runtime_update)
 
     @property

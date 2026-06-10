@@ -18,6 +18,7 @@
           "pair_code": "Pairing code",
           "device_name": "Device name",
           "device_language": "Device language",
+          "client_type": "Client type",
           "local_url": "Manual device URL",
           "show_advanced_options": "Show advanced options"
         },
@@ -25,6 +26,7 @@
           "pair_code": "The 6 digit code or 12 character device suffix shown on the device display.",
           "device_name": "Friendly name for this DJConnect remote.",
           "device_language": "Language for the DJConnect device UI. This is sent to the device during pairing.",
+          "client_type": "Type of DJConnect client pairing with Home Assistant: ESP32 device, iOS app or macOS app.",
           "local_url": "Advanced fallback. Use a real device hostname such as http://djconnect-[device-suffix].local; 6 digit setup codes are not device hostnames.",
           "show_advanced_options": "Show manual and firmware/OTA override fields."
         }

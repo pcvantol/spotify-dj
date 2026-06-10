@@ -40,6 +40,15 @@ BLE_WIFI_DATA_KEYS = {
     "wifi_password",
 }
 
+PAIR_DATA_KEYS = {
+    "pair_code",
+    "device_name",
+    "device_language",
+    "client_type",
+    "local_url",
+    "show_advanced_options",
+}
+
 VOICE_OPTION_DATA_KEYS = {
     "assist_pipeline_id",
     "stt_engine",
@@ -125,6 +134,25 @@ class TranslationTest(unittest.TestCase):
                 self.assertFalse(
                     missing_descriptions,
                     f"Missing {language} BLE descriptions: {sorted(missing_descriptions)}",
+                )
+
+    def test_pair_fields_are_translated(self) -> None:
+        base = json.loads((INTEGRATION / "strings.json").read_text())
+        for data, language in [(base, "base")] + [
+            (json.loads((TRANSLATIONS / f"{language}.json").read_text()), language)
+            for language in ("en", "nl")
+        ]:
+            with self.subTest(language=language):
+                step = data["config"]["step"]["pair"]
+                missing_labels = PAIR_DATA_KEYS - set(step["data"])
+                missing_descriptions = PAIR_DATA_KEYS - set(step["data_description"])
+                self.assertFalse(
+                    missing_labels,
+                    f"Missing {language} pair labels: {sorted(missing_labels)}",
+                )
+                self.assertFalse(
+                    missing_descriptions,
+                    f"Missing {language} pair descriptions: {sorted(missing_descriptions)}",
                 )
 
     def test_options_flow_voice_fields_are_translated(self) -> None:

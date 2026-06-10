@@ -9,6 +9,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 
 from . import DEFAULT_TEST_TTS_TEXT, async_speak_dj_test
 from .const import DOMAIN
+from .entity_ids import entry_unique_id
 from .spotify_backend import SpotifyBackendError, handle_spotify_command
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,6 +40,7 @@ class DJConnectTestVoiceButton(ButtonEntity):
     def __init__(self, runtime, hass: HomeAssistant) -> None:
         self.runtime = runtime
         self.hass = hass
+        self._attr_unique_id = entry_unique_id(runtime, "test_dj_voice")
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -61,7 +63,7 @@ class DJConnectBaseButton(ButtonEntity):
         self.runtime = runtime
         self.hass = hass
         self._attr_translation_key = translation_key
-        self._attr_unique_id = f"djconnect_{translation_key}"
+        self._attr_unique_id = entry_unique_id(runtime, translation_key)
 
     @property
     def device_info(self) -> DeviceInfo:

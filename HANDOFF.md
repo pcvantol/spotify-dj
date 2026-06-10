@@ -102,9 +102,9 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - Repair flow must open Spotify OAuth and may only close as fixed after a new/missing refresh token is stored, not merely because an old token exists.
 - Options flow also has a “Spotify opnieuw autoriseren” action using the same callback storage path.
 - Token sent by HA to ESP in `POST /api/device/pair` must be exactly the token accepted by HA `/status`, `/command` and `/voice`.
-- HA -> ESP pairing payload uses `ha_local_url` and `ha_remote_url`; legacy `ha_url` must not be sent or expected.
-- At least one of `ha_local_url` or `ha_remote_url` must be present. ESP should try `ha_local_url` first and keep `ha_remote_url` as fallback/diagnostic metadata.
-- `ha_local_url` must never be a `*.ui.nabu.casa` cloud URL; resolve HA Network/internal/source-IP local URL first, prefer a LAN source-IP over `homeassistant.local`, then use `http://homeassistant.local:8123` only as final local fallback and send cloud only as `ha_remote_url`.
+- HA -> ESP pairing payload uses required `ha_local_url`; legacy `ha_url` and `ha_remote_url` must not be sent or expected.
+- `ha_local_url` must be present and must never be a `*.ui.nabu.casa` cloud URL. Resolve HA Network/internal/source-IP local URL first, prefer a LAN source-IP over `homeassistant.local`, then use `http://homeassistant.local:8123` only as final local fallback.
+- Cloud/Nabu Casa URLs are only for the Spotify OAuth config/repair flow, never for device-to-HA status, command or voice traffic.
 - HA may call `POST /api/device/pair` only for initial pairing, explicit re-pair/token rotation or stale-pairing recovery. Startup with a stored token, normal status sync, playback commands and settings sync must not call it.
 - Setup-code pairing can start with a temporary six-digit identity, but HA must learn and persist only the real model-specific device ID from the first authenticated ESP call. Current ESP IDs are `djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX` and `djconnect-esp32-s3-box-3-XXXXXXXXXXXX`; app IDs are `djconnect-ios-XXXXXXXXXXXX` and `djconnect-macos-XXXXXXXXXXXX`. Legacy `djconnect-XXXXXXXXXXXX` IDs are not accepted.
 - `client_type` must match the device-id prefix: `ios` with `djconnect-ios-*`, `macos` with `djconnect-macos-*`, and `esp32` with ESP model-specific IDs.
@@ -193,7 +193,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 7. Verify the firmware update entity does not report a fresh update timestamp every 10 seconds when no firmware/OTA state changed.
 8. Test Repair flow for revoked Spotify token.
 9. Test options-flow Spotify reauthorize action.
-10. Pair a device from scratch and verify token synchronization with `ha_local_url` / `ha_remote_url`.
+10. Pair a device from scratch and verify token synchronization with required `ha_local_url`.
 11. Verify ESP `/status` includes current settings aliases consumed by HA.
 12. Run physical PTT end-to-end.
 11. Verify native playback proxy media player controls Spotify backend playback and shows album art.

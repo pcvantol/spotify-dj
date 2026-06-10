@@ -77,9 +77,29 @@ class DJConnectSensorTest(unittest.TestCase):
         entity = self.sensor.DJConnectPairingStatusSensor(runtime)
 
         self.assertEqual(entity.native_value, "pending")
-
         runtime.device_status["ha_pairing_status"] = "paired"
         self.assertEqual(entity.native_value, "paired")
+
+    def test_sensor_unique_ids_are_scoped_to_config_entry(self) -> None:
+        runtime_a = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-a"),
+            device_status={},
+            last_playback=None,
+            listeners=[],
+        )
+        runtime_b = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-b"),
+            device_status={},
+            last_playback=None,
+            listeners=[],
+        )
+
+        queue_a = self.sensor.DJConnectQueueSensor(runtime_a)
+        queue_b = self.sensor.DJConnectQueueSensor(runtime_b)
+
+        self.assertEqual(queue_a._attr_unique_id, "djconnect_entry-a_queue")
+        self.assertEqual(queue_b._attr_unique_id, "djconnect_entry-b_queue")
+        self.assertNotEqual(queue_a._attr_unique_id, queue_b._attr_unique_id)
 
     def test_screen_and_led_state_sensors_read_status_payload(self) -> None:
         runtime = types.SimpleNamespace(

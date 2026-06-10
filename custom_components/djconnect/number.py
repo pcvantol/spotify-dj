@@ -10,6 +10,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
+from .entity_ids import entry_unique_id
 from .spotify_backend import handle_spotify_command
 
 MIN_VOLUME = 0.0
@@ -75,6 +76,7 @@ class DJConnectVolumeNumber(NumberEntity):
     def __init__(self, runtime: Any, hass: HomeAssistant) -> None:
         self.runtime = runtime
         self.hass = hass
+        self._attr_unique_id = entry_unique_id(runtime, "volume")
         runtime.listeners.append(self._handle_runtime_update)
 
     @property
@@ -149,7 +151,7 @@ class DJConnectCommandNumber(NumberEntity):
         self.payload_key = payload_key
         self.value_multiplier = value_multiplier
         self._attr_translation_key = translation_key
-        self._attr_unique_id = f"djconnect_{translation_key}"
+        self._attr_unique_id = entry_unique_id(runtime, translation_key)
         self._attr_native_min_value = min_value
         self._attr_native_max_value = max_value
         self._attr_native_unit_of_measurement = unit

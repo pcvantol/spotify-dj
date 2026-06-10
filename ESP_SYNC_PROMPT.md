@@ -134,12 +134,12 @@ Controleer en fix:
 
 - ESP ontvangt `device_token` via `POST /api/device/pair`.
 - ESP ontvangt `client_type` via `POST /api/device/pair`; verwacht voor deze firmware `esp32`.
-- ESP ontvangt `ha_local_url` en/of `ha_remote_url` via `POST /api/device/pair`.
-- ESP gebruikt `ha_local_url` LAN-first voor status, command en voice. `ha_remote_url` is alleen fallback/diagnostiek/toekomstig gebruik.
+- ESP ontvangt verplicht `ha_local_url` via `POST /api/device/pair`.
+- ESP gebruikt altijd `ha_local_url` voor status, command en voice.
 - `ha_local_url` moet een echte lokale HA URL zijn en mag nooit een `*.ui.nabu.casa` URL zijn.
-- `ha_remote_url` mag wel een Nabu Casa/cloud URL zijn.
+- ESP accepteert en verwacht geen `ha_remote_url` meer in device pairing/status payloads.
+- Cloud/Nabu Casa URLs zijn alleen voor Spotify OAuth in de HA config/repair flow, niet voor ESP <-> HA verkeer.
 - HA hoort bij voorkeur een LAN-IP URL te sturen, bijvoorbeeld `http://192.168.1.x:8123`; als Home Assistant alleen `homeassistant.local` kent, kan dat nog als laatste fallback voorkomen.
-- Gebruik `ha_remote_url` alleen als cloud/remote fallback, niet als primair local pad.
 - ESP accepteert en verwacht geen legacy `ha_url` pairingveld meer.
 - Als HA alleen met een 6-cijferige setupcode begint, moet HA eerst `GET /api/device/pairing-info` kunnen gebruiken om `pair_code` te verifiëren en de echte model-specifieke device-id te leren.
 - ESP moet in `/api/device/pairing-info` de echte device-id, `pair_code`, `client_type:"esp32"` en bereikbare local info teruggeven zolang het pairing/setup scherm actief is.
@@ -180,13 +180,12 @@ Verwachte HA -> ESP pair payload:
   "language": "nl",
   "device_token": "<device-token>",
   "ha_local_url": "http://192.168.1.x:8123",
-  "ha_remote_url": "https://example.ui.nabu.casa",
   "assist_pipeline_id": "..."
 }
 ```
 
-Minimaal een van `ha_local_url` of `ha_remote_url` moet aanwezig zijn. `ha_url`
-mag niet in de payload staan.
+`ha_local_url` moet aanwezig zijn. `ha_url` en `ha_remote_url` mogen niet in de
+payload staan.
 
 ### 2. Status payload uitbreiden
 

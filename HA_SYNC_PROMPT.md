@@ -49,13 +49,13 @@ Belangrijk:
 - Bij een 6-cijferige setupcode kent HA de echte ESP device-id nog niet. Resolve eerst de ESP URL via manual URL, `_djconnect._tcp` mDNS of single visible DJConnect mDNS service, roep daarna `GET /api/device/pairing-info` aan, verifieer dat `pair_code` overeenkomt en leer de echte model-specifieke `device_id`.
 - Gebruik de echte `device_id` uit `/api/device/pairing-info` in de daaropvolgende `POST /api/device/pair`. Stuur nooit een tijdelijke `djconnect-<6-cijferige-code>` als `device_id` naar de ESP.
 - Als `/api/device/pairing-info` niet bereikbaar is of de code niet matcht, rond de config flow niet af als succesvol gepaired; toon/retry als pending/recoverable pairing failure.
-- `POST /api/device/pair` naar ESP moet `device_token` plus `ha_local_url` en/of `ha_remote_url` sturen.
-- `ha_local_url` is de LAN URL die ESP eerst probeert, bijvoorbeeld `http://192.168.1.x:8123`.
+- `POST /api/device/pair` naar ESP moet `device_token` plus verplicht `ha_local_url` sturen.
+- `ha_local_url` is de LAN URL die ESP gebruikt voor status, command en voice, bijvoorbeeld `http://192.168.1.x:8123`.
 - Als Home Assistant `homeassistant.local` kent maar ook een LAN source-IP kan bepalen, moet HA de LAN-IP URL sturen.
 - `ha_local_url` mag nooit een `*.ui.nabu.casa` cloud URL zijn.
-- `ha_remote_url` is de optionele Nabu Casa/cloud URL die ESP gebruikt als local niet bereikbaar is.
-- `ha_remote_url` mag wel een Nabu Casa/cloud URL zijn en mag niet als primair local pad gebruikt worden.
-- Pairing zonder `ha_local_url` en zonder `ha_remote_url` moet als configuratiefout worden behandeld.
+- `ha_remote_url` mag niet meer naar ESP/app clients worden gestuurd.
+- Cloud/Nabu Casa URLs zijn alleen voor Spotify OAuth config/repair flow, niet voor device-to-HA verkeer.
+- Pairing zonder `ha_local_url` moet als configuratiefout worden behandeld.
 - Stuur geen legacy `ha_url` pairingveld.
 - Treat ESP pairing as `pending` totdat een authenticated ESP status/command/voice post naar HA succesvol verwerkt is met dezelfde bearer token.
 - Als HA 401/403/404 teruggeeft op ESP status/command/voice, pairing is stale/invalid; log `received_device_id`, `known_device_id`, `client_type`, `token_present` en reden zonder tokenwaarde.
@@ -84,7 +84,6 @@ Expected ESP pairing-info response before direct pairing:
   "language": "nl",
   "device_token": "<device-token>",
   "ha_local_url": "http://192.168.1.x:8123",
-  "ha_remote_url": "https://example.ui.nabu.casa",
   "assist_pipeline_id": "..."
 }
 ```
@@ -284,7 +283,7 @@ OTA payload naar ESP:
 - `set_shuffle` and `set_repeat` remain canonical.
 - Legacy `djconnect-XXXXXXXXXXXX` device IDs are rejected.
 - HA/ESP major.minor mismatch returns HTTP 426 `version_mismatch` and keeps pairing intact.
-- Pair payload contains `ha_local_url` and/or `ha_remote_url`, and never `ha_url`.
+- Pair payload contains required `ha_local_url`, and never `ha_url` or `ha_remote_url`.
 - Diagnostics redact keys containing `token`, `password` or `secret` and include legal metadata.
 - Full status payload vult sensoren.
 - Status updates zijn merge-only: ontbrekende velden behouden bestaande waarden.

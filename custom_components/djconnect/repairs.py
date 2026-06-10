@@ -217,7 +217,7 @@ def _entry_from_issue(
     issue_id: str,
     data: dict[str, Any],
 ) -> ConfigEntry | None:
-    entry_id = str(data.get("entry_id") or "")
+    entry_id = str(data.get("entry_id") or data.get("config_entry_id") or "")
     if not entry_id:
         for suffix in FIXABLE_SPOTIFY_ISSUES:
             marker = f"_{suffix}"
@@ -225,7 +225,24 @@ def _entry_from_issue(
                 entry_id = issue_id[: -len(marker)]
                 break
     getter = getattr(getattr(hass, "config_entries", None), "async_get_entry", None)
-    return getter(entry_id) if callable(getter) and entry_id else None
+    if callable(getter) and entry_id:
+        entry = getter(entry_id)
+        if entry is not None:
+            return entry
+    entries_getter = getattr(getattr(hass, "config_entries", None), "async_entries", None)
+    if not callable(entries_getter):
+        return None
+    try:
+        entries = list(entries_getter(DOMAIN))
+    except TypeError:
+        entries = [
+            entry
+            for entry in entries_getter()
+            if getattr(entry, "domain", DOMAIN) == DOMAIN
+        ]
+    if entry_id:
+        return next((entry for entry in entries if getattr(entry, "entry_id", "") == entry_id), None)
+    return entries[0] if len(entries) == 1 else None
 
 
 async def _prepare_spotify_repair_oauth(hass: HomeAssistant, entry: ConfigEntry) -> str:

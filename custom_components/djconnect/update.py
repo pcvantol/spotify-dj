@@ -24,6 +24,7 @@ from .const import (
     DEFAULT_MIN_BATTERY_FOR_OTA,
     DOMAIN,
 )
+from .entity_ids import entry_unique_id
 from .github import fetch_latest_firmware_release, is_newer
 
 try:
@@ -58,6 +59,7 @@ class DJConnectFirmwareUpdate(UpdateEntity):
     def __init__(self, runtime, hass: HomeAssistant) -> None:
         self.runtime = runtime
         self.hass = hass
+        self._attr_unique_id = entry_unique_id(runtime, "firmware_update")
         self._latest = None
         self._installed = None
         self._update_error = None

@@ -8,6 +8,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
+from .entity_ids import entry_unique_id
 
 MAX_SENSOR_STATE_TEXT_LENGTH = 255
 
@@ -43,6 +44,10 @@ class DJConnectBaseSensor(SensorEntity):
 
     def __init__(self, runtime) -> None:
         self.runtime = runtime
+        self._attr_unique_id = entry_unique_id(
+            runtime,
+            getattr(self, "_attr_unique_id", "") or getattr(self, "_attr_translation_key", ""),
+        )
         runtime.listeners.append(self._handle_runtime_update)
 
     @property

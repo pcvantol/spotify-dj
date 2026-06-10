@@ -277,6 +277,41 @@ class RepairsTest(unittest.TestCase):
 
         self.assertEqual(result["type"], "create_entry")
 
+    def test_spotify_reauth_fix_flow_falls_back_to_single_djconnect_entry(self) -> None:
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            domain="djconnect",
+            data={
+                "ha_external_url": "https://example.ui.nabu.casa",
+                "spotify_client_id": "client-id",
+            },
+        )
+
+        class ConfigEntries:
+            def async_get_entry(self, entry_id):
+                return None
+
+            def async_entries(self, domain=None):
+                return [entry] if domain in (None, "djconnect") else []
+
+        hass = types.SimpleNamespace(
+            data={},
+            config_entries=ConfigEntries(),
+            config=types.SimpleNamespace(external_url=""),
+        )
+        flow = self.repairs.SpotifyOAuthRepairFlow(
+            hass,
+            "spotify_refresh_token_revoked",
+            {},
+        )
+
+        result = asyncio.run(flow.async_step_init())
+
+        self.assertEqual(result["type"], "external")
+        self.assertEqual(result["title"], "DJConnect opnieuw autoriseren bij Spotify")
+        pending = next(iter(hass.data["djconnect"]["spotify_oauth_pending"].values()))
+        self.assertEqual(pending["entry_id"], "entry-1")
+
 
 if __name__ == "__main__":
     unittest.main()
