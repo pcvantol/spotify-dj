@@ -13,16 +13,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
-    CONF_FIRMWARE_ASSET_PREFIX,
     CONF_FIRMWARE_DEVICE,
     CONF_FIRMWARE_REPO,
-    DEFAULT_FIRMWARE_ASSET_PREFIX,
     DEFAULT_FIRMWARE_DEVICE,
     DEFAULT_FIRMWARE_REPO,
 )
 
 _LOGGER = logging.getLogger(__name__)
-SUPPORTED_FIRMWARE_DEVICES = {"lilygo-t-embed-s3"}
+SUPPORTED_FIRMWARE_DEVICES = {"lilygo-t-embed-s3", "esp32-s3-box-3"}
 
 
 @dataclass(slots=True)
@@ -65,7 +63,6 @@ def is_newer(latest: str | None, installed: str | None) -> bool:
 
 @dataclass(slots=True)
 class FirmwareAssets:
-    firmware: dict[str, Any] | None = None
     manifest: dict[str, Any] | None = None
     sha256: dict[str, Any] | None = None
 
@@ -96,45 +93,53 @@ async def fetch_latest_firmware_release(
         return None
 
     version = normalize_version(release.get("tag_name")) or "0.0.0"
-    prefix = config.get(CONF_FIRMWARE_ASSET_PREFIX, DEFAULT_FIRMWARE_ASSET_PREFIX)
     device = config.get(CONF_FIRMWARE_DEVICE, DEFAULT_FIRMWARE_DEVICE)
-    assets = _select_release_assets(release.get("assets", []), prefix)
-
-    if assets.firmware is None:
-        _LOGGER.warning("DJConnect latest release %s has no matching .bin asset with prefix %s", version, prefix)
-        return None
+    assets = _select_release_assets(release.get("assets", []))
 
     if assets.manifest is None:
         _LOGGER.warning(
-            "DJConnect latest release %s has no firmware_manifest.json; using safe fallback metadata",
+            "DJConnect latest release %s has no firmware_manifest.json",
             version,
         )
+        return None
     manifest = await _fetch_manifest(session, assets.manifest)
-    sha256 = manifest.get("sha256") or await _fetch_sha256(session, assets.sha256)
-    target_device = manifest.get("device") or device
-    if not manifest.get("device"):
-        _LOGGER.debug(
-            "DJConnect firmware manifest for %s has no device target; using fallback %s",
+    selected_firmware = _select_manifest_firmware(manifest, device)
+    if selected_firmware is None:
+        _LOGGER.warning(
+            "DJConnect firmware manifest for %s has no firmware for device %s",
             version,
-            target_device,
+            device,
         )
-    elif target_device not in SUPPORTED_FIRMWARE_DEVICES:
+        return None
+    target_device = str(selected_firmware.get("device") or device).strip()
+    if target_device not in SUPPORTED_FIRMWARE_DEVICES:
         _LOGGER.warning(
             "DJConnect firmware manifest for %s targets unsupported device %s",
             version,
             target_device,
         )
+    asset_name = str(selected_firmware.get("asset") or "").strip()
+    firmware_url = str(selected_firmware.get("url") or "").strip()
+    if not firmware_url and asset_name:
+        firmware_url = _release_asset_url(release.get("assets", []), asset_name) or ""
+    if not firmware_url:
+        _LOGGER.warning(
+            "DJConnect firmware manifest for %s device %s has no firmware URL",
+            version,
+            target_device,
+        )
+        return None
 
     return FirmwareRelease(
         version=normalize_version(manifest.get("version")) or version,
         title=release.get("name") or release.get("tag_name") or version,
         body=release.get("body"),
-        firmware_url=assets.firmware["browser_download_url"],
-        firmware_asset=assets.firmware["name"],
+        firmware_url=firmware_url,
+        firmware_asset=asset_name,
         manifest_url=_asset_download_url(assets.manifest),
-        sha256=sha256,
+        sha256=selected_firmware.get("sha256") or await _fetch_sha256(session, assets.sha256),
         device=target_device,
-        size=_manifest_size(manifest.get("size")),
+        size=_manifest_size(selected_firmware.get("size")),
         min_ha_integration=manifest.get("min_ha_integration"),
     )
 
@@ -153,13 +158,11 @@ async def _fetch_latest_release_json(session: Any, repo: str) -> dict[str, Any] 
         return await resp.json()
 
 
-def _select_release_assets(assets: list[dict[str, Any]], prefix: str) -> FirmwareAssets:
+def _select_release_assets(assets: list[dict[str, Any]]) -> FirmwareAssets:
     selected = FirmwareAssets()
     for asset in assets:
         name = asset.get("name", "")
-        if name.endswith(".bin") and prefix in name:
-            selected.firmware = asset
-        elif name in {
+        if name in {
             "djconnect-firmware-manifest.json",
             "firmware_manifest.json",
             "manifest.json",
@@ -168,6 +171,29 @@ def _select_release_assets(assets: list[dict[str, Any]], prefix: str) -> Firmwar
         elif name.endswith(".sha256") or name == "sha256.txt":
             selected.sha256 = asset
     return selected
+
+
+def _select_manifest_firmware(
+    manifest: dict[str, Any],
+    device: str,
+) -> dict[str, Any] | None:
+    firmwares = manifest.get("firmwares")
+    if not isinstance(firmwares, list):
+        return None
+    wanted = str(device or DEFAULT_FIRMWARE_DEVICE).strip()
+    for firmware in firmwares:
+        if not isinstance(firmware, dict):
+            continue
+        if str(firmware.get("device") or "").strip() == wanted:
+            return firmware
+    return None
+
+
+def _release_asset_url(assets: list[dict[str, Any]], asset_name: str) -> str | None:
+    for asset in assets:
+        if asset.get("name") == asset_name:
+            return asset.get("browser_download_url")
+    return None
 
 
 async def _fetch_manifest(session: Any, asset: dict[str, Any] | None) -> dict[str, Any]:

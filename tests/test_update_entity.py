@@ -20,6 +20,10 @@ def install_update_stubs() -> None:
     helpers = sys.modules.setdefault("homeassistant.helpers", types.ModuleType("homeassistant.helpers"))
     device_registry = types.ModuleType("homeassistant.helpers.device_registry")
     entity_platform = types.ModuleType("homeassistant.helpers.entity_platform")
+    awesomeversion = sys.modules.setdefault(
+        "awesomeversion",
+        types.ModuleType("awesomeversion"),
+    )
 
     class UpdateEntity:
         def async_write_ha_state(self):
@@ -41,6 +45,13 @@ def install_update_stubs() -> None:
             super().__init__("client response error")
             self.status = status
 
+    class AwesomeVersion:
+        def __init__(self, value):
+            self.parts = tuple(int(part) for part in str(value).split("."))
+
+        def __gt__(self, other):
+            return self.parts > other.parts
+
     aiohttp.ClientTimeout = ClientTimeout
     aiohttp.ClientResponseError = ClientResponseError
     update.UpdateEntity = UpdateEntity
@@ -49,6 +60,7 @@ def install_update_stubs() -> None:
     core.HomeAssistant = object
     device_registry.DeviceInfo = dict
     entity_platform.AddEntitiesCallback = object
+    awesomeversion.AwesomeVersion = AwesomeVersion
     components.update = update
     helpers.device_registry = device_registry
     helpers.entity_platform = entity_platform
@@ -109,8 +121,8 @@ class DJConnectUpdateEntityTest(unittest.TestCase):
             version="3.0.6",
             title="DJConnect v3.0.6",
             body="Release notes",
-            firmware_url="https://example.test/djconnect-device-v3.0.6.bin",
-            firmware_asset="djconnect-device-v3.0.6.bin",
+            firmware_url="https://example.test/djconnect-lilygo-t-embed-s3-v3.0.6.bin",
+            firmware_asset="djconnect-lilygo-t-embed-s3-v3.0.6.bin",
             manifest_url="https://example.test/firmware_manifest.json",
             device="lilygo-t-embed-s3",
         )
@@ -132,6 +144,23 @@ class DJConnectUpdateEntityTest(unittest.TestCase):
 
         self.assertEqual(calls, 2)
         self.assertEqual(entity.latest_version, "3.0.6")
+
+    def test_firmware_release_config_uses_device_status_model(self) -> None:
+        runtime = types.SimpleNamespace(
+            device_status={"model": "esp32_s3_box3"},
+        )
+
+        config = self.update._firmware_release_config(runtime)
+
+        self.assertEqual(config["firmware_repo"], "pcvantol/djconnect-firmware")
+        self.assertEqual(config["firmware_device"], "esp32-s3-box-3")
+
+    def test_firmware_release_config_defaults_to_lilygo(self) -> None:
+        runtime = types.SimpleNamespace(device_status={})
+
+        config = self.update._firmware_release_config(runtime)
+
+        self.assertEqual(config["firmware_device"], "lilygo-t-embed-s3")
 
     def test_runtime_updates_only_write_when_firmware_state_changes(self) -> None:
         runtime = types.SimpleNamespace(

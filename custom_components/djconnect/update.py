@@ -13,7 +13,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     CONF_ALLOW_OTA_ON_BATTERY,
+    CONF_FIRMWARE_DEVICE,
+    CONF_FIRMWARE_REPO,
     CONF_MIN_BATTERY_FOR_OTA,
+    DEFAULT_FIRMWARE_DEVICE,
+    DEFAULT_FIRMWARE_REPO,
     DEFAULT_MIN_BATTERY_FOR_OTA,
     DOMAIN,
 )
@@ -77,12 +81,13 @@ class DJConnectFirmwareUpdate(UpdateEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         if not self._latest:
             return {
-                "repo": self.runtime.config.get("firmware_repo"),
+                "repo": DEFAULT_FIRMWARE_REPO,
+                "target_device": _firmware_device_from_status(self.runtime),
                 "device_status": self.runtime.device_status,
                 "firmware_update_error": self._update_error,
             }
         return {
-            "repo": self.runtime.config.get("firmware_repo"),
+            "repo": DEFAULT_FIRMWARE_REPO,
             "firmware_asset": self._latest.firmware_asset,
             "manifest_url": self._latest.manifest_url,
             "sha256": self._latest.sha256,
@@ -125,7 +130,10 @@ class DJConnectFirmwareUpdate(UpdateEntity):
         if not force and self._next_update_check > now:
             return
         try:
-            self._latest = await fetch_latest_firmware_release(self.hass, self.runtime.config)
+            self._latest = await fetch_latest_firmware_release(
+                self.hass,
+                _firmware_release_config(self.runtime),
+            )
             self._update_error = None if self._latest else "No firmware release available"
             self._next_update_check = now + (
                 FIRMWARE_CHECK_INTERVAL_SECONDS
@@ -202,3 +210,41 @@ class DJConnectFirmwareUpdate(UpdateEntity):
         self.runtime.ota_in_progress = False
         self.runtime.ota_last_error = "Device did not reconnect after OTA in time"
         self.runtime.update()
+
+
+def _firmware_release_config(runtime: Any) -> dict[str, Any]:
+    """Build firmware release config from runtime status, not user flow fields."""
+    return {
+        CONF_FIRMWARE_REPO: DEFAULT_FIRMWARE_REPO,
+        CONF_FIRMWARE_DEVICE: _firmware_device_from_status(runtime),
+    }
+
+
+def _firmware_device_from_status(runtime: Any) -> str:
+    status = getattr(runtime, "device_status", {}) or {}
+    for key in (
+        "firmware_device",
+        "device",
+        "device_model",
+        "model",
+        "ota_device",
+        "board",
+    ):
+        value = str(status.get(key) or "").strip()
+        if value:
+            return _normalize_firmware_device(value)
+    return DEFAULT_FIRMWARE_DEVICE
+
+
+def _normalize_firmware_device(value: str) -> str:
+    normalized = str(value or "").strip().lower().replace("_", "-")
+    aliases = {
+        "t-embed-cc1101": "lilygo-t-embed-s3",
+        "t-embed": "lilygo-t-embed-s3",
+        "lilygo": "lilygo-t-embed-s3",
+        "t-embed-s3": "lilygo-t-embed-s3",
+        "esp32-s3-box3": "esp32-s3-box-3",
+        "esp32-s3-box-3": "esp32-s3-box-3",
+        "box3": "esp32-s3-box-3",
+    }
+    return aliases.get(normalized, normalized)

@@ -32,7 +32,7 @@ Architectuur beslissingen:
 - Als ESP `/api/djconnect/status` `spotify_configured=false` meldt, behandel dit alleen als compat/statushint voor backend playback; stuur geen Spotify OAuth credentials naar ESP.
 - BLE provisioning doet alleen WiFi SSID/password; geen Spotify credentials, device tokens of andere secrets via BLE.
 - Runtime discovery prefereert device-reported `local_url`, exacte `_djconnect._tcp` mDNS matches en daarna alleen een enkele zichtbare DJConnect mDNS service; genereer alleen `http://djconnect-lilygo-[device-suffix].local` voor echte device IDs met 12-hex suffix, inclusief `djconnect-lilygo-XXXXXXXXXXXX`, nooit voor 6-cijferige setupcodes.
-- Normale config-flow blijft klein; operationele overrides zoals firmware repo/channel, Spotify source, max audio bytes en OTA battery settings blijven advanced.
+- Normale config-flow blijft klein; Spotify source, max audio bytes en OTA battery settings blijven waar nodig advanced. Firmware repo/channel/asset/device settings horen niet meer in de flow; OTA selecteert automatisch uit het public firmware manifest op basis van ESP device status/info.
 - Alle entities horen onder één HA device met één stabiele device identifier.
 - Firmware source blijft proprietary; HA integration blijft gratis MIT-licensed.
 - Geen secrets in diagnostics/logs; redactie voor keys met `token`, `password` of `secret`.
@@ -57,7 +57,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `djconnect`
 - HACS custom integration.
-- Actuele integratieversie: `3.0.36`.
+- Actuele integratieversie: `3.0.37`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -92,9 +92,9 @@ HA integration:
   - TTS engine uit HA `tts` entities.
   - Spotify market vaste keuzes.
   - DJ response prompt als vrij tekstveld; geen vaste DJ style keuzes.
-  - Firmware channel vaste keuzes.
-- Verberg firmware repo settings, firmware channel, max audio bytes, min battery for OTA en allow OTA on battery achter een integration-local advanced checkbox; gebruik niet HA's deprecated `show_advanced_options` property.
-- Laat velden vrije tekst waar HA geen betrouwbare bron heeft, zoals TTS language/voice, playlist URI en firmware repo/asset/device strings.
+  - Firmware device wordt automatisch uit ESP status/info afgeleid voor OTA manifestselectie.
+- Verberg max audio bytes, min battery for OTA en allow OTA on battery achter een integration-local advanced checkbox; gebruik niet HA's deprecated `show_advanced_options` property.
+- Laat velden vrije tekst waar HA geen betrouwbare bron heeft, zoals TTS language/voice en playlist URI.
 - Als TTS engine wijzigt en de opgeslagen TTS voice niet door de nieuwe engine wordt ondersteund, wis `tts_voice` naar `Default` zodat HA TTS geen provider-specifieke oude stem blijft gebruiken.
 - Spotify source/device naam is dynamisch; toon dit niet in de normale flow, alleen advanced als optionele override.
 - Huidige firmware gebruikt de lokale ESP API met bearer token voor device-acties.
@@ -143,13 +143,14 @@ Firmware releases:
   - `./release.sh X.Y.Z`
   - `./release.sh X.Y.Z --dry-run`
   - optioneel `./release.sh X.Y.Z --publish-firmware-repo ../djconnect-firmware`
-- ESP firmware release-script moet semantic version valideren, firmware metadata bijwerken, PlatformIO build draaien, binary renamen, SHA256 berekenen, `firmware_manifest.json` bijwerken, committen, taggen en pushen.
-- Release asset naam:
-  `djconnect-device-vX.Y.Z.bin`
+- ESP firmware release-script moet semantic version valideren, firmware metadata bijwerken, PlatformIO builds draaien, binaries device-specifiek renamen, SHA256 berekenen, `firmware_manifest.json` bijwerken, committen, taggen en pushen.
+- Release asset namen:
+  `djconnect-lilygo-t-embed-s3-vX.Y.Z.bin`
+  `djconnect-esp32-s3-box-3-vX.Y.Z.bin`
 - Manifest:
   `firmware_manifest.json`
-- Firmware assetnaam is de publieke distributienaam; manifest `device` is het OTA target-device dat HA ongewijzigd naar `POST /api/device/ota` stuurt.
-- Voor de huidige firmware is manifest `device` `lilygo-t-embed-s3`; stuur niet de generieke assetprefix `djconnect-device` als OTA target.
+- Firmware manifest gebruikt `firmwares[]` met per device `device`, `asset`, `url`, `sha256` en `size`; HA gebruikt geen top-level `device`/`asset`/`sha256` fallback meer.
+- LilyGO gebruikt manifest device `lilygo-t-embed-s3`; ESP32-S3-BOX-3 gebruikt manifest device `esp32-s3-box-3`.
 - Firmwareversie wordt via PlatformIO build flags uit Git tag geïnjecteerd.
 - Public firmware repo mag alleen release binary, `firmware_manifest.json`, release metadata en niet-geheime documentatie bevatten.
 - Public firmware repo mag geen firmware source, NVS secrets, device tokens, Spotify refresh tokens of Home Assistant tokens bevatten.
@@ -195,8 +196,8 @@ README/release:
   - Gebruik bij voorkeur `./release.sh X.Y.Z` in de private firmware repo.
   - Gebruik `./release.sh X.Y.Z --dry-run` bij twijfel voordat gepubliceerd wordt.
   - Publish binaries naar public repo `djconnect-firmware`.
-  - Release asset naam is `djconnect-device-vX.Y.Z.bin`.
-  - Update `firmware_manifest.json` met `version`, `device`, `asset`, `sha256`, `size` en `min_ha_integration`.
+  - Release assets zijn device-specifiek, zoals `djconnect-lilygo-t-embed-s3-vX.Y.Z.bin` en `djconnect-esp32-s3-box-3-vX.Y.Z.bin`.
+  - Update `firmware_manifest.json` met manifest-level `version`, `version_tag`, `channel`, `min_ha_integration` en `firmwares[]` entries met `device`, `asset`, `url`, `sha256` en `size`.
   - Controleer dat OTA de nieuwe firmware via de HA update entity ontdekt.
 
 Tests:

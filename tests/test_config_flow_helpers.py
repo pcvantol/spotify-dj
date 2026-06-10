@@ -281,10 +281,6 @@ class ConfigFlowHelperTest(unittest.TestCase):
         basic_keys = {marker.key for marker in basic_schema.schema}
         advanced_keys = {marker.key for marker in advanced_schema.schema}
         advanced_only = {
-            self.const.CONF_FIRMWARE_REPO,
-            self.const.CONF_FIRMWARE_ASSET_PREFIX,
-            self.const.CONF_FIRMWARE_DEVICE,
-            self.const.CONF_FIRMWARE_CHANNEL,
             self.const.CONF_MAX_AUDIO_BYTES,
             self.const.CONF_ALLOW_OTA_ON_BATTERY,
             self.const.CONF_MIN_BATTERY_FOR_OTA,
@@ -292,6 +288,9 @@ class ConfigFlowHelperTest(unittest.TestCase):
         }
 
         self.assertTrue(advanced_only.isdisjoint(basic_keys))
+        self.assertNotIn("firmware_repo", advanced_keys)
+        self.assertNotIn("firmware_device", advanced_keys)
+        self.assertNotIn("firmware_channel", advanced_keys)
         self.assertIn(self.const.CONF_STT_ENGINE, basic_keys)
         self.assertIn(self.const.CONF_TTS_ENGINE, basic_keys)
         self.assertIn(self.const.CONF_SPOTIFY_SOURCE, basic_keys)

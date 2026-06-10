@@ -31,10 +31,6 @@ from .const import (
     CONF_DJ_RESPONSE_ENABLED,
     CONF_DJ_RESPONSE_PROMPT,
     CONF_DJ_RESPONSE_TTL_SECONDS,
-    CONF_FIRMWARE_ASSET_PREFIX,
-    CONF_FIRMWARE_CHANNEL,
-    CONF_FIRMWARE_DEVICE,
-    CONF_FIRMWARE_REPO,
     CONF_HA_EXTERNAL_URL,
     CONF_LIKED_PROXY,
     CONF_LOCAL_URL,
@@ -60,10 +56,6 @@ from .const import (
     DEFAULT_DJ_RESPONSE_ENABLED,
     DEFAULT_DJ_RESPONSE_PROMPT,
     DEFAULT_DJ_RESPONSE_TTL_SECONDS,
-    DEFAULT_FIRMWARE_ASSET_PREFIX,
-    DEFAULT_FIRMWARE_CHANNEL,
-    DEFAULT_FIRMWARE_DEVICE,
-    DEFAULT_FIRMWARE_REPO,
     DEFAULT_MAX_AUDIO_BYTES,
     DEFAULT_MIN_BATTERY_FOR_OTA,
     DEFAULT_SETUP_METHOD,
@@ -84,7 +76,6 @@ from .spotify_oauth import build_authorize_url, build_redirect_uri, create_code_
 
 _LOGGER = logging.getLogger(__name__)
 
-FIRMWARE_CHANNEL_NAMES = {"stable": "Stable", "beta": "Beta"}
 DEVICE_LANGUAGE_NAMES = {"en": "English", "nl": "Nederlands"}
 PAIR_CODE_PATTERN = re.compile(r"^(?:\d{6}|[0-9A-Fa-f]{12})$")
 ADVANCED_OPTIONS_FIELD = "show_advanced_options"
@@ -139,10 +130,6 @@ OPTIONS_ACTION_NAMES_NL = {
 }
 
 ADVANCED_VOICE_FIELDS = (
-    CONF_FIRMWARE_REPO,
-    CONF_FIRMWARE_ASSET_PREFIX,
-    CONF_FIRMWARE_DEVICE,
-    CONF_FIRMWARE_CHANNEL,
     CONF_MAX_AUDIO_BYTES,
     CONF_ALLOW_OTA_ON_BATTERY,
     CONF_MIN_BATTERY_FOR_OTA,
@@ -595,31 +582,8 @@ def _base_voice_schema(
 
 
 def _advanced_voice_schema(defaults: dict[str, Any]) -> dict[Any, Any]:
-    """Build advanced firmware/OTA settings hidden behind HA advanced mode."""
-    firmware_channel_options = _options_with_current(
-        FIRMWARE_CHANNEL_NAMES,
-        defaults.get(CONF_FIRMWARE_CHANNEL, DEFAULT_FIRMWARE_CHANNEL),
-    )
+    """Build advanced compatibility/OTA settings hidden behind HA advanced mode."""
     return {
-        vol.Optional(
-            CONF_FIRMWARE_REPO,
-            default=defaults.get(CONF_FIRMWARE_REPO, DEFAULT_FIRMWARE_REPO),
-        ): str,
-        vol.Optional(
-            CONF_FIRMWARE_ASSET_PREFIX,
-            default=defaults.get(
-                CONF_FIRMWARE_ASSET_PREFIX,
-                DEFAULT_FIRMWARE_ASSET_PREFIX,
-            ),
-        ): str,
-        vol.Optional(
-            CONF_FIRMWARE_DEVICE,
-            default=defaults.get(CONF_FIRMWARE_DEVICE, DEFAULT_FIRMWARE_DEVICE),
-        ): str,
-        vol.Optional(
-            CONF_FIRMWARE_CHANNEL,
-            default=defaults.get(CONF_FIRMWARE_CHANNEL, DEFAULT_FIRMWARE_CHANNEL),
-        ): vol.In(firmware_channel_options),
         vol.Optional(
             CONF_MAX_AUDIO_BYTES,
             default=defaults.get(CONF_MAX_AUDIO_BYTES, DEFAULT_MAX_AUDIO_BYTES),
@@ -741,22 +705,6 @@ def _voice_defaults(
             DEFAULT_DJ_RESPONSE_TTL_SECONDS,
         ),
         CONF_DJ_RESPONSE_PROMPT: dj_response_prompt,
-        CONF_FIRMWARE_REPO: _clean(
-            source.get(CONF_FIRMWARE_REPO),
-            DEFAULT_FIRMWARE_REPO,
-        ),
-        CONF_FIRMWARE_ASSET_PREFIX: _clean(
-            source.get(CONF_FIRMWARE_ASSET_PREFIX),
-            DEFAULT_FIRMWARE_ASSET_PREFIX,
-        ),
-        CONF_FIRMWARE_DEVICE: _clean(
-            source.get(CONF_FIRMWARE_DEVICE),
-            DEFAULT_FIRMWARE_DEVICE,
-        ),
-        CONF_FIRMWARE_CHANNEL: _clean(
-            source.get(CONF_FIRMWARE_CHANNEL),
-            DEFAULT_FIRMWARE_CHANNEL,
-        ),
         CONF_MAX_AUDIO_BYTES: _int(
             source.get(CONF_MAX_AUDIO_BYTES),
             DEFAULT_MAX_AUDIO_BYTES,
