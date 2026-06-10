@@ -14,9 +14,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     CONF_ALLOW_OTA_ON_BATTERY,
+    CONF_FIRMWARE_CHANNEL,
     CONF_FIRMWARE_DEVICE,
     CONF_FIRMWARE_REPO,
     CONF_MIN_BATTERY_FOR_OTA,
+    DEFAULT_FIRMWARE_CHANNEL,
     DEFAULT_FIRMWARE_DEVICE,
     DEFAULT_FIRMWARE_REPO,
     DEFAULT_MIN_BATTERY_FOR_OTA,
@@ -89,12 +91,14 @@ class DJConnectFirmwareUpdate(UpdateEntity):
         if not self._latest:
             return {
                 "repo": DEFAULT_FIRMWARE_REPO,
+                "channel": _firmware_channel_from_config(self.runtime),
                 "target_device": _firmware_device_from_status(self.runtime),
                 "device_status": self.runtime.device_status,
                 "firmware_update_error": self._update_error,
             }
         return {
             "repo": DEFAULT_FIRMWARE_REPO,
+            "channel": _firmware_channel_from_config(self.runtime),
             "firmware_asset": self._latest.firmware_asset,
             "manifest_url": self._latest.manifest_url,
             "sha256": self._latest.sha256,
@@ -235,8 +239,20 @@ def _firmware_release_config(runtime: Any) -> dict[str, Any]:
     """Build firmware release config from runtime status, not user flow fields."""
     return {
         CONF_FIRMWARE_REPO: DEFAULT_FIRMWARE_REPO,
+        CONF_FIRMWARE_CHANNEL: _firmware_channel_from_config(runtime),
         CONF_FIRMWARE_DEVICE: _firmware_device_from_status(runtime),
     }
+
+
+def _firmware_channel_from_config(runtime: Any) -> str:
+    value = str(
+        getattr(runtime, "config", {}).get(
+            CONF_FIRMWARE_CHANNEL,
+            DEFAULT_FIRMWARE_CHANNEL,
+        )
+        or DEFAULT_FIRMWARE_CHANNEL
+    ).strip().lower()
+    return "beta" if value == "beta" else DEFAULT_FIRMWARE_CHANNEL
 
 
 def _firmware_device_from_status(runtime: Any) -> str:

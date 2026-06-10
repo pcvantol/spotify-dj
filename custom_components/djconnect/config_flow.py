@@ -31,6 +31,7 @@ from .const import (
     CONF_DJ_RESPONSE_ENABLED,
     CONF_DJ_RESPONSE_PROMPT,
     CONF_DJ_RESPONSE_TTL_SECONDS,
+    CONF_FIRMWARE_CHANNEL,
     CONF_HA_EXTERNAL_URL,
     CONF_LIKED_PROXY,
     CONF_LOCAL_URL,
@@ -56,6 +57,7 @@ from .const import (
     DEFAULT_DJ_RESPONSE_ENABLED,
     DEFAULT_DJ_RESPONSE_PROMPT,
     DEFAULT_DJ_RESPONSE_TTL_SECONDS,
+    DEFAULT_FIRMWARE_CHANNEL,
     DEFAULT_MAX_AUDIO_BYTES,
     DEFAULT_MIN_BATTERY_FOR_OTA,
     DEFAULT_SETUP_METHOD,
@@ -66,6 +68,7 @@ from .const import (
     DEFAULT_TTS_ENGINE,
     DEFAULT_TTS_LANGUAGE,
     DEFAULT_TTS_VOICE,
+    FIRMWARE_CHANNELS,
     CLIENT_TYPE_NAMES,
     DOMAIN,
     SETUP_METHOD_BLE_WIFI,
@@ -577,6 +580,10 @@ def _base_voice_schema(
             CONF_SPOTIFY_SOURCE,
             default=defaults.get(CONF_SPOTIFY_SOURCE, ""),
         ): str,
+        vol.Optional(
+            CONF_FIRMWARE_CHANNEL,
+            default=defaults.get(CONF_FIRMWARE_CHANNEL, DEFAULT_FIRMWARE_CHANNEL),
+        ): vol.In(FIRMWARE_CHANNELS),
     })
     return schema
 
@@ -716,7 +723,15 @@ def _voice_defaults(
         ),
         CONF_SPOTIFY_SOURCE: _clean(source.get(CONF_SPOTIFY_SOURCE), ""),
         CONF_LIKED_PROXY: _clean(source.get(CONF_LIKED_PROXY), ""),
+        CONF_FIRMWARE_CHANNEL: _firmware_channel_default(
+            source.get(CONF_FIRMWARE_CHANNEL),
+        ),
     }
+
+
+def _firmware_channel_default(value: Any) -> str:
+    channel = str(value or DEFAULT_FIRMWARE_CHANNEL).strip().lower()
+    return "beta" if channel == "beta" else DEFAULT_FIRMWARE_CHANNEL
 
 
 def _voice_errors(user_input: dict[str, Any]) -> dict[str, str]:

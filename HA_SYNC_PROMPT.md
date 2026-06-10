@@ -4,7 +4,7 @@ Werk in de bestaande Home Assistant custom integration repo `pcvantol/djconnect`
 
 ## Doel
 
-Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmware contracten voor release `v3.0.40`.
+Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmware contracten voor release `v3.0.42`.
 
 ## 0. Repository / Release Hygiene
 
@@ -12,7 +12,7 @@ Synchroniseer de Home Assistant integration met de actuele DJConnect ESP firmwar
 - ESP source repo: `pcvantol/djconnect-app`.
 - Public OTA firmware repo: `pcvantol/djconnect-firmware`.
 - Firmware binaries/manifests must be consumed from `djconnect-firmware`; the ESP source repo is not the OTA asset host.
-- Current HA integration release/tag baseline is `v3.0.40`; do not reference old 2.x firmware assets or tags.
+- Current HA integration release/tag baseline is `v3.0.42`; do not reference old 2.x firmware assets or tags.
 - Current firmware assets are device-specific, e.g. `djconnect-lilygo-t-embed-s3-vX.Y.Z.bin` and `djconnect-esp32-s3-box-3-vX.Y.Z.bin`.
 - Current OTA manifest filename is `firmware_manifest.json`.
 - Current OTA manifest uses `firmwares[]` entries; HA selects the matching entry and sends that entry's `device` target to ESP.
@@ -238,6 +238,9 @@ Als een `media_player` entity bestaat:
 Controleer:
 
 - HA leest firmware releases uit `pcvantol/djconnect-firmware`.
+- Options-flow laat gebruikers wisselen tussen firmwarekanaal `stable` en `beta`.
+- `stable` gebruikt GitHub `/releases/latest`; `beta` gebruikt de nieuwste prerelease uit `/releases?per_page=20`.
+- Firmware repo en OTA target device blijven geen normale user-facing instellingen.
 - Release assets are device-specific, such as `djconnect-lilygo-t-embed-s3-vX.Y.Z.bin` and `djconnect-esp32-s3-box-3-vX.Y.Z.bin`.
 - Manifest is `firmware_manifest.json`.
 - Manifest bevat manifest-level `version`, `version_tag`, `channel`, `min_ha_integration` en `firmwares[]`.
@@ -250,11 +253,11 @@ OTA payload naar ESP:
 
 ```json
 {
-  "version": "3.0.40",
-  "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.40/djconnect-lilygo-t-embed-s3-v3.0.40.bin",
+  "version": "3.0.42",
+  "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.0.42/djconnect-lilygo-t-embed-s3-v3.0.42.bin",
   "sha256": "...",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-lilygo-t-embed-s3-v3.0.40.bin"
+  "asset": "djconnect-lilygo-t-embed-s3-v3.0.42.bin"
 }
 ```
 

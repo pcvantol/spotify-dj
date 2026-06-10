@@ -168,20 +168,32 @@ class DJConnectUpdateEntityTest(unittest.TestCase):
 
     def test_firmware_release_config_uses_device_status_model(self) -> None:
         runtime = types.SimpleNamespace(
+            config={},
             device_status={"model": "esp32_s3_box3"},
         )
 
         config = self.update._firmware_release_config(runtime)
 
         self.assertEqual(config["firmware_repo"], "pcvantol/djconnect-firmware")
+        self.assertEqual(config["firmware_channel"], "stable")
         self.assertEqual(config["firmware_device"], "esp32-s3-box-3")
 
     def test_firmware_release_config_defaults_to_lilygo(self) -> None:
-        runtime = types.SimpleNamespace(device_status={})
+        runtime = types.SimpleNamespace(config={}, device_status={})
 
         config = self.update._firmware_release_config(runtime)
 
         self.assertEqual(config["firmware_device"], "lilygo-t-embed-s3")
+
+    def test_firmware_release_config_uses_beta_channel_option(self) -> None:
+        runtime = types.SimpleNamespace(
+            config={"firmware_channel": "beta"},
+            device_status={},
+        )
+
+        config = self.update._firmware_release_config(runtime)
+
+        self.assertEqual(config["firmware_channel"], "beta")
 
     def test_runtime_updates_only_write_when_firmware_state_changes(self) -> None:
         runtime = types.SimpleNamespace(

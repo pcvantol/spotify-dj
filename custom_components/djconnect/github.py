@@ -13,10 +13,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
+    CONF_FIRMWARE_CHANNEL,
     CONF_FIRMWARE_DEVICE,
     CONF_FIRMWARE_REPO,
+    DEFAULT_FIRMWARE_CHANNEL,
     DEFAULT_FIRMWARE_DEVICE,
     DEFAULT_FIRMWARE_REPO,
+    FIRMWARE_CHANNEL_BETA,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -76,8 +79,9 @@ async def fetch_latest_firmware_release(
         return None
 
     session = async_get_clientsession(hass)
+    channel = _firmware_channel(config.get(CONF_FIRMWARE_CHANNEL))
     try:
-        release = await _fetch_latest_release_json(session, repo)
+        release = await _fetch_release_json(session, repo, channel)
     except ClientResponseError as exc:
         if exc.status == 403:
             _LOGGER.debug(
@@ -90,6 +94,11 @@ async def fetch_latest_firmware_release(
         _LOGGER.warning("DJConnect firmware release check failed: %s", exc)
         return None
     if release is None:
+        _LOGGER.debug(
+            "DJConnect firmware repo %s has no release for channel %s",
+            repo,
+            channel,
+        )
         return None
 
     version = normalize_version(release.get("tag_name")) or "0.0.0"
@@ -144,6 +153,21 @@ async def fetch_latest_firmware_release(
     )
 
 
+def _firmware_channel(value: Any) -> str:
+    channel = str(value or DEFAULT_FIRMWARE_CHANNEL).strip().lower()
+    return FIRMWARE_CHANNEL_BETA if channel == FIRMWARE_CHANNEL_BETA else DEFAULT_FIRMWARE_CHANNEL
+
+
+async def _fetch_release_json(
+    session: Any,
+    repo: str,
+    channel: str,
+) -> dict[str, Any] | None:
+    if channel == FIRMWARE_CHANNEL_BETA:
+        return await _fetch_latest_prerelease_json(session, repo)
+    return await _fetch_latest_release_json(session, repo)
+
+
 async def _fetch_latest_release_json(session: Any, repo: str) -> dict[str, Any] | None:
     url = f"https://api.github.com/repos/{repo}/releases/latest"
     async with session.get(
@@ -156,6 +180,26 @@ async def _fetch_latest_release_json(session: Any, repo: str) -> dict[str, Any] 
             return None
         resp.raise_for_status()
         return await resp.json()
+
+
+async def _fetch_latest_prerelease_json(session: Any, repo: str) -> dict[str, Any] | None:
+    url = f"https://api.github.com/repos/{repo}/releases?per_page=20"
+    async with session.get(
+        url,
+        headers={"Accept": "application/vnd.github+json"},
+        timeout=ClientTimeout(total=20),
+    ) as resp:
+        if resp.status == 404:
+            _LOGGER.warning("DJConnect firmware repo has no releases: %s", repo)
+            return None
+        resp.raise_for_status()
+        releases = await resp.json()
+    if not isinstance(releases, list):
+        return None
+    for release in releases:
+        if isinstance(release, dict) and release.get("prerelease"):
+            return release
+    return None
 
 
 def _select_release_assets(assets: list[dict[str, Any]]) -> FirmwareAssets:

@@ -32,7 +32,7 @@ Architectuur beslissingen:
 - Als ESP `/api/djconnect/status` `spotify_configured=false` meldt, behandel dit alleen als compat/statushint voor backend playback; stuur geen Spotify OAuth credentials naar ESP.
 - BLE provisioning doet alleen WiFi SSID/password; geen Spotify credentials, device tokens of andere secrets via BLE.
 - Runtime discovery prefereert device-reported `local_url`, exacte `_djconnect._tcp` mDNS matches en daarna alleen een enkele zichtbare DJConnect mDNS service; genereer alleen `http://djconnect-lilygo-[device-suffix].local` voor echte device IDs met 12-hex suffix, inclusief `djconnect-lilygo-XXXXXXXXXXXX`, nooit voor 6-cijferige setupcodes.
-- Normale config-flow blijft klein; Spotify source, max audio bytes en OTA battery settings blijven waar nodig advanced. Firmware repo/channel/asset/device settings horen niet meer in de flow; OTA selecteert automatisch uit het public firmware manifest op basis van ESP device status/info.
+- Normale config-flow blijft klein; Spotify source, firmware channel, max audio bytes en OTA battery settings blijven waar nodig zichtbaar/advanced. Firmware repo/asset/device settings horen niet meer in de flow; OTA selecteert automatisch uit het public firmware manifest op basis van ESP device status/info. Gebruikers mogen wel wisselen tussen firmwarekanaal `stable` en `beta`.
 - Alle entities horen onder één HA device met één stabiele device identifier.
 - Firmware source blijft proprietary; HA integration blijft gratis MIT-licensed.
 - Geen secrets in diagnostics/logs; redactie voor keys met `token`, `password` of `secret`.
@@ -57,7 +57,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `djconnect`
 - HACS custom integration.
-- Actuele integratieversie: `3.0.42`.
+- Actuele integratieversie: `3.0.43`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -151,6 +151,7 @@ Firmware releases:
   `firmware_manifest.json`
 - Firmware manifest gebruikt `firmwares[]` met per device `device`, `asset`, `url`, `sha256` en `size`; HA gebruikt geen top-level `device`/`asset`/`sha256` fallback meer.
 - LilyGO gebruikt manifest device `lilygo-t-embed-s3`; ESP32-S3-BOX-3 gebruikt manifest device `esp32-s3-box-3`.
+- Firmwarekanaal `stable` gebruikt GitHub latest non-prerelease; firmwarekanaal `beta` gebruikt de nieuwste GitHub prerelease uit `pcvantol/djconnect-firmware`.
 - Firmwareversie wordt via PlatformIO build flags uit Git tag geïnjecteerd.
 - Public firmware repo mag alleen release binary, `firmware_manifest.json`, release metadata en niet-geheime documentatie bevatten.
 - Public firmware repo mag geen firmware source, NVS secrets, device tokens, Spotify refresh tokens of Home Assistant tokens bevatten.
@@ -198,6 +199,7 @@ README/release:
   - Publish binaries naar public repo `djconnect-firmware`.
   - Release assets zijn device-specifiek, zoals `djconnect-lilygo-t-embed-s3-vX.Y.Z.bin` en `djconnect-esp32-s3-box-3-vX.Y.Z.bin`.
   - Update `firmware_manifest.json` met manifest-level `version`, `version_tag`, `channel`, `min_ha_integration` en `firmwares[]` entries met `device`, `asset`, `url`, `sha256` en `size`.
+  - Markeer beta firmware releases als GitHub prerelease zodat HA ze alleen toont wanneer firmwarekanaal `beta` gekozen is.
   - Controleer dat OTA de nieuwe firmware via de HA update entity ontdekt.
 
 Tests:

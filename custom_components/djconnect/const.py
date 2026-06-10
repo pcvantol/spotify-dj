@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "djconnect"
 NAME = "DJConnect"
-VERSION = "3.0.42"
+VERSION = "3.0.43"
 
 API_BASE = "/api/djconnect"
 API_PAIR = f"{API_BASE}/pair"
@@ -48,6 +48,7 @@ CONF_MAX_AUDIO_BYTES = "max_audio_bytes"
 
 CONF_FIRMWARE_REPO = "firmware_repo"
 CONF_FIRMWARE_DEVICE = "firmware_device"
+CONF_FIRMWARE_CHANNEL = "firmware_channel"
 CONF_ALLOW_OTA_ON_BATTERY = "allow_ota_on_battery"
 CONF_MIN_BATTERY_FOR_OTA = "min_battery_for_ota"
 
@@ -71,6 +72,10 @@ DEFAULT_SPOTIFY_MARKET = "NL"
 DEFAULT_MAX_AUDIO_BYTES = 2_000_000
 DEFAULT_FIRMWARE_REPO = "pcvantol/djconnect-firmware"
 DEFAULT_FIRMWARE_DEVICE = "lilygo-t-embed-s3"
+DEFAULT_FIRMWARE_CHANNEL = "stable"
+FIRMWARE_CHANNEL_STABLE = "stable"
+FIRMWARE_CHANNEL_BETA = "beta"
+FIRMWARE_CHANNELS = [FIRMWARE_CHANNEL_STABLE, FIRMWARE_CHANNEL_BETA]
 DEFAULT_MIN_BATTERY_FOR_OTA = 40
 
 DEFAULT_ASSIST_PIPELINE_ID = ""

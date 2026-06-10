@@ -117,8 +117,20 @@ replace_text(
             f"releases/download/{tag}/",
         ),
         (
+            r"releases/download/v[0-9]+\.[0-9]+\.[0-9]+/",
+            f"releases/download/{tag}/",
+        ),
+        (
             r"djconnect-lilygo-t-embed-s3-v[0-9]+\.[0-9]+\.[0-9]+\.bin",
             f"djconnect-lilygo-t-embed-s3-{tag}.bin",
+        ),
+        (
+            r"djconnect-lilygo-t-embed-s3-v[0-9]+\.[0-9]+\.[0-9]+\.bin",
+            f"djconnect-lilygo-t-embed-s3-{tag}.bin",
+        ),
+        (
+            r"djconnect-esp32-s3-box-3-v[0-9]+\.[0-9]+\.[0-9]+\.bin",
+            f"djconnect-esp32-s3-box-3-{tag}.bin",
         ),
         (
             r"djconnect-esp32-s3-box-3-v[0-9]+\.[0-9]+\.[0-9]+\.bin",
@@ -153,6 +165,14 @@ replace_text(
         (
             r"djconnect-lilygo-t-embed-s3-v[0-9]+\.[0-9]+\.[0-9]+\.bin",
             f"djconnect-lilygo-t-embed-s3-{tag}.bin",
+        ),
+        (
+            r"djconnect-lilygo-t-embed-s3-v[0-9]+\.[0-9]+\.[0-9]+\.bin",
+            f"djconnect-lilygo-t-embed-s3-{tag}.bin",
+        ),
+        (
+            r"djconnect-esp32-s3-box-3-v[0-9]+\.[0-9]+\.[0-9]+\.bin",
+            f"djconnect-esp32-s3-box-3-{tag}.bin",
         ),
         (
             r"djconnect-esp32-s3-box-3-v[0-9]+\.[0-9]+\.[0-9]+\.bin",

@@ -290,10 +290,10 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertTrue(advanced_only.isdisjoint(basic_keys))
         self.assertNotIn("firmware_repo", advanced_keys)
         self.assertNotIn("firmware_device", advanced_keys)
-        self.assertNotIn("firmware_channel", advanced_keys)
         self.assertIn(self.const.CONF_STT_ENGINE, basic_keys)
         self.assertIn(self.const.CONF_TTS_ENGINE, basic_keys)
         self.assertIn(self.const.CONF_SPOTIFY_SOURCE, basic_keys)
+        self.assertIn(self.const.CONF_FIRMWARE_CHANNEL, basic_keys)
         self.assertIn(self.const.CONF_DJ_RESPONSE_PROMPT, basic_keys)
         self.assertTrue(advanced_only.issubset(advanced_keys))
         self.assertIn(self.const.CONF_DJ_RESPONSE_ENABLED, basic_keys)
@@ -305,6 +305,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
                 self.const.CONF_DJ_RESPONSE_PROMPT: "",
                 self.const.CONF_MAX_AUDIO_BYTES: "not-an-int",
                 self.const.CONF_MIN_BATTERY_FOR_OTA: "55",
+                self.const.CONF_FIRMWARE_CHANNEL: "beta",
             }
         )
 
@@ -316,6 +317,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertEqual(data[self.const.CONF_MAX_AUDIO_BYTES], self.const.DEFAULT_MAX_AUDIO_BYTES)
         self.assertTrue(data[self.const.CONF_ALLOW_OTA_ON_BATTERY])
         self.assertEqual(data[self.const.CONF_MIN_BATTERY_FOR_OTA], 55)
+        self.assertEqual(data[self.const.CONF_FIRMWARE_CHANNEL], "beta")
         self.assertTrue(data[self.const.CONF_DJ_RESPONSE_ENABLED])
         self.assertEqual(
             data[self.const.CONF_DJ_RESPONSE_TTL_SECONDS],

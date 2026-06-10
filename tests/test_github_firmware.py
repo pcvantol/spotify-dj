@@ -246,6 +246,133 @@ class GithubFirmwareTest(unittest.TestCase):
         self.assertEqual(release.firmware_url, "https://example/box3.bin")
         self.assertEqual(release.sha256, "b" * 64)
 
+    def test_beta_channel_selects_latest_prerelease(self) -> None:
+        class Response:
+            def __init__(self, payload):
+                self.payload = payload
+                self.status = 200
+                self.ok = True
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def json(self):
+                return self.payload
+
+            async def text(self):
+                return json.dumps(self.payload)
+
+            def raise_for_status(self):
+                return None
+
+        class Session:
+            requested_urls: list[str] = []
+
+            def get(self, url, **kwargs):
+                self.requested_urls.append(url)
+                if url.endswith("/releases?per_page=20"):
+                    return Response(
+                        [
+                            {
+                                "tag_name": "v3.0.7",
+                                "prerelease": False,
+                                "assets": [],
+                            },
+                            {
+                                "tag_name": "v3.0.8-beta.1",
+                                "name": "DJConnect v3.0.8 beta 1",
+                                "prerelease": True,
+                                "assets": [
+                                    {
+                                        "name": "firmware_manifest.json",
+                                        "browser_download_url": "https://example/beta-manifest.json",
+                                    },
+                                ],
+                            },
+                        ]
+                    )
+                return Response(
+                    {
+                        "version": "3.0.8-beta.1",
+                        "channel": "beta",
+                        "firmwares": [
+                            {
+                                "device": "lilygo-t-embed-s3",
+                                "asset": "djconnect-lilygo-t-embed-s3-v3.0.8-beta.1.bin",
+                                "url": "https://example/beta-lilygo.bin",
+                            },
+                        ],
+                    }
+                )
+
+        session = Session()
+        original_session = self.github.async_get_clientsession
+        self.github.async_get_clientsession = lambda hass: session
+        try:
+            release = asyncio.run(
+                self.github.fetch_latest_firmware_release(
+                    object(),
+                    {
+                        "firmware_repo": "pcvantol/djconnect-firmware",
+                        "firmware_channel": "beta",
+                    },
+                )
+            )
+        finally:
+            self.github.async_get_clientsession = original_session
+
+        self.assertIn(
+            "https://api.github.com/repos/pcvantol/djconnect-firmware/releases?per_page=20",
+            session.requested_urls,
+        )
+        self.assertEqual(release.version, "3.0.8-beta.1")
+        self.assertEqual(
+            release.firmware_asset,
+            "djconnect-lilygo-t-embed-s3-v3.0.8-beta.1.bin",
+        )
+        self.assertEqual(release.firmware_url, "https://example/beta-lilygo.bin")
+
+    def test_beta_channel_returns_none_when_no_prerelease_exists(self) -> None:
+        class Response:
+            status = 200
+            ok = True
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def json(self):
+                return [{"tag_name": "v3.0.7", "prerelease": False}]
+
+            def raise_for_status(self):
+                return None
+
+        class Session:
+            def get(self, url, **kwargs):
+                return Response()
+
+        original_session = self.github.async_get_clientsession
+        self.github.async_get_clientsession = lambda hass: Session()
+        try:
+            release = asyncio.run(
+                self.github.fetch_latest_firmware_release(
+                    object(),
+                    {
+                        "firmware_repo": "pcvantol/djconnect-firmware",
+                        "firmware_channel": "beta",
+                    },
+                )
+            )
+        finally:
+            self.github.async_get_clientsession = original_session
+
+        self.assertIsNone(release)
+
     def test_manifest_size_normalization(self) -> None:
         self.assertEqual(self.github._manifest_size("2113136"), 2113136)
         self.assertIsNone(self.github._manifest_size("not-a-number"))
@@ -315,9 +442,19 @@ class GithubFirmwareTest(unittest.TestCase):
             lilygo["asset"],
             f"djconnect-lilygo-t-embed-s3-v{manifest['version']}.bin",
         )
+        self.assertTrue(
+            lilygo["url"].endswith(
+                f"/djconnect-lilygo-t-embed-s3-v{manifest['version']}.bin"
+            )
+        )
         self.assertEqual(
             box3["asset"],
             f"djconnect-esp32-s3-box-3-v{manifest['version']}.bin",
+        )
+        self.assertTrue(
+            box3["url"].endswith(
+                f"/djconnect-esp32-s3-box-3-v{manifest['version']}.bin"
+            )
         )
 
     def test_unsupported_manifest_device_warning_is_clear(self) -> None:

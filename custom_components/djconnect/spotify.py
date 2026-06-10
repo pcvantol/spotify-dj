@@ -96,7 +96,7 @@ def _media_from_intent(
 def _liked_proxy_media(conf: dict[str, Any]) -> tuple[str, str]:
     proxy = (conf.get(CONF_LIKED_PROXY) or "").strip()
     if not proxy:
-        raise RuntimeError("Liked songs require a proxy playlist URI")
+        raise RuntimeError("Liked songs require a default playlist URI")
     return proxy, "playlist"
 
 
