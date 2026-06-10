@@ -142,6 +142,46 @@ class SpotifyIntentTest(unittest.TestCase):
         self.assertEqual(result["resolved_media"]["artist"], "Metallica")
         self.assertEqual(result["device_response"]["playback"]["artist"], "Guns N' Roses")
 
+    def test_play_from_intent_does_not_reuse_stale_resolved_media_on_query_mismatch(self) -> None:
+        async def command(hass, runtime, command, value, play=True):
+            runtime.last_spotify_search = {
+                "query": "Nirvana",
+                "type": "artist",
+                "selected": {},
+            }
+            return {
+                "playback": {
+                    "type": "artist",
+                    "artist": "Red Hot Chili Peppers",
+                    "artist_name": "Red Hot Chili Peppers",
+                }
+            }
+
+        original = self.spotify.handle_spotify_command
+        self.spotify.handle_spotify_command = command
+        runtime = types.SimpleNamespace(
+            last_resolved_media={
+                "type": "artist",
+                "artist": "Red Hot Chili Peppers",
+                "artist_name": "Red Hot Chili Peppers",
+            },
+            last_spotify_search=None,
+        )
+        try:
+            result = asyncio.run(
+                self.spotify.play_from_intent(
+                    object(),
+                    runtime,
+                    {"type": "search", "spotify_search_query": "Nirvana"},
+                    {},
+                )
+            )
+        finally:
+            self.spotify.handle_spotify_command = original
+
+        self.assertIsNone(result["resolved_media"])
+        self.assertEqual(result["device_response"]["playback"]["artist"], "Red Hot Chili Peppers")
+
 
 if __name__ == "__main__":
     unittest.main()

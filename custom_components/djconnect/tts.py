@@ -93,7 +93,8 @@ async def _async_generate_tts_media_source_id(
     conf: dict,
 ) -> str | None:
     """Call the HA TTS media-source generator across supported HA versions."""
-    engine = conf.get(CONF_TTS_ENGINE) or DEFAULT_TTS_ENGINE
+    configured_engine = str(conf.get(CONF_TTS_ENGINE) or "").strip()
+    engine = configured_engine or DEFAULT_TTS_ENGINE
     language = conf.get(CONF_TTS_LANGUAGE) or DEFAULT_TTS_LANGUAGE
     voice = str(conf.get(CONF_TTS_VOICE) or DEFAULT_TTS_VOICE).strip()
     options = {"voice": voice} if voice else None
@@ -105,22 +106,11 @@ async def _async_generate_tts_media_source_id(
     for generator in generators:
         if generator is None:
             continue
-        for kwargs in (
-            {
-                "message": text,
-                "engine": engine,
-                "language": language,
-                "options": options,
-            },
-            {
-                "message": text,
-                "engine": engine,
-                "language": language,
-            },
-            {
-                "message": text,
-                "language": language,
-            },
+        for kwargs in _tts_media_source_kwargs(
+            text=text,
+            engine=engine,
+            language=language,
+            options=options,
         ):
             try:
                 value = generator(hass, **kwargs)
@@ -130,7 +120,52 @@ async def _async_generate_tts_media_source_id(
                     return str(value)
             except TypeError:
                 continue
-            except Exception:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
+                if _is_invalid_tts_provider_error(exc):
+                    attempted_engine = kwargs.get("engine") or "Home Assistant default"
+                    _LOGGER.debug(
+                        "DJConnect TTS provider %s is invalid; trying next TTS fallback",
+                        attempted_engine,
+                    )
+                    continue
                 _LOGGER.debug("DJConnect TTS media-source generation failed", exc_info=True)
                 continue
     return None
+
+
+def _tts_media_source_kwargs(
+    *,
+    text: str,
+    engine: str,
+    language: str,
+    options: dict[str, Any] | None,
+) -> tuple[dict[str, Any], ...]:
+    values: list[dict[str, Any]] = []
+    if engine and options is not None:
+        values.append(
+            {
+                "message": text,
+                "engine": engine,
+                "language": language,
+                "options": options,
+            }
+        )
+    if engine:
+        values.append(
+            {
+                "message": text,
+                "engine": engine,
+                "language": language,
+            }
+        )
+    values.append(
+        {
+            "message": text,
+            "language": language,
+        }
+    )
+    return tuple(values)
+
+
+def _is_invalid_tts_provider_error(exc: Exception) -> bool:
+    return "invalid tts provider selected" in str(exc).lower()

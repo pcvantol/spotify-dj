@@ -28,9 +28,19 @@ async def async_ha_local_url(hass: Any, conf: dict[str, Any]) -> str:
     try:
         from homeassistant.helpers import network
 
-        url = await network.async_get_url(hass, prefer_external=False)
+        url_getter = getattr(network, "async_get_url", None)
+        url = (
+            await _maybe_await(url_getter(hass, prefer_external=False))
+            if callable(url_getter)
+            else ""
+        )
         cleaned = _clean_local_url(url)
-        source_ip = await _maybe_await(network.async_get_source_ip(hass))
+        source_ip_getter = getattr(network, "async_get_source_ip", None)
+        source_ip = (
+            await _maybe_await(source_ip_getter(hass))
+            if callable(source_ip_getter)
+            else ""
+        )
         fallback = _local_url_from_source_ip(source_ip)
         if cleaned and not _is_homeassistant_local_url(cleaned):
             return cleaned
@@ -38,8 +48,8 @@ async def async_ha_local_url(hass: Any, conf: dict[str, Any]) -> str:
             return fallback
         if cleaned:
             return cleaned
-    except Exception:  # noqa: BLE001
-        _LOGGER.debug("DJConnect could not determine HA local URL from network helper", exc_info=True)
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.debug("DJConnect could not determine HA local URL from network helper: %s", exc)
 
     config = getattr(hass, "config", None)
     for value in (

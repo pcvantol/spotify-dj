@@ -100,6 +100,7 @@ class TtsHelperTest(unittest.TestCase):
         cls.const = importlib.import_module("custom_components.djconnect.const")
         cls.dj_response = importlib.import_module("custom_components.djconnect.dj_response")
         cls.http = importlib.import_module("custom_components.djconnect.http")
+        cls.tts = importlib.import_module("custom_components.djconnect.tts")
 
     def test_device_command_posts_to_local_command_api(self) -> None:
         class Response:
@@ -728,6 +729,31 @@ class TtsHelperTest(unittest.TestCase):
 
         self.assertEqual(local_url, "http://192.168.1.23:8123")
 
+    def test_ha_local_url_handles_missing_network_async_get_url(self) -> None:
+        helpers = sys.modules["homeassistant.helpers"]
+        network = types.ModuleType("homeassistant.helpers.network")
+        previous_attr = getattr(helpers, "network", None)
+        previous_module = sys.modules.get("homeassistant.helpers.network")
+        helpers.network = network
+        sys.modules["homeassistant.helpers.network"] = network
+        try:
+            ha_urls = importlib.import_module("custom_components.djconnect.ha_urls")
+            hass = types.SimpleNamespace(
+                config=types.SimpleNamespace(internal_url="http://192.168.1.50:8123")
+            )
+            local_url = asyncio.run(ha_urls.async_ha_local_url(hass, {}))
+        finally:
+            if previous_attr is None:
+                delattr(helpers, "network")
+            else:
+                helpers.network = previous_attr
+            if previous_module is None:
+                sys.modules.pop("homeassistant.helpers.network", None)
+            else:
+                sys.modules["homeassistant.helpers.network"] = previous_module
+
+        self.assertEqual(local_url, "http://192.168.1.50:8123")
+
     def test_setup_code_pairing_accepts_real_device_id_after_token_sync(self) -> None:
         entry = types.SimpleNamespace(
             entry_id="entry-1",
@@ -1258,6 +1284,30 @@ class TtsHelperTest(unittest.TestCase):
         status, audio = self.dj_response.get_tts_audio(hass, token)
         self.assertEqual(status, 410)
         self.assertIsNone(audio)
+
+    def test_default_tts_engine_omits_engine_argument(self) -> None:
+        calls = []
+
+        class TtsModule:
+            @staticmethod
+            def generate_media_source_id(hass, **kwargs):
+                calls.append(kwargs)
+                return "media-source://tts/default"
+
+        result = asyncio.run(
+            self.tts._async_generate_tts_media_source_id(
+                TtsModule,
+                object(),
+                "Daar gaan we.",
+                {
+                    self.const.CONF_TTS_ENGINE: "",
+                    self.const.CONF_TTS_LANGUAGE: "nl-NL",
+                },
+            )
+        )
+
+        self.assertEqual(result, "media-source://tts/default")
+        self.assertEqual(calls[0], {"message": "Daar gaan we.", "language": "nl-NL"})
 
 
 if __name__ == "__main__":

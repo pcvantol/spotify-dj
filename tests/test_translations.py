@@ -43,6 +43,7 @@ BLE_WIFI_DATA_KEYS = {
 VOICE_OPTION_DATA_KEYS = {
     "assist_pipeline_id",
     "stt_engine",
+    "client_type",
     "dj_response_enabled",
     "firmware_channel",
     "dj_response_ttl_seconds",

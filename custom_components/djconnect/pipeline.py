@@ -165,6 +165,22 @@ async def generate_dj_response_with_assist(
     )
     if debug is not None:
         debug["prompt"] = text
+    if not assist_context.get("agent_id"):
+        if debug is not None:
+            debug.update(
+                {
+                    "fallback_used": True,
+                    "block_reason": "no conversation agent",
+                }
+            )
+        _ROOT_LOGGER.debug(
+            "DJConnect Assist DJ response prompt skipped language=%s agent_id=%s pipeline_id=%s prompt=%r",
+            language,
+            assist_context.get("agent_id"),
+            assist_context.get("pipeline_id"),
+            text,
+        )
+        return fallback_text
     try:
         _ROOT_LOGGER.debug(
             "DJConnect Assist DJ response prompt language=%s agent_id=%s pipeline_id=%s prompt=%r",

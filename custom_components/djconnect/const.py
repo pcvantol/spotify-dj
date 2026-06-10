@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "djconnect"
 NAME = "DJConnect"
-VERSION = "3.1.2"
+VERSION = "3.1.3"
 
 API_BASE = "/api/djconnect"
 API_PAIR = f"{API_BASE}/pair"
@@ -80,7 +80,7 @@ DEFAULT_MIN_BATTERY_FOR_OTA = 40
 
 DEFAULT_ASSIST_PIPELINE_ID = ""
 DEFAULT_STT_ENGINE = ""
-DEFAULT_TTS_ENGINE = "tts"
+DEFAULT_TTS_ENGINE = ""
 DEFAULT_TTS_LANGUAGE = "nl-NL"
 DEFAULT_TTS_VOICE = ""
 DEFAULT_DJ_RESPONSE_ENABLED = True

@@ -32,7 +32,6 @@ async def play_from_intent(
     if not media_content_id:
         raise RuntimeError("Could not determine a Spotify search query")
 
-    previous_resolved = getattr(runtime, "last_resolved_media", None)
     command = "start_playlist" if media_content_type == "playlist" else "play"
     value: Any = media_content_id
     if command == "play" and not media_content_id.startswith("spotify:"):
@@ -43,7 +42,7 @@ async def play_from_intent(
         command,
         value,
     )
-    resolved_media = _fresh_resolved_media(runtime, media_content_id, previous_resolved)
+    resolved_media = _fresh_resolved_media(runtime, media_content_id)
 
     return {
         "played": True,
@@ -58,7 +57,6 @@ async def play_from_intent(
 def _fresh_resolved_media(
     runtime: Any,
     query: str,
-    previous_resolved: Any,
 ) -> dict[str, Any] | None:
     """Return media resolved by the command that just ran, not stale playback."""
     search = getattr(runtime, "last_spotify_search", None)
@@ -66,10 +64,6 @@ def _fresh_resolved_media(
         selected = search.get("selected")
         if isinstance(selected, dict) and selected:
             return selected
-
-    resolved = getattr(runtime, "last_resolved_media", None)
-    if isinstance(resolved, dict) and resolved and resolved is not previous_resolved:
-        return resolved
     return None
 
 

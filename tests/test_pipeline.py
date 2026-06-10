@@ -122,6 +122,7 @@ class AssistPipelineTest(unittest.TestCase):
                 fallback_text="Daar is Pearl Jam.",
                 conf={
                     "dj_response_prompt": "Sound like a pirate DJ.",
+                    "assist_pipeline_id": "conversation.openai",
                     "tts_language": "nl-NL",
                 },
             )
@@ -179,11 +180,12 @@ class AssistPipelineTest(unittest.TestCase):
                     hass,
                     media={"artist": "Pearl Jam"},
                     fallback_text="Daar is Pearl Jam.",
-                    conf={
-                        "dj_response_prompt": "Klink warm.",
-                        "tts_language": "nl-NL",
-                    },
-                )
+                conf={
+                    "dj_response_prompt": "Klink warm.",
+                    "assist_pipeline_id": "conversation.openai",
+                    "tts_language": "nl-NL",
+                },
+            )
             )
 
         self.assertEqual(text, "Pearl Jam komt eraan.")
@@ -223,6 +225,7 @@ class AssistPipelineTest(unittest.TestCase):
                 fallback_text="Daar is Nirvana.",
                 conf={
                     "dj_response_prompt": "Noem de artiest en klink warm.",
+                    "assist_pipeline_id": "conversation.openai",
                     "tts_language": "nl-NL",
                 },
             )
@@ -263,6 +266,7 @@ class AssistPipelineTest(unittest.TestCase):
                 fallback_text="Daar is Example Artist. Blijf erbij.",
                 conf={
                     "dj_response_prompt": "twee zinnen klink als radio DJ",
+                    "assist_pipeline_id": "conversation.openai",
                     "tts_language": "nl-NL",
                 },
                 debug=debug,
@@ -301,7 +305,10 @@ class AssistPipelineTest(unittest.TestCase):
                 hass,
                 media={"type": "artist", "artist": "Red Hot Chili Peppers"},
                 fallback_text="Daar is Red Hot Chili Peppers.",
-                conf={"tts_language": "nl-NL"},
+                conf={
+                    "assist_pipeline_id": "conversation.openai",
+                    "tts_language": "nl-NL",
+                },
                 debug=debug,
             )
         )
@@ -313,6 +320,32 @@ class AssistPipelineTest(unittest.TestCase):
         self.assertEqual(debug["block_reason"], "device lookup error")
         self.assertIn("Noem de artiest", debug["prompt"])
         self.assertIn("Red Hot Chili Peppers", debug["generated_text"])
+
+    def test_generate_dj_response_skips_assist_without_conversation_agent(self) -> None:
+        class Services:
+            async def async_call(self, domain, service, data, **kwargs):
+                raise AssertionError("DJ response should not call default HA Assist")
+
+        hass = types.SimpleNamespace(services=Services())
+        debug = {}
+        with self.assertLogs("custom_components.djconnect", level="DEBUG") as logs:
+            text = asyncio.run(
+                self.pipeline.generate_dj_response_with_assist(
+                    hass,
+                    media={"type": "artist", "artist": "Nirvana"},
+                    fallback_text="Daar is Nirvana.",
+                    conf={
+                        "dj_response_prompt": "Noem de artiest en het nummer.",
+                        "tts_language": "nl-NL",
+                    },
+                    debug=debug,
+                )
+            )
+
+        self.assertEqual(text, "Daar is Nirvana.")
+        self.assertTrue(debug["fallback_used"])
+        self.assertEqual(debug["block_reason"], "no conversation agent")
+        self.assertTrue(any("DJ response prompt skipped" in line for line in logs.output))
 
     def test_ordinary_artist_dj_response_is_usable(self) -> None:
         self.assertTrue(

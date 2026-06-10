@@ -70,6 +70,7 @@
         "data": {
           "assist_pipeline_id": "Assist pipeline",
           "stt_engine": "STT engine",
+          "client_type": "Client type",
           "tts_engine": "TTS engine",
           "tts_language": "TTS language",
           "tts_voice": "TTS voice",
@@ -88,6 +89,7 @@
         "data_description": {
           "assist_pipeline_id": "Assist pipeline used by DJConnect devices for speech recognition.",
           "stt_engine": "Home Assistant STT entity used for physical PTT speech recognition. Leave empty to use the Assist pipeline STT provider.",
+          "client_type": "Type of DJConnect client pairing with Home Assistant: ESP32 device, iOS app or macOS app.",
           "tts_engine": "Home Assistant TTS entity used for DJ responses.",
           "tts_language": "Language passed to the TTS engine.",
           "tts_voice": "Voice passed to the TTS engine when supported.",
@@ -152,6 +154,7 @@
         "data": {
           "assist_pipeline_id": "Assist pipeline",
           "stt_engine": "STT engine",
+          "client_type": "Client type",
           "tts_engine": "TTS engine",
           "tts_language": "TTS language",
           "tts_voice": "TTS voice",
@@ -170,6 +173,7 @@
         "data_description": {
           "assist_pipeline_id": "Assist pipeline used by DJConnect devices for speech recognition.",
           "stt_engine": "Home Assistant STT entity used for physical PTT speech recognition. Leave empty to use the Assist pipeline STT provider.",
+          "client_type": "Type of DJConnect client pairing with Home Assistant: ESP32 device, iOS app or macOS app.",
           "dj_response_enabled": "Create a temporary WAV or MP3 audio URL and send it with the DJ text to the DJConnect device.",
           "firmware_channel": "Choose stable for normal OTA updates or beta to test prerelease firmware.",
           "dj_response_ttl_seconds": "Number of seconds the temporary WAV download URL remains valid.",

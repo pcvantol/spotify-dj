@@ -70,6 +70,7 @@
         "data": {
           "assist_pipeline_id": "Assist pipeline",
           "stt_engine": "STT engine",
+          "client_type": "Clienttype",
           "tts_engine": "TTS engine",
           "tts_language": "TTS taal",
           "tts_voice": "TTS stem",
@@ -88,6 +89,7 @@
         "data_description": {
           "assist_pipeline_id": "Assist pipeline die DJConnect apparaten gebruiken voor spraakherkenning.",
           "stt_engine": "Home Assistant STT entity voor fysieke PTT spraakherkenning. Laat leeg om de STT provider uit de Assist pipeline te gebruiken.",
+          "client_type": "Type DJConnect client dat koppelt met Home Assistant: ESP32 device, iOS app of macOS app.",
           "tts_engine": "Home Assistant TTS entity voor DJ reacties.",
           "tts_language": "Taal die aan de TTS engine wordt meegegeven.",
           "tts_voice": "Stem die aan de TTS engine wordt meegegeven als die bekend is.",
@@ -152,6 +154,7 @@
         "data": {
           "assist_pipeline_id": "Assist pipeline",
           "stt_engine": "STT engine",
+          "client_type": "Clienttype",
           "tts_engine": "TTS engine",
           "tts_language": "TTS taal",
           "tts_voice": "TTS stem",
@@ -170,6 +173,7 @@
         "data_description": {
           "assist_pipeline_id": "Assist pipeline die DJConnect apparaten gebruiken voor spraakherkenning.",
           "stt_engine": "Home Assistant STT entity voor fysieke PTT spraakherkenning. Laat leeg om de STT provider uit de Assist pipeline te gebruiken.",
+          "client_type": "Type DJConnect client dat koppelt met Home Assistant: ESP32 device, iOS app of macOS app.",
           "dj_response_enabled": "Maak een tijdelijke WAV of MP3 audio URL en stuur die met de DJ tekst naar het DJConnect device.",
           "firmware_channel": "Kies stable voor normale OTA updates of beta om prerelease firmware te testen.",
           "dj_response_ttl_seconds": "Aantal seconden dat de tijdelijke WAV download URL geldig blijft.",

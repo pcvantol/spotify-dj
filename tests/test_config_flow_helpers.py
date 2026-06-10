@@ -249,6 +249,19 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertEqual(marker_defaults[self.const.CONF_TTS_ENGINE], "")
         self.assertEqual(marker_defaults[self.const.CONF_TTS_VOICE], "")
 
+    def test_voice_schema_defaults_tts_engine_to_default_option(self) -> None:
+        hass = types.SimpleNamespace(states=None)
+        schema = asyncio.run(
+            self.config_flow._voice_schema(
+                hass,
+                self.config_flow._voice_defaults(),
+            )
+        )
+        marker_defaults = {marker.key: marker.default for marker in schema.schema}
+
+        self.assertEqual(self.const.DEFAULT_TTS_ENGINE, "")
+        self.assertEqual(marker_defaults[self.const.CONF_TTS_ENGINE], "")
+
     def test_voice_schema_uses_multiline_dj_response_prompt(self) -> None:
         hass = types.SimpleNamespace(states=None)
         schema = asyncio.run(
@@ -853,6 +866,68 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertIsNone(markers[0].default)
         self.assertEqual(markers[1].key, self.const.CONF_LOCAL_URL)
         self.assertIsNone(markers[1].default)
+
+    def test_options_repair_pairing_uses_manual_local_url(self) -> None:
+        calls = []
+
+        class Runtime:
+            def __init__(self):
+                self.device_status = {}
+                self.device_token = None
+                self.pairing_code = None
+                self.pairing_device_id = None
+
+            def update(self, **kwargs):
+                calls.append(("update", kwargs))
+
+            async def pair_device(self, hass):
+                calls.append(
+                    (
+                        "pair_device",
+                        self.pairing_code,
+                        self.pairing_device_id,
+                        self.device_status.get("local_url"),
+                    )
+                )
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={self.const.CONF_PAIR_CODE: "253940"},
+            options={},
+        )
+        runtime = Runtime()
+
+        class ConfigEntries:
+            def async_update_entry(self, entry_arg, *, data):
+                entry_arg.data = data
+
+        flow = self.config_flow.DJConnectOptionsFlow(entry)
+        flow.hass = types.SimpleNamespace(
+            data={self.const.DOMAIN: {entry.entry_id: runtime}},
+            config_entries=ConfigEntries(),
+            states=None,
+        )
+
+        result = asyncio.run(
+            flow.async_step_repair_pairing(
+                {
+                    self.const.CONF_PAIR_CODE: "555293",
+                    self.const.CONF_LOCAL_URL: "http://192.168.1.104:60955",
+                }
+            )
+        )
+
+        self.assertEqual(result["type"], "create_entry")
+        self.assertIn(
+            (
+                "pair_device",
+                "555293",
+                "djconnect-555293",
+                "http://192.168.1.104:60955",
+            ),
+            calls,
+        )
+        self.assertEqual(entry.data[self.const.CONF_LOCAL_URL], "http://192.168.1.104:60955")
 
 
 if __name__ == "__main__":
