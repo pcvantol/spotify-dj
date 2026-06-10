@@ -22,11 +22,13 @@ async def process_text_command(
     if play:
         playback = await play_from_intent(hass, runtime, intent, conf)
     fallback_dj_text = _dj_response_text(intent, playback, conf)
+    dj_response_debug: dict[str, Any] = {}
     dj_text = await generate_dj_response_with_assist(
         hass,
         media=_resolved_media(playback) or intent,
         fallback_text=fallback_dj_text,
         conf=conf,
+        debug=dj_response_debug,
     )
     result = {
         "text": user_text,
@@ -37,6 +39,7 @@ async def process_text_command(
     runtime.update(
         last_intent=intent,
         last_dj_text=dj_text,
+        last_dj_response_debug=dj_response_debug,
         last_playback=playback,
         last_error=None,
     )

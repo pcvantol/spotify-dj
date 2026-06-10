@@ -83,7 +83,7 @@ class AssistPipelineTest(unittest.TestCase):
                 return {"response": {"response_type": "action_done", "data": {}}}
 
         hass = types.SimpleNamespace(services=Services())
-        with self.assertLogs("custom_components.djconnect.pipeline", level="DEBUG") as logs:
+        with self.assertLogs("custom_components.djconnect", level="DEBUG") as logs:
             asyncio.run(
                 self.pipeline._conversation_process(
                     hass,
@@ -134,6 +134,35 @@ class AssistPipelineTest(unittest.TestCase):
         self.assertNotIn("{'artist'", calls[0][2]["text"])
         self.assertNotIn("'uri'", calls[0][2]["text"])
 
+    def test_generate_dj_response_uses_configured_conversation_agent(self) -> None:
+        calls = []
+
+        class Services:
+            async def async_call(self, domain, service, data, **kwargs):
+                calls.append(data)
+                return {
+                    "response": {
+                        "speech": {"plain": {"speech": "Metallica staat klaar."}}
+                    }
+                }
+
+        hass = types.SimpleNamespace(services=Services())
+        text = asyncio.run(
+            self.pipeline.generate_dj_response_with_assist(
+                hass,
+                media={"type": "artist", "artist": "Metallica", "artist_name": "Metallica"},
+                fallback_text="Daar is Metallica.",
+                conf={
+                    "assist_pipeline_id": "conversation.openai",
+                    "tts_language": "nl-NL",
+                },
+            )
+        )
+
+        self.assertEqual(text, "Metallica staat klaar.")
+        self.assertEqual(calls[0]["agent_id"], "conversation.openai")
+        self.assertEqual(calls[0]["text"].count("artiest: Metallica"), 1)
+
     def test_dj_response_assist_prompt_is_debug_logged(self) -> None:
         class Services:
             async def async_call(self, domain, service, data, **kwargs):
@@ -144,7 +173,7 @@ class AssistPipelineTest(unittest.TestCase):
                 }
 
         hass = types.SimpleNamespace(services=Services())
-        with self.assertLogs("custom_components.djconnect.pipeline", level="DEBUG") as logs:
+        with self.assertLogs("custom_components.djconnect", level="DEBUG") as logs:
             text = asyncio.run(
                 self.pipeline.generate_dj_response_with_assist(
                     hass,
@@ -226,6 +255,7 @@ class AssistPipelineTest(unittest.TestCase):
                 }
 
         hass = types.SimpleNamespace(services=Services())
+        debug = {}
         text = asyncio.run(
             self.pipeline.generate_dj_response_with_assist(
                 hass,
@@ -235,12 +265,16 @@ class AssistPipelineTest(unittest.TestCase):
                     "dj_response_prompt": "twee zinnen klink als radio DJ",
                     "tts_language": "nl-NL",
                 },
+                debug=debug,
             )
         )
 
         self.assertEqual(text, "Daar is Example Artist. Blijf erbij.")
         self.assertNotIn("geen apparaat", text)
         self.assertNotIn("spotify:artist", text)
+        self.assertTrue(debug["fallback_used"])
+        self.assertIn("spotify:artist", debug["generated_text"])
+        self.assertIsNotNone(debug["block_reason"])
 
     def test_generate_dj_response_blocks_prompt_leak_device_lookup_error(self) -> None:
         class Services:
@@ -261,18 +295,24 @@ class AssistPipelineTest(unittest.TestCase):
                 }
 
         hass = types.SimpleNamespace(services=Services())
+        debug = {}
         text = asyncio.run(
             self.pipeline.generate_dj_response_with_assist(
                 hass,
                 media={"type": "artist", "artist": "Red Hot Chili Peppers"},
                 fallback_text="Daar is Red Hot Chili Peppers.",
                 conf={"tts_language": "nl-NL"},
+                debug=debug,
             )
         )
 
         self.assertEqual(text, "Daar is Red Hot Chili Peppers.")
         self.assertNotIn("Noem de artiest", text)
         self.assertNotIn("niet vinden", text)
+        self.assertTrue(debug["fallback_used"])
+        self.assertEqual(debug["block_reason"], "device lookup error")
+        self.assertIn("Noem de artiest", debug["prompt"])
+        self.assertIn("Red Hot Chili Peppers", debug["generated_text"])
 
     def test_ordinary_artist_dj_response_is_usable(self) -> None:
         self.assertTrue(

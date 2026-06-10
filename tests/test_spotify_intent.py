@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import asyncio
 import sys
 import types
 import unittest
@@ -95,6 +96,51 @@ class SpotifyIntentTest(unittest.TestCase):
 
         self.assertEqual(media, "Nirvana")
         self.assertEqual(media_type, "artist")
+
+    def test_play_from_intent_prefers_fresh_search_selection_over_stale_playback(self) -> None:
+        async def command(hass, runtime, command, value, play=True):
+            runtime.last_spotify_search = {
+                "query": "Metallica",
+                "type": "artist",
+                "selected": {
+                    "type": "artist",
+                    "artist": "Metallica",
+                    "artist_name": "Metallica",
+                    "uri": "spotify:artist:metallica",
+                },
+            }
+            return {
+                "playback": {
+                    "type": "artist",
+                    "artist": "Guns N' Roses",
+                    "artist_name": "Guns N' Roses",
+                }
+            }
+
+        original = self.spotify.handle_spotify_command
+        self.spotify.handle_spotify_command = command
+        runtime = types.SimpleNamespace(
+            last_resolved_media={
+                "type": "artist",
+                "artist": "Guns N' Roses",
+                "artist_name": "Guns N' Roses",
+            },
+            last_spotify_search=None,
+        )
+        try:
+            result = asyncio.run(
+                self.spotify.play_from_intent(
+                    object(),
+                    runtime,
+                    {"type": "search", "spotify_search_query": "Metallica"},
+                    {},
+                )
+            )
+        finally:
+            self.spotify.handle_spotify_command = original
+
+        self.assertEqual(result["resolved_media"]["artist"], "Metallica")
+        self.assertEqual(result["device_response"]["playback"]["artist"], "Guns N' Roses")
 
 
 if __name__ == "__main__":

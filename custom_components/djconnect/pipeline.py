@@ -14,6 +14,7 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+_ROOT_LOGGER = logging.getLogger("custom_components.djconnect")
 
 
 async def process_text_with_assist(
@@ -128,12 +129,26 @@ async def generate_dj_response_with_assist(
     media: dict[str, Any],
     fallback_text: str,
     conf: dict[str, Any],
+    debug: dict[str, Any] | None = None,
 ) -> str:
     """Ask HA Assist for a short DJ response using resolved playback metadata."""
     prompt = str(conf.get(CONF_DJ_RESPONSE_PROMPT) or DEFAULT_DJ_RESPONSE_PROMPT).strip()
-    language = conf.get(CONF_TTS_LANGUAGE) or DEFAULT_TTS_LANGUAGE
+    assist_context = _assist_context(hass, conf)
+    language = assist_context.get("language") or conf.get(CONF_TTS_LANGUAGE) or DEFAULT_TTS_LANGUAGE
     media_context = _dj_response_media_context(media)
+    if debug is not None:
+        debug.update(
+            {
+                "fallback_text": fallback_text,
+                "media_context": dict(media_context),
+                "fallback_used": False,
+                "block_reason": None,
+                "generated_text": None,
+            }
+        )
     if not media_context:
+        if debug is not None:
+            debug.update({"fallback_used": True, "block_reason": "empty media context"})
         return fallback_text
     media_lines = _dj_response_media_lines(media_context)
     text = (
@@ -148,31 +163,50 @@ async def generate_dj_response_with_assist(
         f"Media:\n{media_lines}\n\n"
         "Return only the text that should be spoken. No JSON, no explanation, no URI."
     )
+    if debug is not None:
+        debug["prompt"] = text
     try:
-        _LOGGER.debug(
-            "DJConnect Assist DJ response prompt language=%s prompt=%r",
+        _ROOT_LOGGER.debug(
+            "DJConnect Assist DJ response prompt language=%s agent_id=%s pipeline_id=%s prompt=%r",
             language,
+            assist_context.get("agent_id"),
+            assist_context.get("pipeline_id"),
             text,
         )
+        data = {"text": text, "language": language}
+        if assist_context.get("agent_id"):
+            data["agent_id"] = assist_context["agent_id"]
         result = await hass.services.async_call(
             "conversation",
             "process",
-            {"text": text, "language": language},
+            data,
             blocking=True,
             return_response=True,
         )
         response = (result or {}).get("response") or {}
         generated = _speech_from_response(response)
+        if debug is not None:
+            debug["generated_text"] = generated
         blocked_reason = _dj_response_block_reason(generated)
         if blocked_reason is None:
             return generated
+        if debug is not None:
+            debug.update({"fallback_used": True, "block_reason": blocked_reason})
         _LOGGER.debug(
             "Ignoring unusable Assist DJ response (%s): %s",
             blocked_reason,
             generated,
         )
         return fallback_text
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        if debug is not None:
+            debug.update(
+                {
+                    "fallback_used": True,
+                    "block_reason": type(exc).__name__,
+                    "error": str(exc) or type(exc).__name__,
+                }
+            )
         _LOGGER.debug("DJConnect DJ response generation through Assist failed", exc_info=True)
         return fallback_text
 
@@ -212,8 +246,15 @@ def _dj_response_media_lines(media_context: dict[str, Any]) -> str:
         "owner": "eigenaar",
     }
     lines = []
+    seen = set()
     for key, value in media_context.items():
-        lines.append(f"{labels.get(key, key)}: {value}")
+        label = labels.get(key, key)
+        line = f"{label}: {value}"
+        dedupe_key = (label, str(value).strip().lower())
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        lines.append(line)
     return "\n".join(lines)
 
 

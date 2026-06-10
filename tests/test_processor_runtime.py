@@ -131,10 +131,12 @@ class ProcessorRuntimeTest(unittest.TestCase):
 
         original_assist = self.processor.process_text_with_assist
         original_play = self.processor.play_from_intent
-        async def generated_dj_response(hass, *, media, fallback_text, conf):
+        async def generated_dj_response(hass, *, media, fallback_text, conf, debug=None):
             self.assertEqual(media["track_name"], "Alive")
             self.assertEqual(media["artist"], "Pearl Jam")
             self.assertIn("festival", conf["dj_response_prompt"])
+            if debug is not None:
+                debug["fallback_used"] = False
             return "Pearl Jam komt binnen alsof de festivalweide net wakker wordt."
 
         self.processor.process_text_with_assist = assist
@@ -181,7 +183,9 @@ class ProcessorRuntimeTest(unittest.TestCase):
                 }
             }
 
-        async def bad_dj_response(hass, *, media, fallback_text, conf):
+        async def bad_dj_response(hass, *, media, fallback_text, conf, debug=None):
+            if debug is not None:
+                debug.update({"fallback_used": True, "block_reason": "test"})
             return fallback_text
 
         original_assist = self.processor.process_text_with_assist

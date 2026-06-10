@@ -79,6 +79,7 @@ class DJConnectStatusSensor(DJConnectBaseSensor):
             "last_spotify_search": getattr(self.runtime, "last_spotify_search", None),
             "last_resolved_media": getattr(self.runtime, "last_resolved_media", None),
             "last_dj_text": self.runtime.last_dj_text,
+            "last_dj_response_debug": getattr(self.runtime, "last_dj_response_debug", None),
             "last_dj_spoken": getattr(self.runtime, "last_dj_spoken", None),
             "last_dj_displayed": getattr(self.runtime, "last_dj_displayed", None),
             "last_dj_response_at": getattr(self.runtime, "last_dj_response_at", None),
