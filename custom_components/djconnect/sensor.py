@@ -9,6 +9,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 
+MAX_SENSOR_STATE_TEXT_LENGTH = 255
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -107,7 +109,11 @@ class DJConnectLastTextSensor(DJConnectBaseSensor):
 
     @property
     def extra_state_attributes(self):
+        full_value = _last_command_first_raw_value(self.runtime) or self._last_value
         return {
+            "full_value": full_value,
+            "state_truncated": _is_long_text_state(full_value),
+            "state_prompt_leak_ignored": _looks_like_assist_prompt_leak(full_value or ""),
             "last_stt_text": getattr(self.runtime, "last_stt_text", None) or self._last_value,
             "last_text": getattr(self.runtime, "last_text", None),
             "last_dj_text": getattr(self.runtime, "last_dj_text", None) or self._last_value,
@@ -321,15 +327,36 @@ def _queue_currently_playing(queue):
 
 
 def _last_command_value(runtime):
+    return _safe_text_state(_last_command_raw_value(runtime))
+
+
+def _last_command_raw_value(runtime):
     for key in ("last_dj_text", "last_text", "last_stt_text"):
         value = getattr(runtime, key, None)
         if value not in (None, ""):
-            return value
+            safe = _safe_text_state(value)
+            if safe not in (None, ""):
+                return value
     status = getattr(runtime, "device_status", {}) or {}
     for key in ("last_dj_text", "last_command", "last_text", "last_stt_text"):
         value = status.get(key)
         if value not in (None, ""):
-            return value
+            safe = _safe_text_state(value)
+            if safe not in (None, ""):
+                return value
+    return None
+
+
+def _last_command_first_raw_value(runtime):
+    for key in ("last_dj_text", "last_text", "last_stt_text"):
+        value = getattr(runtime, key, None)
+        if value not in (None, ""):
+            return str(value)
+    status = getattr(runtime, "device_status", {}) or {}
+    for key in ("last_dj_text", "last_command", "last_text", "last_stt_text"):
+        value = status.get(key)
+        if value not in (None, ""):
+            return str(value)
     return None
 
 
@@ -338,15 +365,46 @@ def _last_track_value(runtime):
     for key in ("track_name", "title", "name", "track"):
         value = playback.get(key)
         if value not in (None, ""):
-            return value
+            return _safe_text_state(value)
     resolved = getattr(runtime, "last_resolved_media", None) or {}
     for key in ("track_name", "title", "name", "artist", "artist_name"):
         value = resolved.get(key)
         if value not in (None, ""):
-            return value
+            return _safe_text_state(value)
     status = getattr(runtime, "device_status", {}) or {}
     for key in ("last_track", "track_name", "track", "title"):
         value = status.get(key)
         if value not in (None, ""):
-            return value
+            return _safe_text_state(value)
     return None
+
+
+def _safe_text_state(value):
+    """Return text that is safe for HA state storage."""
+    if value in (None, ""):
+        return None
+    text = str(value).strip()
+    if not text or _looks_like_assist_prompt_leak(text):
+        return None
+    if len(text) <= MAX_SENSOR_STATE_TEXT_LENGTH:
+        return text
+    return text[: MAX_SENSOR_STATE_TEXT_LENGTH - 1].rstrip() + "…"
+
+
+def _is_long_text_state(value) -> bool:
+    if value in (None, ""):
+        return False
+    return len(str(value).strip()) > MAX_SENSOR_STATE_TEXT_LENGTH
+
+
+def _looks_like_assist_prompt_leak(value: str) -> bool:
+    normalized = " ".join(str(value or "").lower().split())
+    return (
+        "gebruik deze dj response prompt" in normalized
+        or "antwoord alleen met de tekst die uitgesproken moet worden" in normalized
+    ) and (
+        "niet vinden" in normalized
+        or "geen apparaat vinden" in normalized
+        or "can't find" in normalized
+        or "cannot find" in normalized
+    )

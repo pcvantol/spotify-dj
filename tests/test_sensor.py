@@ -204,6 +204,51 @@ class DJConnectSensorTest(unittest.TestCase):
         self.assertEqual(entity.native_value, "Daar is Pearl Jam")
         self.assertEqual(entity.extra_state_attributes["last_dj_text"], "Daar is Pearl Jam")
 
+    def test_last_command_sensor_skips_assist_prompt_leak_error(self) -> None:
+        leaked = (
+            "Sorry, ik kan Gebruik deze DJ response prompt als stijl-/inhoudsinstructie "
+            "Maak een korte gesproken DJ-aankondiging in het Nederlands Media type artist "
+            "artiest Red Hot Chili Peppers Antwoord alleen met de tekst die uitgesproken "
+            "moet worden Geen JSON geen uitleg geen URI niet vinden"
+        )
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            last_text="zet red hot chili peppers op",
+            last_stt_text="zet red hot chili peppers op",
+            last_dj_text=leaked,
+            last_intent=None,
+            last_spotify_search=None,
+            last_resolved_media=None,
+            device_status={},
+            listeners=[],
+        )
+        entity = self.sensor.DJConnectLastTextSensor(runtime)
+
+        self.assertEqual(entity.native_value, "zet red hot chili peppers op")
+        self.assertEqual(entity.extra_state_attributes["full_value"], leaked)
+        self.assertTrue(entity.extra_state_attributes["state_prompt_leak_ignored"])
+        self.assertEqual(entity.extra_state_attributes["last_dj_text"], leaked)
+
+    def test_last_command_sensor_truncates_long_state_text(self) -> None:
+        long_text = "x" * 300
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            last_text=None,
+            last_stt_text=None,
+            last_dj_text=long_text,
+            last_intent=None,
+            last_spotify_search=None,
+            last_resolved_media=None,
+            device_status={},
+            listeners=[],
+        )
+        entity = self.sensor.DJConnectLastTextSensor(runtime)
+
+        self.assertEqual(len(entity.native_value), 255)
+        self.assertTrue(entity.native_value.endswith("…"))
+        self.assertEqual(entity.extra_state_attributes["full_value"], long_text)
+        self.assertTrue(entity.extra_state_attributes["state_truncated"])
+
     def test_status_sensor_exposes_voice_and_spotify_debug_attributes(self) -> None:
         runtime = types.SimpleNamespace(
             entry=types.SimpleNamespace(entry_id="entry-1"),
