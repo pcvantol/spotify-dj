@@ -58,7 +58,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `djconnect`
 - HACS custom integration.
-- Actuele integratieversie: `3.1.11`.
+- Actuele integratieversie: `3.1.12`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -161,6 +161,7 @@ README/release:
 - README moet actueel blijven voor HACS installatie, Spotify OAuth, endpoints, OTA en release workflow.
 - De product/marketing website staat buiten deze HA integration repo op `https://djconnect.pages.dev`; houd deze repo gefocust op HACS integration, docs, brand assets en release workflow.
 - De website How To Start pagina moet dezelfde basisvereisten noemen als de HACS docs: Home Assistant, HACS, Spotify Premium, HA Assist pipeline met STT/TTS, lokaal netwerk tijdens pairing, ESP 2.4 GHz WiFi en Nabu Casa/externe HTTPS URL voor Spotify OAuth.
+- Cross-repo sync prompts staan uitsluitend in `SYNC_PROMPTS.md`; voeg oude losse promptbestanden niet opnieuw toe.
 - Release checklist moet in README en AGENTS blijven staan en bij elke release worden gevolgd.
 - Pre-release checklist:
   - Controleer dat de working tree alleen bedoelde wijzigingen bevat.

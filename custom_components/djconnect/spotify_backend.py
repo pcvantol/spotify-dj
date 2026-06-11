@@ -69,6 +69,9 @@ async def handle_spotify_command(
     if normalized == "previous":
         await backend.previous()
         return {"success": True, "playback": await backend.playback_state()}
+    if normalized == "seek_relative":
+        await backend.seek_relative(value)
+        return {"success": True, "playback": await backend.playback_state()}
     if normalized == "start_liked_proxy":
         await backend.start_liked_proxy()
         return {"success": True, "playback": await backend.playback_state()}
@@ -371,6 +374,26 @@ class SpotifyBackend:
 
     async def previous(self) -> None:
         await self._request("POST", "/me/player/previous", expected_empty=True)
+
+    async def seek_relative(self, value: Any) -> None:
+        """Seek relative to the current Spotify playback position."""
+        try:
+            offset_ms = int(float(value))
+        except (TypeError, ValueError) as exc:
+            raise ValueError("seek_relative value must be an integer millisecond offset") from exc
+        playback = await self.playback_state()
+        if not playback.get("has_playback"):
+            raise SpotifyBackendError("Cannot seek because Spotify playback is not active")
+        current_ms = _int_or_none(playback.get("progress_ms")) or 0
+        duration_ms = _int_or_none(playback.get("duration_ms"))
+        position_ms = max(0, current_ms + offset_ms)
+        if duration_ms is not None:
+            position_ms = min(position_ms, max(0, duration_ms))
+        await self._request(
+            "PUT",
+            f"/me/player/seek?position_ms={position_ms}",
+            expected_empty=True,
+        )
 
     async def start_liked_proxy(self) -> None:
         playlist = str(self.conf.get(CONF_LIKED_PROXY) or "").strip()
@@ -706,6 +729,13 @@ def _bool_value(value: Any) -> bool:
     if normalized in {"0", "false", "no", "off"}:
         return False
     raise ValueError("set_shuffle value must be true or false")
+
+
+def _int_or_none(value: Any) -> int | None:
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
 
 
 def _current_refresh_token(runtime: Any, conf: dict[str, Any]) -> str:

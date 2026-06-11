@@ -14,7 +14,7 @@ DOCS = [
     ROOT / "HANDOFF.md",
     ROOT / "TODO.md",
     ROOT / "ISSUES.md",
-    ROOT / "ESP_SYNC_PROMPT.md",
+    ROOT / "SYNC_PROMPTS.md",
 ]
 
 CONFIG_FLOW_ERROR_KEYS = {

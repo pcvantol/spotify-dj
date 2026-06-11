@@ -102,6 +102,7 @@
 - Keep `CHANGELOG.md` consolidated to the current release only.
 - Keep `HANDOFF.md` current after major debugging sessions.
 - Keep `TODO.md` and `ISSUES.md` current after field testing.
+- Keep cross-repo sync prompts only in `SYNC_PROMPTS.md`; do not re-add retired loose prompt files.
 - Document known HA restart requirement after HACS custom integration updates.
 
 ## Website / Marketing

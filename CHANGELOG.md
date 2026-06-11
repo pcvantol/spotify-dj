@@ -1,7 +1,9 @@
 # Changelog
 
-## 3.1.11
+## 3.1.12
 
+- Add HA backend support for Apple app `seek_relative` playback commands with millisecond offsets.
+- Consolidate all DJConnect cross-repo sync prompts into the single canonical `SYNC_PROMPTS.md` file and remove the retired loose prompt files.
 - Document the DJConnect website How To Start requirements for HACS installation, Spotify Premium, Home Assistant Assist STT/TTS, local pairing and Spotify OAuth.
 - Add the HACS custom-repository deeplink to the README installation section.
 - Update handoff, TODO, AGENTS and sync prompts so website setup copy stays aligned with the Home Assistant integration flow.
@@ -37,7 +39,7 @@
 - Fall back to clean local DJ response text when HA Assist cannot generate a usable response, without pretending to implement prompt-specific DJ styles through hardcoded templates.
 - Add tests for malformed Assist DJ-response output and radio-prompt fallback behavior.
 - Update HA/ESP sync prompts and handoff documentation for the current `3.0.27` contract, including artist-only Spotify search, free-form `dj_response_prompt`, stable sensor caching and required `client_type`.
-- Add `IOS_MACOS_APP_HANDOFF.md` to document future `ios` and `macos` DJConnect clients without reintroducing `device_type` or client-side Spotify credentials.
+- Add `SYNC_PROMPTS.md` to document future `ios` and `macos` DJConnect clients without reintroducing `device_type` or client-side Spotify credentials.
 - Keep the editable `dj_response_prompt` out of the Assist command-parser prompt, so text such as "Noem waar mogelijk..." can no longer leak into Spotify artist search queries like `Opdracht Metallica`.
 - Broaden Assist device-lookup fallback handling so errors such as "Opdracht Metallica niet vinden" fall back to the original spoken command instead of failing playback.
 - Replace the four fixed DJ style choices with one editable `dj_response_prompt` in the config/options flow; old `dj_style` and `dj_profile` compatibility paths are removed.

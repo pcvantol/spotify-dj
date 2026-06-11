@@ -727,6 +727,83 @@ class SpotifyBackendTest(unittest.TestCase):
             {"uris": ["spotify:track:def"]},
         )
 
+    def test_seek_relative_uses_current_progress_and_clamps_to_duration(self) -> None:
+        class Response:
+            def __init__(self, status, payload=None):
+                self.status = status
+                self.payload = payload or {}
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def json(self, content_type=None):
+                return self.payload
+
+            async def text(self):
+                return str(self.payload)
+
+        class Session:
+            def __init__(self):
+                self.calls = []
+
+            def request(self, method, url, **kwargs):
+                self.calls.append({"method": method, "url": url, **kwargs})
+                if method == "GET" and url.endswith("/me/player"):
+                    return Response(
+                        200,
+                        {
+                            "is_playing": True,
+                            "progress_ms": 175000,
+                            "item": {
+                                "name": "Song",
+                                "duration_ms": 180000,
+                                "artists": [],
+                                "album": {},
+                            },
+                            "device": {"name": "iPhone", "volume_percent": 30},
+                        },
+                    )
+                return Response(204)
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={"spotify_client_id": "client-id", "spotify_refresh_token": "refresh"},
+            options={},
+        )
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            latest_spotify_refresh_token=None,
+            spotify_access_token="access",
+            spotify_access_token_expires_at=time.time() + 1800,
+            device_status={},
+            update=lambda **kwargs: None,
+        )
+        runtime.config = dict(entry.data)
+        session = Session()
+
+        original_clientsession = self.backend.async_get_clientsession
+        self.backend.async_get_clientsession = lambda hass: session
+        try:
+            result = asyncio.run(
+                self.backend.handle_spotify_command(
+                    object(),
+                    runtime,
+                    "seek_relative",
+                    15000,
+                )
+            )
+        finally:
+            self.backend.async_get_clientsession = original_clientsession
+
+        self.assertTrue(result["success"])
+        self.assertEqual(
+            session.calls[1]["url"],
+            "https://api.spotify.com/v1/me/player/seek?position_ms=180000",
+        )
+
     def test_set_play_mode_is_no_longer_supported(self) -> None:
         runtime = types.SimpleNamespace(config={})
         with self.assertRaises(ValueError):

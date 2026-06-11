@@ -4,12 +4,13 @@
 
 - Repository: `pcvantol/djconnect`.
 - Integration domain: `djconnect`.
-- Current integration release: `3.1.11`.
-- Release status: DJConnect `3.1.11` is the current released baseline.
+- Current integration release: `3.1.12`.
+- Release status: DJConnect `3.1.12` is the current released baseline.
 - Home Assistant integration is HACS-distributed and MIT-licensed.
 - ESP firmware source remains proprietary in `pcvantol/djconnect-app`.
 - Public firmware release assets live in `pcvantol/djconnect-firmware`.
 - Public product website: `https://djconnect.pages.dev`.
+- Cross-repo prompts are consolidated into one canonical `SYNC_PROMPTS.md`; old loose prompt files are intentionally removed and must not be reintroduced.
 - Current firmware uses the local ESP API with bearer-token auth and generic playback commands.
 - ESP no longer stores Spotify OAuth/client_id/refresh_token or other playback-backend credentials.
 - HA integration is the trusted backend for pairing, Spotify OAuth/backend playback, Assist/STT/TTS, OTA and native entities.
@@ -130,7 +131,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 ## Current Release Notes
 
 - Current release line is `3.1.x`; only the latest GitHub release/tag should be kept after release cleanup.
-- Current latest baseline is `3.1.11`.
+- Current latest baseline is `3.1.12`.
 - HACS-visible docs now show the public DJConnect website. The external website should use the same setup requirements: Home Assistant, HACS, Spotify Premium, HA Assist pipeline with STT/TTS, local-network pairing, and Nabu Casa/external HTTPS URL for Spotify OAuth.
 - Voice/Assist search text such as "ik wil Pearl Jam starten" must resolve to a Spotify artist first; free-text PTT search is artist-only unless the request is an explicit playlist flow or direct Spotify URI.
 - Do not send arbitrary text as `context_uri`, and do not perform broad track/album search for generic artist requests.
@@ -165,7 +166,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - PTT/debug metadata is exposed as attributes on `sensor.djconnect_status` and `sensor.djconnect_last_command`, including last STT text, Spotify search summary and resolved media metadata.
 - Developer Actions use explicit UI field names `command_text` and `dj_response_text`; legacy `text` remains accepted for existing YAML/scripts.
 - If HA Assist treats the DJConnect parsing prompt as a smart-home device command, DJConnect falls back to a simple Spotify search intent instead of raising a websocket script exception.
-- ESP sync prompt now requires menu-open LED ring off/volume-clear behavior and a blue LED ring/accent for Asteroids.
+- `SYNC_PROMPTS.md` is the only canonical sync prompt bundle and includes the ESP, HA, Apple app and product website contracts.
 - Spotify OAuth callback stores tokens even if an options flow is already closed and `UnknownFlow` occurs.
 - Spotify OAuth Repair flow starts an external Spotify OAuth step and does not mark the issue fixed until a new token is stored.
 - Backend playback auth failures are returned as user-friendly JSON without forcing ESP pairing reset.
