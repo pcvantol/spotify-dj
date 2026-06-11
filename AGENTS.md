@@ -58,7 +58,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `djconnect`
 - HACS custom integration.
-- Actuele integratieversie: `3.1.8`.
+- Actuele integratieversie: `3.1.9`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -159,14 +159,13 @@ Firmware releases:
 
 README/release:
 - README moet actueel blijven voor HACS installatie, Spotify OAuth, endpoints, OTA en release workflow.
-- `website/index.html` is de statische product/marketing onepager voor pre-flashed DJConnect devices; houd quick start, randvoorwaarden, local-API verhaal en legal/trademark tekst actueel.
+- De product/marketing website staat buiten deze HA integration repo; houd deze repo gefocust op HACS integration, docs, brand assets en release workflow.
 - Release checklist moet in README en AGENTS blijven staan en bij elke release worden gevolgd.
 - Pre-release checklist:
   - Controleer dat de working tree alleen bedoelde wijzigingen bevat.
   - Update `custom_components/djconnect/manifest.json` naar de target versie.
   - Update `custom_components/djconnect/const.py` naar dezelfde target versie.
   - Update `README.md` current version, examples, endpoints en HACS instructies.
-  - Update `website/index.html` als out-of-the-box setup, requirements, verkoopverhaal of legal wording wijzigt.
   - Update `CHANGELOG.md` als één actuele versie zonder oude versieblokken.
   - Houd `AGENTS.md` gelijk met actuele versie en release-eisen.
   - Controleer `custom_components/djconnect/brand/icon.png`, `icon@2x.png` en `logo.png`.

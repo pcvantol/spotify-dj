@@ -185,7 +185,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 ## Next Tasks
 
 1. Install the latest `3.1.x` release via HACS and restart Home Assistant.
-2. Verify the README/HACS banner and product website hero render as intended.
+2. Verify the README/HACS banner renders as intended; product website checks now happen in the external website location.
 3. Verify `button.djconnect_refresh_up_next` updates `sensor.djconnect_queue` attributes.
 4. Verify `select.djconnect_sound_output` populates Spotify outputs without manually calling `devices`.
 5. Verify sensors keep last-known values after ESP status, playback command polling, voice tests and local device-info refreshes.

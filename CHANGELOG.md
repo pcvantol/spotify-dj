@@ -1,7 +1,11 @@
 # Changelog
 
-## 3.1.8
+## 3.1.9
 
+- Remove the repository-local `website/` product site now that the marketing website is maintained outside the Home Assistant integration repo.
+- Update README, AGENTS, handoff, issue and todo documentation so release hygiene no longer treats the external website as part of this HACS package.
+- Keep HACS/integration brand assets in `custom_components/djconnect/brand/` while dropping the duplicated static website asset tree.
+- Refresh app-client validation notes for iOS/macOS Client API URL pairing and non-ESP entity behavior.
 - Serialize Spotify access-token refreshes so simultaneous iOS/macOS/PTT playback calls cannot race a rotated refresh token into a false `invalid_grant` repair.
 - Retry once with the latest stored refresh token when Spotify returns `invalid_grant` after another concurrent call already rotated the token.
 - Avoid Spotify's invalid artist-context offset payload by playing selected track URIs directly when queue playback originates from an artist context.

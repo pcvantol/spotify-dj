@@ -10,7 +10,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.1.8`
+- Home Assistant integration: `3.1.9`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -59,21 +59,15 @@ runtime behavior. These decisions are part of the integration contract:
 
 ## Repository Layout
 
-- Home Assistant integration: `3.1.8`
+- Home Assistant integration: `3.1.9`
 - ESP firmware source: `pcvantol/djconnect-app`
 - Public firmware releases: `pcvantol/djconnect-firmware`
+- Canonical cross-repo sync prompts: [`SYNC_PROMPTS.md`](SYNC_PROMPTS.md)
 
 This repository contains the Home Assistant custom integration under `custom_components/djconnect`.
 
 Brand images for the Home Assistant frontend are bundled in `custom_components/djconnect/brand/`.
-
-The product/marketing onepager is available as a standalone static website in
-`website/index.html`. It describes the out-of-the-box experience for
-pre-flashed DJConnect devices, the HACS quick start, requirements such as
-Spotify Premium, Home Assistant, HA Assist/STT/TTS and 2.4 GHz WiFi, plus the
-Spotify trademark/non-affiliation notice. The page can be opened locally in a
-browser or hosted as static HTML, for example through GitHub Pages or a separate
-product website.
+The product/marketing website is maintained outside this integration repository.
 
 ## Licensing And Commercial Use
 
@@ -523,24 +517,24 @@ Example manifest:
 
 ```json
 {
-  "version": "3.1.8",
-  "version_tag": "v3.1.8",
+  "version": "3.1.9",
+  "version_tag": "v3.1.9",
   "channel": "stable",
-  "min_ha_integration": "3.1.8",
+  "min_ha_integration": "3.1.9",
   "firmwares": [
     {
       "board": "t_embed_cc1101",
       "device": "lilygo-t-embed-s3",
-      "asset": "djconnect-lilygo-t-embed-s3-v3.1.8.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.8/djconnect-lilygo-t-embed-s3-v3.1.8.bin",
+      "asset": "djconnect-lilygo-t-embed-s3-v3.1.9.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.9/djconnect-lilygo-t-embed-s3-v3.1.9.bin",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size": 2113136
     },
     {
       "board": "esp32_s3_box3",
       "device": "esp32-s3-box-3",
-      "asset": "djconnect-esp32-s3-box-3-v3.1.8.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.8/djconnect-esp32-s3-box-3-v3.1.8.bin",
+      "asset": "djconnect-esp32-s3-box-3-v3.1.9.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.9/djconnect-esp32-s3-box-3-v3.1.9.bin",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
       "size": 2113136
     }
@@ -563,7 +557,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.1.8
+./release.sh 3.1.9
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -575,14 +569,14 @@ PlatformIO builds, rename firmware binaries to device-specific assets such as
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.1.8 --dry-run
+./release.sh 3.1.9 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
 public-repo option if available:
 
 ```bash
-./release.sh 3.1.8 --publish-firmware-repo ../djconnect-firmware
+./release.sh 3.1.9 --publish-firmware-repo ../djconnect-firmware
 ```
 
 The public `djconnect-firmware` repository should contain only the release
@@ -602,8 +596,6 @@ Pre-release checklist:
 - Update `README.md` current version, examples, endpoints and HACS instructions.
 - Update `CHANGELOG.md` as a single current-version changelog.
 - Keep `AGENTS.md` aligned with the current version and release expectations.
-- Keep `website/index.html` aligned with the current out-of-the-box setup,
-  requirements and legal/trademark wording.
 - Verify `custom_components/djconnect/brand/` contains `icon.png`, `icon@2x.png` and `logo.png`.
 - Verify `LICENSE` covers the Home Assistant integration and `FIRMWARE-LICENSE.md` covers firmware binaries.
 - Run the lightweight tests:
@@ -617,7 +609,7 @@ Tag and publish:
 One-liner:
 
 ```bash
-./release.sh 3.1.8
+./release.sh 3.1.9
 ```
 
 The script updates the integration version in `manifest.json`, `const.py`,
@@ -626,18 +618,18 @@ The script updates the integration version in `manifest.json`, `const.py`,
 Preview without executing git/gh commands:
 
 ```bash
-./release.sh 3.1.8 --dry-run
+./release.sh 3.1.9 --dry-run
 ```
 
 Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.1.8"
-git tag v3.1.8
+git commit -m "Release DJConnect v3.1.9"
+git tag v3.1.9
 git push origin main
-git push origin v3.1.8
-gh release create v3.1.8 --title "DJConnect v3.1.8" --notes-file CHANGELOG.md
+git push origin v3.1.9
+gh release create v3.1.9 --title "DJConnect v3.1.9" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

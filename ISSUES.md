@@ -14,9 +14,17 @@
 
 - Status: open / expected migration behavior.
 - Area: pairing/discovery.
-- Symptom: Older config entries may still contain a setup-code-derived `device_id` or no real `local_url`.
-- Current mitigation: `/pair` and `/status` now persist real `djconnect-XXXXXXXXXXXX` and reported `local_url`.
+- Symptom: Older config entries may still contain a setup-code-derived `device_id`, no real Client API URL, or an ESP-only assumption for app clients.
+- Current mitigation: `/pair` and `/status` now persist real model/app-specific device ids and reported `local_url`.
 - Next action: Verify existing paired ESP posts `/status`; if not, manually use advanced device URL once or re-pair.
+
+### iOS/macOS pairing and playback need field validation
+
+- Status: open / field validation.
+- Area: app clients.
+- Symptom: iOS/macOS clients depend on the app-reported Client API URL and must not expose ESP-only firmware/reboot controls.
+- Current mitigation: Client type and Client API URL are visible in normal pairing; OTA update and reboot entities are skipped/unavailable for `ios` and `macos`.
+- Next action: Test fresh iOS/macOS pairing, re-pairing and PTT playback after HACS install/restart.
 
 ### mDNS reliability varies by network
 
@@ -74,7 +82,7 @@
 - Area: voice endpoint / developer test.
 - Previous symptom: Web test text request looked up a device named `Test` or attempted Spotify playback.
 - Fix: JSON/text-only `/api/djconnect/voice` requests are direct DJ-response tests.
-- Validation: Confirm web test returns a ready DJ response and optional TTS audio URL.
+- Validation: Confirm web test returns a ready DJ aankondiging and optional TTS audio URL.
 
 ### Options flow internal server error
 
@@ -95,18 +103,35 @@
 ### HA TTS unsupported audio type
 
 - Status: fixed/handled, monitor.
-- Area: DJ response TTS.
+- Area: DJ aankondiging TTS.
 - Previous symptom: HA TTS returned MP3 while integration expected WAV only.
 - Fix: Temporary TTS URLs support WAV and MP3; unknown types become text-only fallback.
 - Validation: Confirm ESP firmware supports MP3 and plays returned `audio_url`.
 
+### Spotify refresh-token race after iOS/macOS PTT
+
+- Status: fixed in 3.1.8, monitor after install.
+- Area: Spotify backend / voice playback.
+- Previous symptom: After one PTT DJ announcement from iOS/macOS, HA could create a false Spotify reauthorization repair because concurrent Spotify calls refreshed with the same old refresh token.
+- Fix: Spotify access-token refresh is serialized per runtime, cached token is rechecked under the lock, and `invalid_grant` retries once when another call already rotated the refresh token.
+- Validation: Trigger several PTT requests from iOS/macOS after HA restart and confirm no false “Spotify autorisatie verlopen of ingetrokken” repair appears.
+
+### Spotify artist queue offset error
+
+- Status: fixed in 3.1.8, monitor after install.
+- Area: Spotify backend / queue playback.
+- Previous symptom: Selecting a queue item from an artist context could send `context_uri + offset` to Spotify and return `Can't have offset for context type: ARTIST`, which was visible as a DJ announcement.
+- Fix: Artist-context queue item playback now starts the selected track URI directly instead of using an invalid artist offset payload.
+- Validation: Start an artist, open queue/up-next, select a track and confirm Spotify starts it without an API 400 message on the device.
+
 ## Regression Watchlist
 
 - Config flow must not expose manual `oauth_result`.
-- Config flow must not require normal users to fill local device URL.
+- Config flow must show `client_type` and Client API URL in normal pairing; iOS/macOS users need it, ESP users usually leave it empty.
 - Config/options flow must not require `spotify_player`.
-- Website onepager must not imply official Spotify affiliation, endorsement or sponsorship.
-- Website onepager must stay aligned with current setup requirements and local API architecture.
+- OTA update and reboot entities must not be active/available for `client_type=ios` or `client_type=macos`.
+- External product website must not imply official Spotify affiliation, endorsement or sponsorship.
+- External product website must stay aligned with current setup requirements and local API architecture.
 - `stt_engine` must remain visible and configurable.
 - No direct external AI/STT/TTS calls should be used by active routes.
 - No secret values should appear in logs or diagnostics.
