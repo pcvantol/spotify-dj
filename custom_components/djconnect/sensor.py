@@ -7,7 +7,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import CLIENT_TYPE_ESP32, DOMAIN
 from .entity_ids import entry_unique_id
 
 MAX_SENSOR_STATE_TEXT_LENGTH = 255
@@ -18,25 +18,29 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     runtime = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(
-        [
-            DJConnectStatusSensor(runtime),
-            DJConnectLastTextSensor(runtime),
-            DJConnectBatterySensor(runtime),
-            DJConnectWifiSensor(runtime),
-            DJConnectFirmwareSensor(runtime),
-            DJConnectLastTrackSensor(runtime),
-            DJConnectSpotifyStatusSensor(runtime),
-            DJConnectPairingStatusSensor(runtime),
-            DJConnectSoundOutputSensor(runtime),
-            DJConnectPlaybackAvailableSensor(runtime),
-            DJConnectQueueSensor(runtime),
-            DJConnectPlaylistsSensor(runtime),
-            DJConnectOutputsSensor(runtime),
-            DJConnectScreenStateSensor(runtime),
-            DJConnectLedStateSensor(runtime),
-        ]
-    )
+    entities = [
+        DJConnectStatusSensor(runtime),
+        DJConnectLastTextSensor(runtime),
+        DJConnectFirmwareSensor(runtime),
+        DJConnectLastTrackSensor(runtime),
+        DJConnectSpotifyStatusSensor(runtime),
+        DJConnectPairingStatusSensor(runtime),
+        DJConnectSoundOutputSensor(runtime),
+        DJConnectPlaybackAvailableSensor(runtime),
+        DJConnectQueueSensor(runtime),
+        DJConnectPlaylistsSensor(runtime),
+        DJConnectOutputsSensor(runtime),
+    ]
+    if _runtime_client_type(runtime) == CLIENT_TYPE_ESP32:
+        entities.extend(
+            [
+                DJConnectBatterySensor(runtime),
+                DJConnectWifiSensor(runtime),
+                DJConnectScreenStateSensor(runtime),
+                DJConnectLedStateSensor(runtime),
+            ]
+        )
+    async_add_entities(entities)
 
 class DJConnectBaseSensor(SensorEntity):
     _attr_has_entity_name = True
@@ -332,6 +336,13 @@ class DJConnectLedStateSensor(DJConnectBaseSensor):
     @property
     def native_value(self):
         return self.runtime.device_status.get("led_state")
+
+
+def _runtime_client_type(runtime) -> str:
+    getter = getattr(runtime, "client_type", None)
+    if callable(getter):
+        return str(getter() or CLIENT_TYPE_ESP32)
+    return str(getattr(runtime, "device_status", {}).get("client_type") or CLIENT_TYPE_ESP32)
 
 
 def _collection_items(value):
