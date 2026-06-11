@@ -1,7 +1,10 @@
 # Changelog
 
-## 3.1.10
+## 3.1.11
 
+- Document the DJConnect website How To Start requirements for HACS installation, Spotify Premium, Home Assistant Assist STT/TTS, local pairing and Spotify OAuth.
+- Add the HACS custom-repository deeplink to the README installation section.
+- Update handoff, TODO, AGENTS and sync prompts so website setup copy stays aligned with the Home Assistant integration flow.
 - Show the public DJConnect website prominently in both the README and HACS `info.md`: `https://djconnect.pages.dev`.
 - Remove the repository-local `website/` product site now that the marketing website is maintained outside the Home Assistant integration repo.
 - Update README, AGENTS, handoff, issue and todo documentation so release hygiene no longer treats the external website as part of this HACS package.

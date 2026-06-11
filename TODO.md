@@ -107,6 +107,8 @@
 ## Website / Marketing
 
 - Keep product/marketing website work in the external website location, not this HA integration repo.
+- Keep the public website link visible in HACS-facing docs: `https://djconnect.pages.dev`.
+- Maintain a How To Start page covering HACS install, Spotify Premium, HA Assist pipeline STT/TTS setup, Spotify OAuth, ESP pairing and iOS/macOS Client API URL pairing.
 - Add real product photos/screenshots when final hardware imagery is available.
 - Keep requirements clear: Spotify Premium, Home Assistant, HACS, HA Assist pipeline, 2.4 GHz WiFi and mDNS/Nabu Casa recommendations.
 

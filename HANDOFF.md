@@ -4,11 +4,12 @@
 
 - Repository: `pcvantol/djconnect`.
 - Integration domain: `djconnect`.
-- Current integration release: `3.0.27`.
-- Release status: DJConnect `3.0.27` is the current released baseline.
+- Current integration release: `3.1.11`.
+- Release status: DJConnect `3.1.11` is the current released baseline.
 - Home Assistant integration is HACS-distributed and MIT-licensed.
 - ESP firmware source remains proprietary in `pcvantol/djconnect-app`.
 - Public firmware release assets live in `pcvantol/djconnect-firmware`.
+- Public product website: `https://djconnect.pages.dev`.
 - Current firmware uses the local ESP API with bearer-token auth and generic playback commands.
 - ESP no longer stores Spotify OAuth/client_id/refresh_token or other playback-backend credentials.
 - HA integration is the trusted backend for pairing, Spotify OAuth/backend playback, Assist/STT/TTS, OTA and native entities.
@@ -129,7 +130,8 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 ## Current Release Notes
 
 - Current release line is `3.1.x`; only the latest GitHub release/tag should be kept after release cleanup.
-- Current latest baseline is `3.1.0`.
+- Current latest baseline is `3.1.11`.
+- HACS-visible docs now show the public DJConnect website. The external website should use the same setup requirements: Home Assistant, HACS, Spotify Premium, HA Assist pipeline with STT/TTS, local-network pairing, and Nabu Casa/external HTTPS URL for Spotify OAuth.
 - Voice/Assist search text such as "ik wil Pearl Jam starten" must resolve to a Spotify artist first; free-text PTT search is artist-only unless the request is an explicit playlist flow or direct Spotify URI.
 - Do not send arbitrary text as `context_uri`, and do not perform broad track/album search for generic artist requests.
 - Device DJ responses after successful PTT playback are generated from resolved Spotify/playback metadata and the configured `dj_response_prompt`, not from the generic Assist fallback announcement.
@@ -185,19 +187,20 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 ## Next Tasks
 
 1. Install the latest `3.1.x` release via HACS and restart Home Assistant.
-2. Verify the README/HACS banner renders as intended; product website checks now happen in the external website location.
-3. Verify `button.djconnect_refresh_up_next` updates `sensor.djconnect_queue` attributes.
-4. Verify `select.djconnect_sound_output` populates Spotify outputs without manually calling `devices`.
-5. Verify sensors keep last-known values after ESP status, playback command polling, voice tests and local device-info refreshes.
-6. Verify `sensor.djconnect_laatste_opdracht` and `sensor.djconnect_laatste_nummer` do not create repeated unchanged history entries during normal runtime refreshes.
-7. Verify the firmware update entity does not report a fresh update timestamp every 10 seconds when no firmware/OTA state changed.
-8. Test Repair flow for revoked Spotify token.
-9. Test options-flow Spotify reauthorize action.
-10. Pair a device from scratch and verify token synchronization with required `ha_local_url`.
-11. Verify ESP `/status` includes current settings aliases consumed by HA.
-12. Run physical PTT end-to-end.
-11. Verify native playback proxy media player controls Spotify backend playback and shows album art.
-12. Verify no Spotify OAuth secrets are sent to ESP or logged.
+2. Verify the README/HACS banner and `info.md` render the `https://djconnect.pages.dev` link as intended.
+3. Update the external product website How To Start page with HACS installation, Spotify Premium requirement, HA Assist pipeline setup, ESP pairing and iOS/macOS Client API URL steps.
+4. Verify `button.djconnect_refresh_up_next` updates `sensor.djconnect_queue` attributes.
+5. Verify `select.djconnect_sound_output` populates Spotify outputs without manually calling `devices`.
+6. Verify sensors keep last-known values after ESP status, playback command polling, voice tests and local device-info refreshes.
+7. Verify `sensor.djconnect_laatste_opdracht` and `sensor.djconnect_laatste_nummer` do not create repeated unchanged history entries during normal runtime refreshes.
+8. Verify the firmware update entity does not report a fresh update timestamp every 10 seconds when no firmware/OTA state changed.
+9. Test Repair flow for revoked Spotify token.
+10. Test options-flow Spotify reauthorize action.
+11. Pair a device from scratch and verify token synchronization with required `ha_local_url`.
+12. Verify ESP `/status` includes current settings aliases consumed by HA.
+13. Run physical PTT end-to-end.
+14. Verify native playback proxy media player controls Spotify backend playback and shows album art.
+15. Verify no Spotify OAuth secrets are sent to ESP or logged.
 
 ## Validation Commands
 

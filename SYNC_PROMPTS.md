@@ -28,6 +28,9 @@ Requirements:
 - Return ha_local_url and language metadata during successful app pairing.
 - Keep cloud/remote URLs out of Apple app runtime traffic; cloud URLs are only
   needed by Home Assistant-owned Spotify OAuth config flows.
+- When pairing an Apple app client, ask for or use the Client API url shown in
+  the app pairing sheet; do not assume a changing Bonjour hostname remains the
+  canonical callback target after pairing.
 - Return ha_version or ha_major_minor on status/command responses so Apple
   clients can enforce the matching major.minor contract.
 - Apple clients host local /api/device/* app endpoints for HA -> app traffic,
@@ -41,6 +44,8 @@ Requirements:
 - During app pairing, 401/403 code mismatch responses stop polling, keep the
   visible app code, and do not rotate device_id automatically.
 - Create native HA entities for paired app clients when status is received.
+- Support App Store review by allowing Apple clients to enter local Demo Mode
+  without HA; Demo Mode must not create HA devices/entities.
 - Return HTTP 426 version_mismatch when client and HA major.minor protocol
   versions do not match; do not treat this as stale auth.
 - Return backend_unavailable as HTTP 200 success:false with
@@ -74,6 +79,14 @@ Requirements:
 - Show first-run onboarding once per installation with the Home Assistant setup
   link and Spotify Premium requirement. Do not request Spotify credentials in
   the app.
+- While unpaired, block runtime UI with a pairing sheet that shows the
+  DJConnect banner, copyable Client API url, copyable app-generated pairing
+  code, progress/status, and a green success state with `Let's Start!`.
+- Keep the Client API url shown during pairing pinned locally until explicit
+  pairing reset.
+- Offer Demo Mode from the unpaired pairing sheet for App Store review and UI
+  inspection without a Home Assistant backend. Demo Mode must use local sample
+  data and must not store a bearer token.
 - Detect likely unclean exits and offer only user-mediated crash reporting:
   copy redacted diagnostics or open a prefilled `pcvantol/djconnect` issue.
 - Do not log bearer tokens, HA tokens, Spotify secrets, or audio URLs.

@@ -1,199 +1,148 @@
 # Codex Prompt: Synchronize DJConnect ESP Firmware With HA Integration
+Werk in de bestaande proprietary ESP firmware repo pcvantol/djconnect-esp32.
 
-Werk in de bestaande proprietary ESP firmware repo `pcvantol/djconnect-app`.
-
-## Doel
-
-Synchroniseer de ESP firmware met de actuele Home Assistant `djconnect` integration architectuur voor release `3.0.27`.
+Doel
+Synchroniseer de ESP firmware met de actuele Home Assistant djconnect integration architectuur voor release 3.1.9.
 
 De HA integration is de trusted backend voor:
 
-- pairing;
-- bearer-token lifecycle;
-- backend playback;
-- Spotify OAuth;
-- Assist/STT/TTS;
-- OTA offer handling;
-- native HA entities.
-
+pairing;
+bearer-token lifecycle;
+backend playback;
+Spotify OAuth;
+Assist/STT/TTS;
+OTA offer handling;
+native HA entities.
 De ESP blijft eigenaar van:
 
-- device runtime;
-- display/UI;
-- buttons/rotary;
-- LED-ring;
-- local speaker cues;
-- WiFi/setup;
-- raw WAV capture/upload;
-- local playback van HA DJ response audio.
-
-## Belangrijke beslissingen
-
-- De eerdere broker-based control route is verwijderd. Noem die oude route nergens meer in UI, docs, provisioning, status of logs.
-- ESP is geen Spotify Connect speaker/player.
-- ESP bewaart geen Spotify OAuth/client_id/refresh_token of andere playback-backend credentials.
-- ESP stuurt generieke playback commands naar HA.
-- HA vertaalt playback commands naar Spotify of toekomstige backends.
-- HA verwerkt vrije PTT/voice muziekrequests als artist-only Spotify search; ESP stuurt alleen de gesproken/gestranscribeerde opdracht door en probeert zelf geen Spotify parsing.
-- ESP speaker is alleen voor local cues en DJ/voice response audio.
-- `/api/device/provision_spotify` mag niet bestaan of gebruikt worden.
-- Pairing/status/voice/command auth gebruikt alleen het device bearer token.
-- Device ID formats voor actuele firmware:
-  - LilyGO T-Embed S3: `djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX`
-  - ESP32-S3-BOX-3: `djconnect-esp32-s3-box-3-XXXXXXXXXXXX`
-- Accepteer geen legacy `djconnect-XXXXXXXXXXXX` device IDs en bouw geen compatibility fallback voor dat oude formaat.
-- Pairing/status gebruikt canoniek `client_type` om DJConnect client runtimes te onderscheiden.
-- ESP firmware moet altijd `client_type: "esp32"` meesturen en bewaren; dit is verplicht, geen fallback.
-- `ios` en `macos` zijn gereserveerde waarden voor toekomstige DJConnect app-clients; ESP firmware mag die niet voor zichzelf gebruiken.
-- HA integration en ESP firmware moeten dezelfde `major.minor` protocolversie gebruiken: HA `3.0.z` praat alleen met ESP `3.0.z`, HA `3.1.z` alleen met ESP `3.1.z`.
-- Patchversies mogen verschillen; major/minor mismatch is een protocolblokkade, geen pairing-token failure.
-- HA gebruikt één vrije `dj_response_prompt` voor de gesproken DJ response; ESP hoeft geen vaste DJ style/profile opties te bewaren of te tonen.
-- Alle user-facing tekst, filenames, namespaces, logs en provisioning labels gebruiken `DJConnect` / `djconnect`; nergens meer `SpotifyDJ`, `spotifydj` of `spotify_dj`.
-- BLE local name, mDNS instance name, captive portal title/SSID, HTTP info payloads en display labels mogen nergens meer `SpotifyDJ`, `spotify_dj` of `spotifydj` adverteren; anders kan Home Assistant naast DJConnect ook een oude `spotify_dj` discovery kaart tonen als de oude integration nog geïnstalleerd is.
-- NVS taal key blijft `provision.language`.
-- NVS namespace is `djconnect`.
-- Secrets nooit loggen: geen device tokens, HA tokens, Spotify tokens, WiFi wachtwoorden of tijdelijke audio URL tokens.
-
-## Assets uit HA repo overnemen
-
-Gebruik de echte DJConnect icon/logo assets uit `pcvantol/djconnect`; teken het logo niet opnieuw in firmware als er een bitmap/vector-conversie gebruikt kan worden.
+device runtime;
+display/UI;
+buttons/rotary;
+LED-ring;
+local speaker cues;
+WiFi/setup;
+raw WAV capture/upload;
+local playback van HA DJ-aankondiging audio.
+Belangrijke beslissingen
+Eerdere non-HTTP control routes zijn verwijderd. ESP is geen backend music speaker/player.
+ESP bewaart geen playback-backend credentials.
+ESP stuurt generieke playback commands naar HA.
+HA vertaalt playback commands naar Spotify of toekomstige backends.
+ESP speaker is alleen voor local cues en DJ/voice response audio.
+Okay Nabu wake-word support draait lokaal via TensorFlow Lite Micro en mag geen netwerk-I/O doen in het audio poll pad.
+De middelste encoderknop moet een actieve PTT processing/DJ-aankondiging flow kunnen annuleren.
+Oude backend-credential provisioning endpoints mogen niet bestaan of gebruikt worden.
+Pairing/status/voice/command auth gebruikt alleen het device bearer token.
+Device ID formats voor actuele firmware zijn model-specifiek:
+- LilyGO T-Embed S3: `djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX`
+- ESP32-S3-BOX-3: `djconnect-esp32-s3-box-3-XXXXXXXXXXXX`
+Accepteer geen legacy `djconnect-XXXXXXXXXXXX`, `djconnect-lilygo-XXXXXXXXXXXX` of `djconnect-[6-cijferige-code]` device IDs en bouw geen compatibility fallback voor die oude/tijdelijke formaten.
+Alle user-facing tekst, filenames, namespaces, logs en provisioning labels gebruiken uitsluitend DJConnect / djconnect.
+NVS taal key blijft provision.language.
+NVS namespace is djconnect.
+Secrets nooit loggen: geen device tokens, HA tokens, Spotify tokens, WiFi wachtwoorden of tijdelijke audio URL tokens.
+Assets uit HA repo overnemen
+Gebruik de echte DJConnect icon/logo assets uit pcvantol/djconnect; teken het logo niet opnieuw in firmware als er een bitmap/vector-conversie gebruikt kan worden.
 
 Bronbestanden in de HA repo:
 
-- `assets/djconnect/djconnect-icon.svg`
-- `assets/djconnect/djconnect-icon-256.png`
-- `assets/djconnect/djconnect-icon-512.png`
-- `assets/djconnect/djconnect-icon-1024.png`
-- `assets/djconnect/djconnect-logo.svg`
-- `assets/djconnect/djconnect-logo-512x256.png`
-- `website/assets/djconnect/icon.svg`
-- `website/assets/djconnect/icon-192.png`
-- `website/assets/djconnect/icon-512.png`
-- `website/assets/lilygo-t-embed-djconnect.svg` als visuele referentie voor de landscape hero/device mockup.
-
+assets/djconnect/djconnect-icon.svg
+assets/djconnect/djconnect-icon-256.png
+assets/djconnect/djconnect-icon-512.png
+assets/djconnect/djconnect-icon-1024.png
+assets/djconnect/djconnect-logo.svg
+assets/djconnect/djconnect-logo-512x256.png
+website/assets/djconnect/icon.svg
+website/assets/djconnect/icon-192.png
+website/assets/djconnect/icon-512.png
+website/assets/lilygo-t-embed-djconnect.svg als visuele referentie voor de landscape hero/device mockup.
 Acties:
 
-- Kopieer of exporteer het echte DJConnect icoon naar het firmware assetformaat dat de LilyGO UI gebruikt.
-- Houd de paarse/blauwe DJConnect iconstijl intact: vinyl, DJ letters, toonarm/microfoon en gradient arc.
-- Gebruik het echte icoon op splash/pairing/idle/voice schermen waar nu nog een placeholder of opnieuw getekende benadering staat.
-- Gebruik firmware-native conversie tooling als assets naar RGB565/LVGL/C-array/binair formaat moeten.
-- Commit geen gegenereerde build-cache; commit alleen de bronasset en benodigde firmware-runtime asset.
-- Verwijder oude SpotifyDJ/spotifydj iconen en logos als ze niet meer gebruikt worden.
-
-## Endpoint contract
-
-### ESP -> HA
-
+Kopieer of exporteer het echte DJConnect icoon naar het firmware assetformaat dat de LilyGO UI gebruikt.
+Houd de paarse/blauwe DJConnect iconstijl intact: vinyl, DJ letters, toonarm/microfoon en gradient arc.
+Gebruik het echte icoon op splash/pairing/idle/voice schermen waar nu nog een placeholder of opnieuw getekende benadering staat.
+Gebruik firmware-native conversie tooling als assets naar RGB565/LVGL/C-array/binair formaat moeten.
+Commit geen gegenereerde build-cache; commit alleen de bronasset en benodigde firmware-runtime asset.
+Verwijder oude producticonen en logo’s als ze niet meer gebruikt worden.
+Endpoint contract
+ESP -> HA
 Protected routes:
 
-- `POST /api/djconnect/status`
-- `POST /api/djconnect/command`
-- `POST /api/djconnect/voice`
-- `POST /api/djconnect/event` indien gebruikt
-
+POST /api/djconnect/status
+POST /api/djconnect/command
+POST /api/djconnect/voice
+POST /api/djconnect/event indien gebruikt
 Headers:
 
-```http
 Authorization: Bearer <device_token>
-X-DJConnect-Device-ID: djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX
+X-DJConnect-Device-ID: djconnect-<device-model>-XXXXXXXXXXXX
 Content-Type: application/json
-```
-
 Voor PTT:
 
-```http
 Authorization: Bearer <device_token>
-X-DJConnect-Device-ID: djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX
+X-DJConnect-Device-ID: djconnect-<device-model>-XXXXXXXXXXXX
 Content-Type: audio/wav
-```
-
-### HA -> ESP
-
+HA -> ESP
 Protected local ESP routes:
 
-- `GET /api/device/info`
-- `GET /api/device/pairing-info`
-- `POST /api/device/pair`
-- `POST /api/device/command`
-- `POST /api/device/ota`
-- `POST /api/device/reboot`
-- `POST /api/device/forget`
-- `POST /api/device/dj_response`
-
+GET /api/device/info
+GET /api/device/pairing-info
+POST /api/device/pair
+POST /api/device/command
+POST /api/device/ota
+POST /api/device/reboot
+POST /api/device/forget
+POST /api/device/dj_response
 Header:
 
-```http
 Authorization: Bearer <device_token>
-```
-
-## Taken
-
-### 1. Pairing-token synchronisatie
-
+Taken
+1. Pairing-token synchronisatie
 Controleer en fix:
 
-- ESP ontvangt `device_token` via `POST /api/device/pair`.
-- ESP ontvangt `client_type` via `POST /api/device/pair`; verwacht voor deze firmware `esp32`.
-- ESP ontvangt verplicht `ha_local_url` via `POST /api/device/pair`.
-- ESP gebruikt altijd `ha_local_url` voor status, command en voice.
-- `ha_local_url` moet een echte lokale HA URL zijn en mag nooit een `*.ui.nabu.casa` URL zijn.
-- ESP accepteert en verwacht geen `ha_remote_url` meer in device pairing/status payloads.
-- Cloud/Nabu Casa URLs zijn alleen voor Spotify OAuth in de HA config/repair flow, niet voor ESP <-> HA verkeer.
-- HA hoort bij voorkeur een LAN-IP URL te sturen, bijvoorbeeld `http://192.168.1.x:8123`; als Home Assistant alleen `homeassistant.local` kent, kan dat nog als laatste fallback voorkomen.
-- ESP accepteert en verwacht geen legacy `ha_url` pairingveld meer.
-- Als HA alleen met een 6-cijferige setupcode begint, moet HA eerst `GET /api/device/pairing-info` kunnen gebruiken om `pair_code` te verifiëren en de echte model-specifieke device-id te leren.
-- ESP moet in `/api/device/pairing-info` de echte device-id, `pair_code`, `client_type:"esp32"` en bereikbare local info teruggeven zolang het pairing/setup scherm actief is.
-- HA mag nooit een tijdelijke `djconnect-<6-cijferige-code>` als `device_id` naar `POST /api/device/pair` sturen; ESP moet zijn echte model-specifieke device-id verwachten.
-- Als HA `/api/device/pair` niet succesvol bij ESP aflevert, blijft ESP op het pairing scherm en moet HA pairing hooguit `pending` blijven.
-- ESP accepteert als persistent device ID alleen zijn model-specifieke id.
-- ESP slaat `client_type=esp32` persistent of runtime-bekend op en stuurt dit verplicht mee in pairing-info, status, command/event JSON payloads waar JSON wordt gebruikt.
-- HA behandelt ontbrekende of onbekende `client_type` op ESP JSON routes als contractfout (`invalid_client_type`).
-- Een tijdelijke setup-code identiteit mag alleen tijdens captive/setup flow bestaan; na pairing moet de firmware de echte model-specifieke device ID gebruiken.
-- ESP slaat exact die token persistent op.
-- Eerste call naar HA `/api/djconnect/command` gebruikt exact die token.
-- Eerste call naar HA `/api/djconnect/status` gebruikt exact die token.
-- Eerste call naar HA `/api/djconnect/voice` gebruikt exact die token.
-- ESP mag pending pairing niet wissen bij tijdelijke Spotify/backend fouten.
-- ESP mag pending pairing alleen stale/invalid markeren bij echte HA auth/pairing errors:
-  - 401;
-  - 403;
-  - 404 met duidelijke stale pairing betekenis.
-- 200 JSON met `success:false` en `backend_unavailable` betekent niet pairing wissen.
-- 503 backend unavailable mag bij voorkeur ook niet direct NVS pairing wissen; toon pairing degraded/backend unavailable.
-- HTTP 426 met JSON `error:"version_mismatch"` betekent HA/ESP major.minor mismatch; wis pairing niet, maar toon duidelijke firmware/integration update melding.
-
+ESP ontvangt device_token via POST /api/device/pair.
+ESP ontvangt een echte LAN ha_local_url via POST /api/device/pair.
+ESP ontvangt of bewaart geen ha_remote_url voor runtime verkeer.
+ESP gebruikt uitsluitend ha_local_url voor status, playback en voice.
+ESP accepteert en verwacht geen oud enkelvoudig HA-URL pairingveld meer.
+ESP accepteert als persistent device ID alleen de eigen model-specifieke ID.
+Een tijdelijke setup/pairing code mag alleen als `pair_code` bestaan; na pairing moet de firmware de echte model-specifieke device ID gebruiken.
+ESP slaat exact die token persistent op.
+Eerste call naar HA /api/djconnect/command gebruikt exact die token.
+Eerste call naar HA /api/djconnect/status gebruikt exact die token.
+Eerste call naar HA /api/djconnect/voice gebruikt exact die token.
+ESP mag pending pairing niet wissen bij tijdelijke Spotify/backend fouten.
+ESP mag pending pairing alleen stale/invalid markeren bij echte HA auth/pairing errors:
+401;
+403;
+404 met duidelijke stale pairing betekenis.
+200 JSON met success:false en backend_unavailable betekent niet pairing wissen.
+503 backend unavailable mag bij voorkeur ook niet direct NVS pairing wissen; toon pairing degraded/backend unavailable.
 Veilige logs:
 
-- log `device_token=present/missing`, nooit de waarde;
-- log HA response status en error key;
-- log geen Authorization header.
-
+log device_token=present/missing, nooit de waarde;
+log HA response status en error key;
+log geen Authorization header.
 Verwachte HA -> ESP pair payload:
 
-```json
 {
   "pair_code": "123456",
   "device_id": "djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX",
-  "device_name": "DJConnect",
   "client_type": "esp32",
+  "device_name": "DJConnect",
   "device_language": "nl",
   "language": "nl",
   "device_token": "<device-token>",
-  "ha_local_url": "http://192.168.1.x:8123",
+  "ha_local_url": "http://homeassistant.local:8123",
   "assist_pipeline_id": "..."
 }
-```
+ha_local_url is verplicht en moet een LAN URL zijn. Stuur geen oud enkelvoudig HA-URL veld mee, stuur geen ha_remote_url naar de ESP en zet nooit Nabu Casa/cloud in ha_local_url.
 
-`ha_local_url` moet aanwezig zijn. `ha_url` en `ha_remote_url` mogen niet in de
-payload staan.
-
-### 2. Status payload uitbreiden
-
+2. Status payload uitbreiden
 Zorg dat periodieke HA status payload actuele device settings bevat zodat HA native entities correct updaten.
 
 Stuur minimaal:
 
-```json
 {
   "device_id": "djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX",
   "client_type": "esp32",
@@ -216,49 +165,21 @@ Stuur minimaal:
   "ota_state": "idle",
   "update_state": "idle"
 }
-```
-
 Gebruik aliases waar makkelijk, want de HA integration accepteert meerdere namen:
 
-- `screen_brightness` / `brightness`;
-- `speaker_volume` / `cue_volume`;
-- `screen_dim_timeout_ms`;
-- `turn_off_after_ms`;
-- `language`;
-- `theme`;
-- `log_level`.
-
-Belangrijk statuscontract:
-
-- `POST /api/djconnect/status` is de enige authoritative bron voor ESP device-status in HA.
-- Stuur actuele devicewaarden via `/status`; gebruik `/command` alleen voor playback/backend commands.
-- Command/voice payloads mogen geen lege of partial device-status snapshot voorstellen.
-- Als een statusveld onbekend is, laat het liever weg dan `null`, lege string of lege array te sturen.
-- `ha_pairing_status` moet na succesvol pairen expliciet `paired` blijven in statusposts; laat dit veld niet wegvallen naar `pending`.
-- Stuur geen partial command/voice/playback payloads alsof ze volledige device-status zijn.
-- Stuur `last_track` en `last_command` alleen wanneer er een echte nieuwe waarde is; stuur geen lege string/null om onbekend te betekenen.
-- Als ESP geen actuele waarde voor batterij, firmware, RSSI, schermstatus, LED-status of sound output heeft, laat het veld weg zodat HA de laatst bekende waarde behoudt.
-
-Versiecontract:
-
-- Stuur `firmware` bij elke boot/status post.
-- Firmwareversie moet semver-achtig zijn, bijvoorbeeld `3.0.6` of `v3.0.6`.
-- Als HA `/api/djconnect/status`, `/api/djconnect/command`, `/api/djconnect/voice` of `/api/djconnect/event` HTTP `426` teruggeeft met `error:"version_mismatch"`, stop verdere command/voice retries totdat de gebruiker firmware of HA integration heeft bijgewerkt.
-- Gebruik responsevelden `ha_version`, `ha_major_minor`, `firmware` en `firmware_major_minor` voor UI/logs.
-- Toon iets als: `Update DJConnect firmware/integration: HA 3.1.x requires firmware 3.1.x`.
-- Behandel dit niet als auth failure en wis geen NVS pairing/token.
-
-### 3. Generic playback command API naar HA
-
+screen_brightness / brightness;
+speaker_volume / cue_volume;
+screen_dim_timeout_ms;
+turn_off_after_ms;
+language;
+theme;
+log_level.
+3. Generic playback command API naar HA
 ESP stuurt playback commands naar:
 
-```http
 POST /api/djconnect/command
-```
-
 Payload voorbeelden:
 
-```json
 {"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"status"}
 {"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"devices"}
 {"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"queue"}
@@ -274,11 +195,8 @@ Payload voorbeelden:
 {"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"play_context_at","value":{"context_uri":"spotify:playlist:...","offset_uri":"spotify:track:..."}}
 {"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"set_shuffle","value":true}
 {"device_id":"djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX","client_type":"esp32","command":"set_repeat","value":"context"}
-```
-
 Verwachte response shapes:
 
-```json
 {
   "success": true,
   "playback": {
@@ -302,11 +220,8 @@ Verwachte response shapes:
     }
   }
 }
-```
-
 Backend unavailable/auth failure:
 
-```json
 {
   "success": false,
   "error": "backend_unavailable",
@@ -314,46 +229,36 @@ Backend unavailable/auth failure:
   "backend_available": false,
   "playback": {}
 }
-```
-
-Version mismatch:
-
-```json
-{
-  "success": false,
-  "error": "version_mismatch",
-  "message": "DJConnect Home Assistant integration and device firmware major.minor versions must match.",
-  "ha_version": "3.1.0",
-  "ha_major_minor": "3.1",
-  "firmware": "3.0.6",
-  "firmware_major_minor": "3.0"
-}
-```
-
-ESP gedrag bij version mismatch:
-
-- Niet opnieuw pairen.
-- Token/NVS behouden.
-- Command/voice retries pauzeren of sterk throttlen.
-- Status mag periodiek blijven melden zodat HA ziet wanneer firmwareversie na OTA wel matcht.
-- UI/LED status mag `update required` of vergelijkbaar tonen.
-
 Belangrijk:
 
-- Dit is geen pairing failure.
-- Toon een backend/playback fout in UI.
-- Wis pairing niet.
-- Behandel command responses niet als device-statusbron; ze mogen playback indicators bijwerken maar niet batterij, firmware, RSSI, pairingstatus, scherm/LED of sound-output leegmaken.
-- `command=status` moet direct na ESP boot snel kunnen antwoorden; ESP mag deze poll gebruiken om de playback indicator groen/grijs/rood te zetten.
-- `command=devices`, `command=queue` en `command=playlists` moeten bij bereikbare backend `success:true` met lege arrays kunnen teruggeven; maak daar geen HTTP 503 van.
-- `command=queue` kan top-level `context_uri` en `contextUri` teruggeven. Gebruik die context voor `play_context_at` vanuit Up Next.
-- Queue items kunnen `album_image_url`, `albumImageUrl`, `image_url`, `imageUrl` of `thumbnail_url` bevatten. De ESP hoeft thumbnails niet zelf te downloaden; web/UI mag image URLs lazy-loaden wanneer de Up Next view zichtbaar is.
+Dit is geen pairing failure.
+Toon een backend/playback fout in UI.
+Wis pairing niet.
 
-### 4. Device command API vanaf HA
+Queue response handling:
 
-Controleer `POST /api/device/command` voor device-instellingen:
+{
+  "success": true,
+  "context_uri": "spotify:playlist:...",
+  "queue": [
+    {
+      "title": "Black",
+      "subtitle": "Pearl Jam",
+      "uri": "spotify:track:...",
+      "album_image_url": "https://..."
+    }
+  ]
+}
 
-```json
+Regels:
+
+ESP bewaart `context_uri` voor per-item playback.
+ESP deduplicates queue-items defensief op `uri`, of op `title` + `subtitle` wanneer geen URI beschikbaar is.
+Als HA maar 1 item teruggeeft, mogen device en web maar 1 item tonen.
+Queue thumbnail URLs zijn pass-through voor web lazy-loading; de ESP downloadt deze thumbnails niet alleen omdat de queue wordt opgehaald.
+4. Device command API vanaf HA
+Controleer POST /api/device/command voor device-instellingen:
+
 {"command":"status"}
 {"command":"screen_brightness","value":75}
 {"command":"screen_dim_timeout","value":60000}
@@ -363,35 +268,22 @@ Controleer `POST /api/device/command` voor device-instellingen:
 {"command":"theme","value":"dark"}
 {"command":"log_level","value":"info"}
 {"command":"dj_response","text":"Daar gaan we.","audio_url":"http://..."}
-```
-
 Responses altijd JSON:
 
-```json
 {"success":true}
-```
-
 of:
 
-```json
 {"success":false,"error":"invalid_command","message":"..."}
-```
-
-### 5. PTT / voice
-
+5. PTT / voice
 Physical PTT:
 
-```text
 ESP records WAV
 -> POST /api/djconnect/voice raw audio/wav
 -> HA does STT/Assist/playback/TTS
 -> HA returns DJ text plus optional WAV/MP3 audio_url
 -> ESP displays text and plays local response audio
-```
-
 Expected HA response:
 
-```json
 {
   "success": true,
   "text": "Daar gaan we.",
@@ -399,152 +291,102 @@ Expected HA response:
   "audio_url": "http://homeassistant.local:8123/api/djconnect/tts/token.mp3",
   "audio_type": "mp3"
 }
-```
-
 Fout:
 
-```json
 {
   "success": false,
   "error": "stt_failed",
   "message": "No STT provider configured..."
 }
-```
-
 Acties:
 
-- Directe HA Assist WebSocket auth vanaf ESP niet gebruiken.
-- ESP uploadt alleen raw WAV.
-- ESP voert zelf geen Spotify search/parser uit; HA doet STT, artist-only Spotify resolve/playback en genereert daarna de DJ response.
-- ESP speelt WAV of MP3 audio URL af indien ondersteund.
-- Onbekend audioformaat: text-only tonen, niet crashen.
-- Geen tijdelijke audio URL tokens loggen.
-- Toon de `text`/`dj_text` uit HA als user-facing response; bouw geen eigen generieke fallback zoals "ik zet hem klaar" over een succesvolle HA response heen.
+Directe HA Assist WebSocket auth vanaf ESP niet gebruiken.
+ESP uploadt alleen raw WAV.
+ESP speelt WAV of MP3 audio URL af indien ondersteund.
+Onbekend audioformaat: text-only tonen, niet crashen.
+Geen tijdelijke audio URL tokens loggen.
 
-### 6. OAuth / Spotify secrets verwijderen
+PTT/wake-word runtime gedrag:
 
+Encoder PTT start pas met opnemen na de start cue/settle delay; stop cue speelt pas nadat de WAV is afgesloten.
+Wake-word detection start dezelfde lokale PTT WAV-upload flow als encoder PTT.
+Wake-word tuning: Okay Nabu model, 10 ms feature step, 3-frame sliding window. LilyGO cutoff is 0.90; ESP32-S3-BOX-3 cutoff is 0.86.
+Wake-word-started recording stopt automatisch na stilte en blijft altijd begrensd door de maximale opname-duur.
+Tijdens processing of het DJ-aankondiging scherm annuleert een middelste encoderdruk de rest van de PTT flow zo snel mogelijk; lopende HA HTTP responses mogen lokaal genegeerd worden en response audio moet een stop request krijgen.
+6. OAuth / Spotify secrets verwijderen
 Controleer dat ESP:
 
-- geen `spotify_client_id` opslaat;
-- geen `client_id` opslaat;
-- geen `spotify_refresh_token` opslaat;
-- geen `refresh_token` opslaat;
-- geen Spotify OAuth secrets verwacht in pair/status responses;
-- `spotify_configured=false` hooguit als backend/statushint behandelt, niet als request om Spotify credentials te ontvangen.
-
+geen backend OAuth/client-id/refresh-token secrets opslaat;
+geen backend OAuth secrets verwacht in pair/status responses;
+playback_configured is hooguit een backend/statushint, niet een request om playback credentials te ontvangen.
 Verwijder/neutraliseer oude codepaden die Spotify credentials naar ESP provisionen.
 
-### 7. OTA
-
+7. OTA
 Controleer:
 
-- OTA endpoint blijft `POST /api/device/ota`.
-- Bearer token verplicht.
-- Payload accepteert:
-
-```json
+OTA endpoint blijft POST /api/device/ota.
+Bearer token verplicht.
+Payload accepteert:
 {
-  "version": "3.0.x",
+  "version": "3.1.x",
   "url": "https://...",
   "sha256": "...",
   "device": "lilygo-t-embed-s3",
-  "asset": "djconnect-lilygo-t-embed-s3-v3.0.x.bin"
+  "asset": "djconnect-lilygo-t-embed-s3-v3.1.x.bin"
 }
-```
-
-- `device` moet matchen op de OTA target uit de gekozen manifest entry, bijvoorbeeld `lilygo-t-embed-s3` of `esp32-s3-box-3`.
-- Assetnamen zijn device-specifiek, bijvoorbeeld `djconnect-lilygo-t-embed-s3-vX.Y.Z.bin` en `djconnect-esp32-s3-box-3-vX.Y.Z.bin`.
-- Tijdens OTA:
-  - duidelijke UI status;
-  - paarse snelle LED-ring animatie;
-  - status na reboot terug naar `idle`;
-  - post-boot status naar HA met firmwareversie en idle state.
-
-### 8. BLE WiFi provisioning
-
+device moet matchen met het boardprofiel van de firmware:
+- LilyGO productie: `lilygo-t-embed-s3`, asset `djconnect-lilygo-t-embed-s3-v3.1.x.bin`
+- ESP32-S3-BOX-3 bring-up: `esp32-s3-box-3`, asset `djconnect-esp32-s3-box-3-v3.1.x.bin`
+Het manifest gebruikt alleen een `firmwares` array met board, device, asset,
+sha256 en size per firmware. Geen top-level single-device `device`, `asset`,
+`sha256` of `size` fallback.
+Tijdens OTA:
+duidelijke UI status;
+paarse snelle LED-ring animatie;
+release wake-word/TFLite en actieve voice/audio resources voordat firmware-download/TLS start;
+status na reboot terug naar idle;
+post-boot status naar HA met firmwareversie en idle state.
+8. BLE WiFi provisioning
 BLE provisioning doet alleen WiFi credentials.
 
 Service/characteristics:
 
-- Service UUID: `7f705000-9f8f-4f1a-9b5f-570071fd0001`
-- WiFi write characteristic: `7f705001-9f8f-4f1a-9b5f-570071fd0001`
-- Status read/notify characteristic: `7f705002-9f8f-4f1a-9b5f-570071fd0001`
-
+Service UUID: 7f705000-9f8f-4f1a-9b5f-570071fd0001
+WiFi write characteristic: 7f705001-9f8f-4f1a-9b5f-570071fd0001
+Status read/notify characteristic: 7f705002-9f8f-4f1a-9b5f-570071fd0001
 Geen Spotify credentials, device tokens of andere secrets via BLE.
 
-WiFi write payload is JSON only. HA schrijft alleen deze keys:
-
-```json
-{"ssid":"Netwerk","password":"wachtwoord"}
-```
-
-Regels:
-
-- `ssid` is verplicht.
-- `password` mag leeg zijn voor open netwerken.
-- Payload mag over meerdere BLE writes gefragmenteerd worden; firmware buffert chunks tot een compleet JSON object ontvangen is.
-- Write alleen toestaan tijdens setup/AP mode of HA pairing mode.
-- Playback credentials mogen nooit over BLE.
-- Als parsing of validatie faalt, zet de status characteristic op JSON met `state:"error"` en een korte `message`.
-
-Status characteristic geeft JSON terug, bijvoorbeeld:
-
-```json
-{"state":"ready","message":"Write WiFi JSON"}
-```
-
-Huidige states:
-
-- `ready`
-- `received`
-- `receiving`
-- `testing`
-- `success`
-- `error`
-- `pairing`
-
-### 9. UI/UX
-
-- Device blijft koppelcode tonen tot HA pairing echt bevestigd is.
-- Gebruik het echte DJConnect icoon uit de overgenomen assets op het device-scherm; geen approximatie met eigen SVG/primitive drawing.
-- Na succesvolle HA direct pair en eerste geaccepteerde HA command/status mag UI naar paired/groen.
-- Backend unavailable mag niet terug naar pairing-code scherm forceren.
-- Pairing stale mag duidelijk tonen: reset/re-pair nodig.
-- Soft reset/reboot moet local cue sound en felle witte LED-ring flash tonen vlak voor reboot.
-- Als een menu geopend wordt, zet de LED-ring uit/clear de volume-indicatie; toon niet de laatst gebruikte volume-ring terwijl menu UI actief is.
-- Bonus games Pong, Asteroids en Fly mogen in UI blijven.
-- Gebruik bij Asteroids een blauwe LED-ring/game accentkleur in plaats van paars.
-- Noem oude broker-gebaseerde routes nergens.
-- Verwijder oude vaste DJ style/profile UI als die nog in firmware bestaat; HA beheert de vrije DJ response prompt.
-
-### 10. Tests
-
+9. UI/UX
+Device blijft koppelcode tonen tot HA pairing echt bevestigd is.
+Gebruik het echte DJConnect icoon uit de overgenomen assets op het device-scherm; geen approximatie met eigen SVG/primitive drawing.
+Na succesvolle HA direct pair en eerste geaccepteerde HA command/status mag UI naar paired/groen.
+Backend unavailable mag niet terug naar pairing-code scherm forceren.
+Pairing stale mag duidelijk tonen: reset/re-pair nodig.
+Soft reset/reboot moet local cue sound en felle witte LED-ring flash tonen vlak voor reboot.
+Bonus games Pong, Asteroids en Fly mogen in UI blijven.
+10. Tests
 Voeg/update host tests waar mogelijk:
 
-- Pairing token opgeslagen en hergebruikt voor `/status`, `/command`, `/voice`.
-- Backend unavailable response wist pairing niet.
-- 401/403/404 markeert pairing stale maar wist NVS niet automatisch.
-- 426 `version_mismatch` wist pairing niet en toont update-required state.
-- Status payload bevat settings aliases.
-- Status payload laat onbekende velden weg in plaats van lege/null waarden te sturen.
-- `last_track` en `last_command` worden niet leeg teruggestuurd tijdens heartbeat/menu/playback polls.
-- Device command parsing voor brightness/speaker/language/theme/log_level.
-- PTT upload bouwt correcte headers en content type.
-- No Spotify OAuth secret keys in status/pair/provision payloads.
-- OTA payload device target `lilygo-t-embed-s3`.
-- DJConnect asset conversie test of snapshot/checksum zodat het firmware asset niet per ongeluk terugvalt naar een oud of verkeerd icoon.
-
-## Acceptatiecriteria
-
-- ESP pairt met HA en blijft paired na de eerste `/api/djconnect/command`.
-- ESP gebruikt uitsluitend zijn model-specifieke device ID en accepteert geen legacy `djconnect-XXXXXXXXXXXX`.
-- ESP stuurt firmwareversie bij status en behandelt HA `426 version_mismatch` als major/minor protocolblokkade zonder pairing/token te wissen.
-- ESP wist pairing niet door Spotify OAuth/backend failures.
-- ESP status houdt HA native entities actueel.
-- ESP gebruikt alleen de HA-native lokale API.
-- ESP bewaart geen Spotify credentials.
-- ESP stuurt generic playback commands naar HA.
-- ESP PTT uploadt raw WAV naar HA en speelt HA DJ response lokaal af.
-- OTA blijft werken met device-specifieke assets zoals `djconnect-lilygo-t-embed-s3-vX.Y.Z.bin`; het device accepteert de manifest `device` target die bij zijn board hoort.
-- Het device gebruikt de echte DJConnect icon assets uit `pcvantol/djconnect` in plaats van een opnieuw getekende benadering.
-- Logs bevatten geen secrets.
+Pairing token opgeslagen en hergebruikt voor /status, /command, /voice.
+Backend unavailable response wist pairing niet.
+401/403/404 markeert pairing stale maar wist NVS niet automatisch.
+Status payload bevat settings aliases.
+Device command parsing voor brightness/speaker/language/theme/log_level.
+PTT upload bouwt correcte headers en content type.
+No Spotify OAuth secret keys in status/pair/provision payloads.
+OTA payload device target matcht het boardprofiel (`lilygo-t-embed-s3` of `esp32-s3-box-3`).
+DJConnect asset conversie test of snapshot/checksum zodat het firmware asset niet per ongeluk terugvalt naar een oud producticoon.
+Acceptatiecriteria
+ESP pairt met HA en blijft paired na de eerste /api/djconnect/command.
+ESP gebruikt uitsluitend de eigen model-specifieke device ID als echte device ID en accepteert geen legacy `djconnect-XXXXXXXXXXXX`, `djconnect-lilygo-XXXXXXXXXXXX` of `djconnect-[6-cijferige-code]`.
+ESP wist pairing niet door Spotify OAuth/backend failures.
+ESP status houdt HA native entities actueel.
+ESP gebruikt alleen de HA-native lokale API.
+ESP bewaart geen Spotify credentials.
+ESP stuurt generic playback commands naar HA.
+ESP PTT uploadt raw WAV naar HA en speelt HA DJ-aankondiging lokaal af.
+ESP annuleert PTT/DJ-aankondiging flow op middelste encoderdruk tijdens processing/response.
+ESP deduplicates Up Next queue display so one real queue item is not shown repeatedly.
+OTA gebruikt `djconnect-lilygo-t-embed-s3-vX.Y.Z.bin` met target `lilygo-t-embed-s3`, en `djconnect-esp32-s3-box-3-vX.Y.Z.bin` met target `esp32-s3-box-3`.
+Het device gebruikt de echte DJConnect icon assets uit pcvantol/djconnect in plaats van een opnieuw getekende benadering.
+Logs bevatten geen secrets.
