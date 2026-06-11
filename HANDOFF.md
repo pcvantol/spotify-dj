@@ -4,8 +4,8 @@
 
 - Repository: `pcvantol/djconnect`.
 - Integration domain: `djconnect`.
-- Current integration release: `3.1.14`.
-- Release status: DJConnect `3.1.14` is the current released baseline.
+- Current integration release: `3.1.15`.
+- Release status: DJConnect `3.1.15` is the current released baseline.
 - Home Assistant integration is HACS-distributed and MIT-licensed.
 - ESP firmware source remains proprietary in `pcvantol/djconnect-app`.
 - Public firmware release assets live in `pcvantol/djconnect-firmware`.
@@ -131,7 +131,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 ## Current Release Notes
 
 - Current release line is `3.1.x`; only the latest GitHub release/tag should be kept after release cleanup.
-- Current latest baseline is `3.1.14`.
+- Current latest baseline is `3.1.15`.
 - HACS-visible docs now show the public DJConnect website. The external website should use the same setup requirements: Home Assistant, HACS, Spotify Premium, HA Assist pipeline with STT/TTS, local-network pairing, and Nabu Casa/external HTTPS URL for Spotify OAuth.
 - Voice/Assist search text such as "ik wil Pearl Jam starten" must resolve to a Spotify artist first; free-text PTT search is artist-only unless the request is an explicit playlist flow or direct Spotify URI.
 - Do not send arbitrary text as `context_uri`, and do not perform broad track/album search for generic artist requests.
@@ -158,6 +158,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - `sensor.djconnect_last_track` and `sensor.djconnect_last_command` cache their last non-empty native values at entity level and must not flip to unknown/unavailable because a sparse runtime snapshot omits them.
 - ESP status must include `client_type=esp32`; missing client type is surfaced as a visible HA status error.
 - Native HA entities include backend playback proxy, queue/up-next, output list, output select, firmware OTA, device settings and test/refresh buttons under one HA device.
+- ESP32 clients get ESP-only hardware/update entities: battery, Wi-Fi RSSI, screen state, LED state, firmware update and reboot. iOS, macOS and Raspberry Pi clients must not get those ESP-only entities; they keep only client/runtime and backend/playback entities.
 - `button.djconnect_refresh_up_next` refreshes Spotify/Home Assistant backend queue data through the `queue` command.
 - `command=queue` returns top-level `context_uri` / `contextUri` and queue item artwork aliases so ESP/web Up Next can use `play_context_at` and show thumbnails.
 - `select.djconnect_sound_output` refreshes Spotify output devices itself and accepts `available_outputs`, `outputs`, `devices` and nested `items` aliases.

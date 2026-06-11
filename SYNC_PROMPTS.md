@@ -54,7 +54,7 @@ Sync the DJConnect Home Assistant integration with the Apple app and ESP
 client contracts.
 
 Requirements:
-- Treat iOS/macOS as app clients, not ESP hardware devices.
+- Treat iOS/macOS/Raspberry Pi as app-like clients, not ESP hardware devices.
 - Pair app clients through POST /api/djconnect/pair.
 - Pair ESP clients through their local /api/device/pair flow after resolving
   /api/device/pairing-info and verifying the visible pair_code.
@@ -66,25 +66,29 @@ Requirements:
 - Return ha_local_url and language metadata during successful app pairing.
 - Keep cloud/remote URLs out of Apple app runtime traffic; cloud URLs are only
   needed by Home Assistant-owned Spotify OAuth config flows.
-- When pairing an Apple app client, ask for or use the Client API url shown in
-  the app pairing sheet; do not assume a changing Bonjour hostname remains the
+- When pairing an app-like client, ask for or use the Client API url shown in
+  the client pairing sheet; do not assume a changing Bonjour hostname remains the
   canonical callback target after pairing.
 - Return ha_version or ha_major_minor on status/command responses so Apple
   clients can enforce the matching major.minor contract.
-- Apple clients host local /api/device/* app endpoints for HA -> app traffic,
+- Apple/Raspberry Pi clients host local /api/device/* endpoints for HA -> client traffic,
   but must not implement ESP-only reboot or OTA routes.
-- Persist client_type as ios, macos, or esp32. Do not reintroduce device_type.
+- Persist client_type as ios, macos, raspberry_pi, or esp32. Do not
+  reintroduce device_type.
 - Authenticated status/command/voice routes must accept Authorization: Bearer
   plus X-DJConnect-Device-ID.
 - Support Apple app current-track seeking through
   `command:"seek_relative"` with integer millisecond offsets. Positive values
   seek forward, negative values seek backward. ESP clients may omit this UI.
 - Validate that client_type matches the device_id prefix/model family:
-  ios -> djconnect-ios-*, macos -> djconnect-macos-*, esp32 -> ESP
+  ios -> djconnect-ios-*, macos -> djconnect-macos-*, raspberry_pi -> djconnect-raspberry-pi-*, esp32 -> ESP
   model-specific ids such as djconnect-lilygo-t-embed-s3-*.
 - During app pairing, 401/403 code mismatch responses stop polling, keep the
   visible app code, and do not rotate device_id automatically.
 - Create native HA entities for paired app clients when status is received.
+- Create only client/runtime and backend/playback entities for ios, macos, and
+  raspberry_pi clients; do not create ESP-only battery, Wi-Fi RSSI, screen
+  state, LED state, firmware OTA, or reboot entities for app-like clients.
 - Support App Store review by allowing Apple clients to enter local Demo Mode
   without HA; Demo Mode must not create HA devices/entities, tokens, or backend
   traffic. Local sample DJ announcement audio/text in Demo Mode is app-local and
@@ -1465,7 +1469,7 @@ Sync the DJConnect Home Assistant integration with the Apple app and ESP
 client contracts.
 
 Requirements:
-- Treat iOS/macOS as app clients, not ESP hardware devices.
+- Treat iOS/macOS/Raspberry Pi as app-like clients, not ESP hardware devices.
 - Pair app clients through POST /api/djconnect/pair.
 - Pair ESP clients through their local /api/device/pair flow after resolving
   /api/device/pairing-info and verifying the visible pair_code.
@@ -1477,22 +1481,26 @@ Requirements:
 - Return ha_local_url and language metadata during successful app pairing.
 - Keep cloud/remote URLs out of Apple app runtime traffic; cloud URLs are only
   needed by Home Assistant-owned Spotify OAuth config flows.
-- When pairing an Apple app client, ask for or use the Client API url shown in
-  the app pairing sheet; do not assume a changing Bonjour hostname remains the
+- When pairing an app-like client, ask for or use the Client API url shown in
+  the client pairing sheet; do not assume a changing Bonjour hostname remains the
   canonical callback target after pairing.
 - Return ha_version or ha_major_minor on status/command responses so Apple
   clients can enforce the matching major.minor contract.
-- Apple clients host local /api/device/* app endpoints for HA -> app traffic,
+- Apple/Raspberry Pi clients host local /api/device/* endpoints for HA -> client traffic,
   but must not implement ESP-only reboot or OTA routes.
-- Persist client_type as ios, macos, or esp32. Do not reintroduce device_type.
+- Persist client_type as ios, macos, raspberry_pi, or esp32. Do not
+  reintroduce device_type.
 - Authenticated status/command/voice routes must accept Authorization: Bearer
   plus X-DJConnect-Device-ID.
 - Validate that client_type matches the device_id prefix/model family:
-  ios -> djconnect-ios-*, macos -> djconnect-macos-*, esp32 -> ESP
+  ios -> djconnect-ios-*, macos -> djconnect-macos-*, raspberry_pi -> djconnect-raspberry-pi-*, esp32 -> ESP
   model-specific ids such as djconnect-lilygo-t-embed-s3-*.
 - During app pairing, 401/403 code mismatch responses stop polling, keep the
   visible app code, and do not rotate device_id automatically.
 - Create native HA entities for paired app clients when status is received.
+- Create only client/runtime and backend/playback entities for ios, macos, and
+  raspberry_pi clients; do not create ESP-only battery, Wi-Fi RSSI, screen
+  state, LED state, firmware OTA, or reboot entities for app-like clients.
 - Support App Store review by allowing Apple clients to enter local Demo Mode
   without HA; Demo Mode must not create HA devices/entities, tokens, or backend
   traffic. Local sample DJ announcement audio/text in Demo Mode is app-local and

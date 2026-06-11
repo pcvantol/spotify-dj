@@ -58,7 +58,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `djconnect`
 - HACS custom integration.
-- Actuele integratieversie: `3.1.14`.
+- Actuele integratieversie: `3.1.15`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -108,6 +108,7 @@ HA integration:
 - Verberg lokale/manual device URL in de normale flow; toon die alleen onder HA advanced options als mDNS/manual override nodig is.
 - Als manual device URL leeg is tijdens setup, sla alleen automatisch een model-specifieke hostname zoals `http://djconnect-lilygo-t-embed-s3-[device-suffix].local` op als de pairingwaarde een echte 12-hex device suffix is; runtime blijft device-reported `local_url` en `_djconnect._tcp` mDNS prefereren en negeert oude `djconnect-[6-digit-code].local` fallbacks.
 - Alle DJConnect entities moeten onder één HA device vallen met hetzelfde device identifier.
+- ESP32 clients krijgen ESP-only hardware/update entities zoals batterij, WiFi RSSI, schermstatus, LED status, firmware update en reboot. iOS, macOS en Raspberry Pi clients krijgen die ESP-only entities niet; zij houden client/runtime en backend/playback entities.
 - ESP status payloads naar HA moeten actuele device settings meesturen voor native entities, zoals screen_brightness_percent/screen_brightness, speaker_volume_percent/speaker_volume, screen_off_timeout_ms, turn_off_after/turn_off_after_ms, nested `settings`, `screen` en `led`; HA accepteert aliases en converteert milliseconden naar seconden/minuten.
 - `number.djconnect_volume` mag onbekende devicewaarden zoals `-1` nooit publiceren; geef dan `None/unavailable` terug binnen HA range 0–60.
 - Config-flow foutpaden moeten heldere NL/EN gebruikersmeldingen hebben, bijvoorbeeld bij lege of foutieve koppelcode/device-suffix, ontbrekende Spotify Client ID, foutieve external URL en OAuth fouten.

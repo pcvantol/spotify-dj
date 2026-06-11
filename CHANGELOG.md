@@ -1,7 +1,8 @@
 # Changelog
 
-## 3.1.14
+## 3.1.15
 
+- Update README, handoff, AGENTS and canonical sync prompts to document the client-type split between shared backend/playback entities and ESP32-only hardware/update entities.
 - Hide ESP-only hardware sensors (`battery`, `WiFi RSSI`, `screen_state` and `led_state`) for iOS, macOS and Raspberry Pi clients while keeping backend/playback sensors visible.
 - Include playlist artwork aliases in `playlists` command responses for iOS/macOS/ESP/web clients.
 - Add HA backend support for Apple app `seek_relative` playback commands with millisecond offsets.

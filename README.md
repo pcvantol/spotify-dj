@@ -12,7 +12,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.1.14`
+- Home Assistant integration: `3.1.15`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -34,8 +34,8 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 - Use Home Assistant Assist/TTS settings with safe defaults.
 - Process text commands through HA Assist before sending the resulting DJConnect intent to Spotify.
 - Use HA-native Assist/TTS routes in active services and entities.
-- Track device status, battery, Wi-Fi RSSI, firmware version, and last track.
-- Manage firmware updates through a Home Assistant update entity.
+- Track client status, firmware/client version, last command, last track and backend playback state.
+- Track ESP-only battery, Wi-Fi RSSI, screen/LED state and firmware updates only for ESP32 clients.
 - Provide diagnostics with sensitive values redacted.
 
 ## Architecture Decisions
@@ -61,7 +61,7 @@ runtime behavior. These decisions are part of the integration contract:
 
 ## Repository Layout
 
-- Home Assistant integration: `3.1.14`
+- Home Assistant integration: `3.1.15`
 - ESP firmware source: `pcvantol/djconnect-app`
 - Public firmware releases: `pcvantol/djconnect-firmware`
 - Canonical cross-repo sync prompts: [`SYNC_PROMPTS.md`](SYNC_PROMPTS.md)
@@ -207,22 +207,36 @@ code` when the ESP shows a new code.
 
 ## Home Assistant Entities
 
-DJConnect creates:
+DJConnect creates backend/playback entities for all client types:
 
 - `sensor.djconnect_status`
 - `sensor.djconnect_last_command`
-- `sensor.djconnect_battery`
-- `sensor.djconnect_wifi_rssi`
 - `sensor.djconnect_firmware_version`
 - `sensor.djconnect_last_track`
 - `sensor.djconnect_queue`
+- `sensor.djconnect_playlists`
 - `sensor.djconnect_outputs`
+- `sensor.djconnect_sound_output`
+- `sensor.djconnect_playback_available`
+- `sensor.djconnect_spotify_status`
+- `sensor.djconnect_ha_pairing_status`
 - `select.djconnect_sound_output`
 - `media_player.djconnect_playback_proxy`
 - `button.djconnect_test_dj_voice`
 - `button.djconnect_refresh_up_next`
 - `button.djconnect_refresh_device_info`
+
+ESP32 clients additionally get ESP-hardware entities:
+
+- `sensor.djconnect_battery`
+- `sensor.djconnect_wifi_rssi`
+- `sensor.djconnect_screen_state`
+- `sensor.djconnect_led_state`
 - `update.djconnect_firmware`
+- `button.djconnect_reboot_device`
+
+iOS, macOS and Raspberry Pi clients do not get ESP-only battery, Wi-Fi RSSI,
+screen/LED, OTA or reboot entities.
 
 Entity IDs can differ if Home Assistant has renamed the device or entities.
 
@@ -489,11 +503,11 @@ response.
 
 ## Native Home Assistant Entities
 
-The integration exposes native Home Assistant entities for device status, firmware OTA, screen/device settings, screen/LED state, DJ announcement tests and backend playback control. The `media_player.djconnect_playback_proxy` entity represents the current music backend session, not the ESP speaker. Music plays on the selected Spotify/output device; the DJConnect speaker is used for local cues and DJ/voice responses.
+The integration exposes native Home Assistant entities for device status, DJ announcement tests and backend playback control. ESP32 clients additionally get firmware OTA, reboot and ESP hardware state such as battery, Wi-Fi RSSI and screen/LED status. iOS, macOS and Raspberry Pi clients only get client/runtime and backend/playback entities, so Home Assistant does not show irrelevant ESP hardware sensors for app-like clients. The `media_player.djconnect_playback_proxy` entity represents the current music backend session, not the ESP speaker. Music plays on the selected Spotify/output device; the DJConnect speaker/client is used for local cues and DJ/voice responses.
 DJConnect persists the last known ESP status in the Home Assistant config entry,
-so battery, firmware, pairing status, screen/LED state and sound output remain
-visible after a Home Assistant restart or integration reload while waiting for
-the next authenticated ESP `/api/djconnect/status` post.
+so ESP battery, firmware, pairing status, screen/LED state and sound output
+remain visible after a Home Assistant restart or integration reload while
+waiting for the next authenticated ESP `/api/djconnect/status` post.
 
 ## ESP Device Endpoints
 
@@ -537,24 +551,24 @@ Example manifest:
 
 ```json
 {
-  "version": "3.1.14",
-  "version_tag": "v3.1.14",
+  "version": "3.1.15",
+  "version_tag": "v3.1.15",
   "channel": "stable",
-  "min_ha_integration": "3.1.14",
+  "min_ha_integration": "3.1.15",
   "firmwares": [
     {
       "board": "t_embed_cc1101",
       "device": "lilygo-t-embed-s3",
-      "asset": "djconnect-lilygo-t-embed-s3-v3.1.14.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.14/djconnect-lilygo-t-embed-s3-v3.1.14.bin",
+      "asset": "djconnect-lilygo-t-embed-s3-v3.1.15.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.15/djconnect-lilygo-t-embed-s3-v3.1.15.bin",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size": 2113136
     },
     {
       "board": "esp32_s3_box3",
       "device": "esp32-s3-box-3",
-      "asset": "djconnect-esp32-s3-box-3-v3.1.14.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.14/djconnect-esp32-s3-box-3-v3.1.14.bin",
+      "asset": "djconnect-esp32-s3-box-3-v3.1.15.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.15/djconnect-esp32-s3-box-3-v3.1.15.bin",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
       "size": 2113136
     }
@@ -577,7 +591,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.1.14
+./release.sh 3.1.15
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -589,14 +603,14 @@ PlatformIO builds, rename firmware binaries to device-specific assets such as
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.1.14 --dry-run
+./release.sh 3.1.15 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
 public-repo option if available:
 
 ```bash
-./release.sh 3.1.14 --publish-firmware-repo ../djconnect-firmware
+./release.sh 3.1.15 --publish-firmware-repo ../djconnect-firmware
 ```
 
 The public `djconnect-firmware` repository should contain only the release
@@ -629,7 +643,7 @@ Tag and publish:
 One-liner:
 
 ```bash
-./release.sh 3.1.14
+./release.sh 3.1.15
 ```
 
 The script updates the integration version in `manifest.json`, `const.py`,
@@ -638,18 +652,18 @@ The script updates the integration version in `manifest.json`, `const.py`,
 Preview without executing git/gh commands:
 
 ```bash
-./release.sh 3.1.14 --dry-run
+./release.sh 3.1.15 --dry-run
 ```
 
 Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.1.14"
-git tag v3.1.14
+git commit -m "Release DJConnect v3.1.15"
+git tag v3.1.15
 git push origin main
-git push origin v3.1.14
-gh release create v3.1.14 --title "DJConnect v3.1.14" --notes-file CHANGELOG.md
+git push origin v3.1.15
+gh release create v3.1.15 --title "DJConnect v3.1.15" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:
