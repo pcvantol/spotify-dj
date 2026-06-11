@@ -1,22 +1,22 @@
 {
-  "version": "3.1.9",
-  "version_tag": "v3.1.9",
+  "version": "3.1.10",
+  "version_tag": "v3.1.10",
   "channel": "stable",
-  "min_ha_integration": "3.1.9",
+  "min_ha_integration": "3.1.10",
   "firmwares": [
     {
       "board": "t_embed_cc1101",
       "device": "lilygo-t-embed-s3",
-      "asset": "djconnect-lilygo-t-embed-s3-v3.1.9.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.9/djconnect-lilygo-t-embed-s3-v3.1.9.bin",
+      "asset": "djconnect-lilygo-t-embed-s3-v3.1.10.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.10/djconnect-lilygo-t-embed-s3-v3.1.10.bin",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size": 2113136
     },
     {
       "board": "esp32_s3_box3",
       "device": "esp32-s3-box-3",
-      "asset": "djconnect-esp32-s3-box-3-v3.1.9.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.9/djconnect-esp32-s3-box-3-v3.1.9.bin",
+      "asset": "djconnect-esp32-s3-box-3-v3.1.10.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.10/djconnect-esp32-s3-box-3-v3.1.10.bin",
       "sha256": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
       "size": 2097152
     }

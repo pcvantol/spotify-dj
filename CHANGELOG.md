@@ -1,7 +1,8 @@
 # Changelog
 
-## 3.1.9
+## 3.1.10
 
+- Show the public DJConnect website prominently in both the README and HACS `info.md`: `https://djconnect.pages.dev`.
 - Remove the repository-local `website/` product site now that the marketing website is maintained outside the Home Assistant integration repo.
 - Update README, AGENTS, handoff, issue and todo documentation so release hygiene no longer treats the external website as part of this HACS package.
 - Keep HACS/integration brand assets in `custom_components/djconnect/brand/` while dropping the duplicated static website asset tree.
