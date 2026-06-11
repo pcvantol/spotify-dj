@@ -12,7 +12,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.1.15`
+- Home Assistant integration: `3.1.16`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -61,7 +61,7 @@ runtime behavior. These decisions are part of the integration contract:
 
 ## Repository Layout
 
-- Home Assistant integration: `3.1.15`
+- Home Assistant integration: `3.1.16`
 - ESP firmware source: `pcvantol/djconnect-app`
 - Public firmware releases: `pcvantol/djconnect-firmware`
 - Canonical cross-repo sync prompts: [`SYNC_PROMPTS.md`](SYNC_PROMPTS.md)
@@ -185,7 +185,7 @@ been reauthorized with `playlist-read-private`; diagnostics and Home Assistant
 repairs show a warning when the stored OAuth scope list is missing required
 DJConnect scopes.
 
-Where Home Assistant exposes choices, DJConnect shows populated dropdowns for Assist pipeline, TTS entity, known TTS voices, Spotify market and firmware channel. Stored custom values remain selectable so existing setups keep working. Backend playback is handled by Home Assistant through the DJConnect playback proxy; ESP device settings use the local device command API. The DJ announcement prompt, Spotify source override, firmware channel, client type and Client API URL are shown in the normal flow so the spoken device response, preferred Spotify Connect output, OTA track and app pairing URL can be adjusted directly. Max audio bytes and OTA battery settings are shown only after enabling the inline advanced-options checkbox. Firmware OTA device selection is automatic: DJConnect reads the public multi-device firmware manifest and selects the matching `firmwares[]` entry from ESP status/info, falling back to LilyGO only before the ESP has reported a model. For ESP devices, the Client API URL is normally not needed: DJConnect resolves the device through `_djconnect._tcp` mDNS, uses the device-reported `local_url` when available, and only builds a model-specific hostname such as `http://djconnect-lilygo-t-embed-s3-[device-suffix].local` when the configured ID contains a real 12-character device suffix.
+Where Home Assistant exposes choices, DJConnect shows populated dropdowns for Assist pipeline, TTS entity, known TTS voices, Spotify market and firmware channel. Stored custom values remain selectable so existing setups keep working. Backend playback is handled by Home Assistant through the DJConnect playback proxy; ESP device settings use the local device command API. The DJ announcement prompt, Spotify source override, firmware channel, client type and Client API URL are shown in the normal flow so the spoken device response, preferred Spotify Connect output, OTA track and app pairing URL can be adjusted directly. In options, the configured Client API URL is shown read-only; use re-pairing to change it. Max audio bytes and OTA battery settings are shown only after enabling the inline advanced-options checkbox. Firmware OTA device selection is automatic: DJConnect reads the public multi-device firmware manifest and selects the matching `firmwares[]` entry from ESP status/info, falling back to LilyGO only before the ESP has reported a model. For ESP devices, the Client API URL is normally not needed: DJConnect resolves the device through `_djconnect._tcp` mDNS, uses the device-reported `local_url` when available, and only builds a model-specific hostname such as `http://djconnect-lilygo-t-embed-s3-[device-suffix].local` when the configured ID contains a real 12-character device suffix.
 
 The options flow also includes an action selector. Use `Reauthorize Spotify` to
 refresh OAuth from the integration page, `Retry pairing with current code` to
@@ -551,24 +551,24 @@ Example manifest:
 
 ```json
 {
-  "version": "3.1.15",
-  "version_tag": "v3.1.15",
+  "version": "3.1.16",
+  "version_tag": "v3.1.16",
   "channel": "stable",
-  "min_ha_integration": "3.1.15",
+  "min_ha_integration": "3.1.16",
   "firmwares": [
     {
       "board": "t_embed_cc1101",
       "device": "lilygo-t-embed-s3",
-      "asset": "djconnect-lilygo-t-embed-s3-v3.1.15.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.15/djconnect-lilygo-t-embed-s3-v3.1.15.bin",
+      "asset": "djconnect-lilygo-t-embed-s3-v3.1.16.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.16/djconnect-lilygo-t-embed-s3-v3.1.16.bin",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size": 2113136
     },
     {
       "board": "esp32_s3_box3",
       "device": "esp32-s3-box-3",
-      "asset": "djconnect-esp32-s3-box-3-v3.1.15.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.15/djconnect-esp32-s3-box-3-v3.1.15.bin",
+      "asset": "djconnect-esp32-s3-box-3-v3.1.16.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.16/djconnect-esp32-s3-box-3-v3.1.16.bin",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
       "size": 2113136
     }
@@ -591,7 +591,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.1.15
+./release.sh 3.1.16
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -603,14 +603,14 @@ PlatformIO builds, rename firmware binaries to device-specific assets such as
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.1.15 --dry-run
+./release.sh 3.1.16 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
 public-repo option if available:
 
 ```bash
-./release.sh 3.1.15 --publish-firmware-repo ../djconnect-firmware
+./release.sh 3.1.16 --publish-firmware-repo ../djconnect-firmware
 ```
 
 The public `djconnect-firmware` repository should contain only the release
@@ -643,7 +643,7 @@ Tag and publish:
 One-liner:
 
 ```bash
-./release.sh 3.1.15
+./release.sh 3.1.16
 ```
 
 The script updates the integration version in `manifest.json`, `const.py`,
@@ -652,18 +652,18 @@ The script updates the integration version in `manifest.json`, `const.py`,
 Preview without executing git/gh commands:
 
 ```bash
-./release.sh 3.1.15 --dry-run
+./release.sh 3.1.16 --dry-run
 ```
 
 Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.1.15"
-git tag v3.1.15
+git commit -m "Release DJConnect v3.1.16"
+git tag v3.1.16
 git push origin main
-git push origin v3.1.15
-gh release create v3.1.15 --title "DJConnect v3.1.15" --notes-file CHANGELOG.md
+git push origin v3.1.16
+gh release create v3.1.16 --title "DJConnect v3.1.16" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

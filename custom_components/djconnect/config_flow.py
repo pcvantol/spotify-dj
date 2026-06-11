@@ -538,6 +538,7 @@ def _base_voice_schema(
     tts_engine: str,
     tts_voice: str,
     options_actions: dict[str, str] | None = None,
+    readonly_local_url: str | None = None,
 ) -> dict[Any, Any]:
     """Build the non-advanced voice settings schema."""
     stt_validator = vol.In(stt_options) if len(stt_options) > 1 else str
@@ -551,6 +552,11 @@ def _base_voice_schema(
                 default=OPTIONS_ACTION_SAVE,
             )
         ] = vol.In(options_actions)
+    if readonly_local_url is not None:
+        label = readonly_local_url or "Not configured"
+        schema[vol.Optional(CONF_LOCAL_URL, default=readonly_local_url)] = vol.In(
+            {readonly_local_url: label}
+        )
     schema.update({
         vol.Optional(
             CONF_ASSIST_PIPELINE_ID,
@@ -637,6 +643,7 @@ async def _voice_schema(
     *,
     include_advanced: bool = False,
     include_options_action: bool = False,
+    include_readonly_local_url: bool = False,
 ) -> vol.Schema:
     """Build a voice/options schema with dropdowns where HA can provide choices."""
     pipeline = _get_assist_pipeline(hass, defaults.get(CONF_ASSIST_PIPELINE_ID, ""))
@@ -674,6 +681,11 @@ async def _voice_schema(
         options_actions=(
             _options_action_names(hass)
             if include_options_action
+            else None
+        ),
+        readonly_local_url=(
+            str(defaults.get(CONF_LOCAL_URL) or "")
+            if include_readonly_local_url
             else None
         ),
     )
@@ -1197,9 +1209,10 @@ class DJConnectOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             data_schema=await _voice_schema(
                 self.hass,
-                defaults,
+                current,
                 include_advanced=_advanced_enabled(self),
                 include_options_action=True,
+                include_readonly_local_url=True,
             ),
             errors=errors,
         )

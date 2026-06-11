@@ -559,6 +559,22 @@ class ConfigFlowHelperTest(unittest.TestCase):
 
         self.assertIn(self.config_flow.OPTIONS_ACTION_FIELD, keys)
 
+    def test_voice_schema_can_show_readonly_client_api_url(self) -> None:
+        hass = types.SimpleNamespace(states=None, config=types.SimpleNamespace(language="nl-NL"))
+        local_url = "http://192.168.1.104:60955"
+
+        schema = asyncio.run(
+            self.config_flow._voice_schema(
+                hass,
+                {self.const.CONF_LOCAL_URL: local_url},
+                include_readonly_local_url=True,
+            )
+        ).schema
+        marker = next(marker for marker in schema if marker.key == self.const.CONF_LOCAL_URL)
+
+        self.assertEqual(marker.default, local_url)
+        self.assertEqual(schema[marker], {local_url: local_url})
+
     def test_spotify_schema_prefills_external_url(self) -> None:
         schema = self.config_flow._spotify_schema_with_defaults(
             external_url="https://example.ui.nabu.casa"
