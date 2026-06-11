@@ -9,6 +9,7 @@ Canonical repo locations:
 - Home Assistant integration: `pcvantol/djconnect`
 - Apple app: `pcvantol/djconnect-app`
 - ESP firmware: `pcvantol/djconnect-esp32`
+- Website/docs: `pcvantol/djconnect-website`
 
 ## How To Sync This File
 
@@ -19,6 +20,7 @@ repos that are present locally:
 cp SYNC_PROMPTS.md ../djconnect/SYNC_PROMPTS.md
 cp SYNC_PROMPTS.md ../djconnect-app/SYNC_PROMPTS.md
 cp SYNC_PROMPTS.md ../djconnect-esp32/SYNC_PROMPTS.md
+cp SYNC_PROMPTS.md ../djconnect-website/SYNC_PROMPTS.md
 ```
 
 If a sibling repo is not present, or the destination is the current repo, skip
@@ -1160,6 +1162,34 @@ Examples:
 {"device_id":"djconnect-ios-8F3A2C91B45D","client_type":"ios","command":"start_playlist","value":"spotify:playlist:...","play":true}
 {"device_id":"djconnect-ios-8F3A2C91B45D","client_type":"ios","command":"set_output","value":"iPhone","play":true}
 ```
+
+Playlist command responses should include playlist metadata and artwork when
+available:
+
+```json
+{
+  "success": true,
+  "playlists": [
+    {
+      "id": "spotify:playlist:...",
+      "name": "Friday Night",
+      "uri": "spotify:playlist:...",
+      "image_url": "https://..."
+    }
+  ]
+}
+```
+
+For playlist artwork, clients should accept these aliases:
+
+- `image_url`
+- `album_image_url`
+- `media_image_url`
+- `entity_picture`
+
+Home Assistant should prefer `image_url` for playlist artwork, but may also
+return one of the aliases above when sharing code with queue/playback image
+serializers. Queue items continue to use `album_image_url` as the primary field.
 
 Apple app clients may expose current-track seek controls. Use
 `command:"seek_relative"` with an integer `value` in milliseconds. Positive
