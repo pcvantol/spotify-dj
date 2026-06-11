@@ -1,8 +1,10 @@
 # Changelog
 
-## 3.1.12
+## 3.1.13
 
+- Include playlist artwork aliases in `playlists` command responses for iOS/macOS/ESP/web clients.
 - Add HA backend support for Apple app `seek_relative` playback commands with millisecond offsets.
+- Prepare HA pairing/status validation for future Raspberry Pi clients with `client_type=raspberry_pi` and `djconnect-raspberry-pi-*` IDs.
 - Consolidate all DJConnect cross-repo sync prompts into the single canonical `SYNC_PROMPTS.md` file and remove the retired loose prompt files.
 - Document the DJConnect website How To Start requirements for HACS installation, Spotify Premium, Home Assistant Assist STT/TTS, local pairing and Spotify OAuth.
 - Add the HACS custom-repository deeplink to the README installation section.

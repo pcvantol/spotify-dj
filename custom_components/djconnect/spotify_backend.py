@@ -710,10 +710,18 @@ def _normalize_queue_item(item: dict[str, Any]) -> dict[str, str]:
 
 def _normalize_playlist(item: dict[str, Any]) -> dict[str, str]:
     owner = item.get("owner") or {}
+    image_url = _best_image_url(item.get("images") or [])
     return {
+        "id": item.get("uri") or item.get("id") or "",
         "name": item.get("name") or "",
         "owner": owner.get("display_name") or owner.get("id") or "",
         "uri": item.get("uri") or "",
+        "image_url": image_url,
+        "imageUrl": image_url,
+        "album_image_url": image_url,
+        "albumImageUrl": image_url,
+        "media_image_url": image_url,
+        "thumbnail_url": image_url,
     }
 
 

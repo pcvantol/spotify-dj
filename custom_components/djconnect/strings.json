@@ -13,7 +13,7 @@
       },
       "pair": {
         "title": "DJConnect apparaat koppelen",
-        "description": "Voer de koppelcode van je DJConnect device in. De Client API URL is verplicht voor iOS/macOS en alleen nodig voor ESP devices als automatische discovery niet werkt. Spotify is een handelsmerk van Spotify AB. DJConnect is niet verbonden aan, goedgekeurd door of gesponsord door Spotify AB.",
+        "description": "Voer de koppelcode van je DJConnect device in. De Client API URL is verplicht voor iOS/macOS/Raspberry Pi en alleen nodig voor ESP devices als automatische discovery niet werkt. Spotify is een handelsmerk van Spotify AB. DJConnect is niet verbonden aan, goedgekeurd door of gesponsord door Spotify AB.",
         "data": {
           "pair_code": "Koppelcode",
           "device_name": "Apparaatnaam",
@@ -25,8 +25,8 @@
           "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het DJConnect device.",
           "device_name": "Leesbare naam voor deze DJConnect remote.",
           "device_language": "Taal voor de UI op het DJConnect device. Deze wordt tijdens pairing naar het device gestuurd.",
-          "client_type": "Type DJConnect client dat koppelt met Home Assistant: ESP32 device, iOS app of macOS app.",
-          "local_url": "Voor iOS/macOS verplicht: kopieer de Client API URL uit de DJConnect app via Instellingen. Voor ESP devices meestal leeg laten, tenzij automatische discovery niet werkt."
+          "client_type": "Type DJConnect client dat koppelt met Home Assistant: ESP32 device, iOS app, macOS app of Raspberry Pi client.",
+          "local_url": "Voor iOS/macOS/Raspberry Pi verplicht: kopieer de Client API URL uit de DJConnect app via Instellingen. Voor ESP devices meestal leeg laten, tenzij automatische discovery niet werkt."
         }
       },
       "ble_wifi": {
@@ -89,7 +89,7 @@
         "data_description": {
           "assist_pipeline_id": "Assist pipeline die DJConnect devices gebruiken voor spraakherkenning.",
           "stt_engine": "Home Assistant STT entity voor fysieke PTT spraakherkenning. Laat leeg om de STT provider uit de Assist pipeline te gebruiken.",
-          "client_type": "Type DJConnect client dat koppelt met Home Assistant: ESP32 device, iOS app of macOS app.",
+          "client_type": "Type DJConnect client dat koppelt met Home Assistant: ESP32 device, iOS app, macOS app of Raspberry Pi client.",
           "tts_engine": "Home Assistant TTS entity voor DJ aankondigingen.",
           "tts_language": "Taal die aan de TTS engine wordt meegegeven.",
           "tts_voice": "Stem die aan de TTS engine wordt meegegeven als die bekend is.",
@@ -123,7 +123,7 @@
         },
         "data_description": {
           "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het device-display.",
-          "local_url": "Voor iOS/macOS verplicht: kopieer de Client API URL uit de DJConnect app via Instellingen. Voor ESP devices meestal leeg laten, tenzij automatische discovery niet werkt."
+          "local_url": "Voor iOS/macOS/Raspberry Pi verplicht: kopieer de Client API URL uit de DJConnect app via Instellingen. Voor ESP devices meestal leeg laten, tenzij automatische discovery niet werkt."
         }
       }
     },
@@ -173,7 +173,7 @@
         "data_description": {
           "assist_pipeline_id": "Assist pipeline die DJConnect devices gebruiken voor spraakherkenning.",
           "stt_engine": "Home Assistant STT entity voor fysieke PTT spraakherkenning. Laat leeg om de STT provider uit de Assist pipeline te gebruiken.",
-          "client_type": "Type DJConnect client dat koppelt met Home Assistant: ESP32 device, iOS app of macOS app.",
+          "client_type": "Type DJConnect client dat koppelt met Home Assistant: ESP32 device, iOS app, macOS app of Raspberry Pi client.",
           "dj_response_enabled": "Maak een tijdelijke WAV of MP3 audio URL en stuur die met de DJ aankondiging naar het DJConnect device.",
           "firmware_channel": "Kies stable voor normale OTA updates of beta om prerelease firmware te testen.",
           "dj_response_ttl_seconds": "Aantal seconden dat de tijdelijke WAV download URL geldig blijft.",
@@ -191,7 +191,7 @@
         },
         "data_description": {
           "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het device-display.",
-          "local_url": "Voor iOS/macOS verplicht: kopieer de Client API URL uit de DJConnect app via Instellingen. Voor ESP devices meestal leeg laten, tenzij automatische discovery niet werkt."
+          "local_url": "Voor iOS/macOS/Raspberry Pi verplicht: kopieer de Client API URL uit de DJConnect app via Instellingen. Voor ESP devices meestal leeg laten, tenzij automatische discovery niet werkt."
         }
       }
     },

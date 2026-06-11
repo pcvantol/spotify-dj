@@ -670,6 +670,80 @@ class SpotifyBackendTest(unittest.TestCase):
         self.assertEqual(result["queue"][0]["imageUrl"], "https://example.test/queue.jpg")
         self.assertEqual(runtime.device_status["queue"]["items"], result["queue"])
 
+    def test_playlists_command_returns_playlist_art_aliases(self) -> None:
+        class Response:
+            status = 200
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def json(self, content_type=None):
+                return {
+                    "items": [
+                        {
+                            "id": "playlist-id",
+                            "name": "Default playlist",
+                            "uri": "spotify:playlist:default",
+                            "owner": {"display_name": "Peter"},
+                            "images": [
+                                {
+                                    "url": "https://example.test/playlist-small.jpg",
+                                    "width": 64,
+                                    "height": 64,
+                                },
+                                {
+                                    "url": "https://example.test/playlist-large.jpg",
+                                    "width": 640,
+                                    "height": 640,
+                                },
+                            ],
+                        }
+                    ]
+                }
+
+            async def text(self):
+                return "{}"
+
+        class Session:
+            def request(self, method, url, **kwargs):
+                return Response()
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={"spotify_client_id": "client-id", "spotify_refresh_token": "refresh"},
+            options={},
+        )
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            latest_spotify_refresh_token=None,
+            spotify_access_token="access",
+            spotify_access_token_expires_at=time.time() + 1800,
+            backend_cache={},
+            device_status={},
+            update=lambda **kwargs: None,
+        )
+        runtime.config = dict(entry.data)
+
+        original_clientsession = self.backend.async_get_clientsession
+        self.backend.async_get_clientsession = lambda hass: Session()
+        try:
+            result = asyncio.run(
+                self.backend.handle_spotify_command(object(), runtime, "playlists")
+            )
+        finally:
+            self.backend.async_get_clientsession = original_clientsession
+
+        playlist = result["playlists"][0]
+        self.assertEqual(playlist["id"], "spotify:playlist:default")
+        self.assertEqual(playlist["image_url"], "https://example.test/playlist-large.jpg")
+        self.assertEqual(playlist["imageUrl"], "https://example.test/playlist-large.jpg")
+        self.assertEqual(playlist["album_image_url"], "https://example.test/playlist-large.jpg")
+        self.assertEqual(playlist["media_image_url"], "https://example.test/playlist-large.jpg")
+        self.assertEqual(runtime.device_status["playlists"], result["playlists"])
+
     def test_play_context_at_artist_context_plays_track_without_offset(self) -> None:
         class Response:
             status = 204

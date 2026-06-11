@@ -6,8 +6,8 @@
 - Restart Home Assistant after installation.
 - Open DJConnect options flow and confirm there is no internal server error.
 - Confirm existing paired device remains paired after HA restart when ESP reports `ha_pairing_status=paired`.
-- Confirm iOS/macOS paired clients do not show active/available firmware OTA or reboot entities.
-- Confirm iOS/macOS PTT requests do not create a false Spotify refresh-token repair after the first DJ announcement.
+- Confirm iOS/macOS/Raspberry Pi paired clients do not show active/available firmware OTA or reboot entities.
+- Confirm iOS/macOS/Raspberry Pi PTT requests do not create a false Spotify refresh-token repair after the first DJ announcement.
 - Confirm HA shows pairing `pending` and retries `/api/device/pair` when a local token exists but ESP has not confirmed pairing.
 - Confirm ESP `/status` updates persist the real `djconnect-XXXXXXXXXXXX` device id.
 - Confirm ESP `/status` updates persist the real `local_url` when provided.
@@ -22,7 +22,7 @@
 - Confirm selected HA STT provider accepts the WAV metadata.
 - Confirm recognized text reaches DJConnect command processing.
 - Confirm Spotify playback action runs when Spotify is idle.
-- Confirm repeated iOS/macOS PTT requests reuse or serialize Spotify token refresh without false `invalid_grant` repairs.
+- Confirm repeated iOS/macOS/Raspberry Pi PTT requests reuse or serialize Spotify token refresh without false `invalid_grant` repairs.
 - Confirm artist queue/up-next selection does not send invalid Spotify artist offset payloads.
 - Confirm friendly DJ fallback response is returned when Spotify playback fails.
 - Confirm DJ fallback response follows `device_language` (`nl` or `en`).
@@ -46,7 +46,7 @@
 - Test BLE screen action `Rescan Bluetooth devices`.
 - Test BLE screen action `Write WiFi over Bluetooth`.
 - Test pairing with Client API URL left empty for ESP devices.
-- Test pairing with iOS/macOS Client API URL copied from app Settings.
+- Test pairing with iOS/macOS/Raspberry Pi Client API URL copied from client Settings.
 - Test mDNS discovery through `_djconnect._tcp`.
 - Test mDNS single-device fallback when only one DJConnect device is visible.
 - Test Client API URL fallback on a network where mDNS fails.
@@ -74,8 +74,8 @@
 - Verify OTA payload sends manifest `device`, currently `lilygo-t-embed-s3`.
 - Verify ESP no longer rejects OTA with `Wrong device target`.
 - Verify OTA errors are shown clearly in HA.
-- Verify firmware OTA update entity is not added and remains unavailable for `client_type=ios` and `client_type=macos`.
-- Verify reboot entity is not added for `client_type=ios` and `client_type=macos`.
+- Verify firmware OTA update entity is not added and remains unavailable for `client_type=ios`, `client_type=macos` and `client_type=raspberry_pi`.
+- Verify reboot entity is not added for `client_type=ios`, `client_type=macos` and `client_type=raspberry_pi`.
 
 ## Developer Services
 
@@ -109,7 +109,7 @@
 
 - Keep product/marketing website work in the external website location, not this HA integration repo.
 - Keep the public website link visible in HACS-facing docs: `https://djconnect.pages.dev`.
-- Maintain a How To Start page covering HACS install, Spotify Premium, HA Assist pipeline STT/TTS setup, Spotify OAuth, ESP pairing and iOS/macOS Client API URL pairing.
+- Maintain a How To Start page covering HACS install, Spotify Premium, HA Assist pipeline STT/TTS setup, Spotify OAuth, ESP pairing and iOS/macOS/Raspberry Pi Client API URL pairing.
 - Add real product photos/screenshots when final hardware imagery is available.
 - Keep requirements clear: Spotify Premium, Home Assistant, HACS, HA Assist pipeline, 2.4 GHz WiFi and mDNS/Nabu Casa recommendations.
 

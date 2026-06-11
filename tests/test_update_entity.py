@@ -178,6 +178,18 @@ class DJConnectUpdateEntityTest(unittest.TestCase):
 
         self.assertEqual(added, [])
 
+    def test_update_entity_is_skipped_for_raspberry_pi_clients(self) -> None:
+        added = []
+        runtime = types.SimpleNamespace(client_type=lambda: "raspberry_pi")
+        hass = types.SimpleNamespace(data={"djconnect": {"entry-1": runtime}})
+        entry = types.SimpleNamespace(entry_id="entry-1")
+
+        asyncio.run(
+            self.update.async_setup_entry(hass, entry, lambda entities: added.extend(entities))
+        )
+
+        self.assertEqual(added, [])
+
     def test_existing_update_entity_is_unavailable_for_app_clients(self) -> None:
         runtime = types.SimpleNamespace(
             entry=types.SimpleNamespace(entry_id="entry-1"),

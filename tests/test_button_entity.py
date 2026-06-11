@@ -94,6 +94,22 @@ class DJConnectButtonEntityTest(unittest.TestCase):
         translation_keys = {entity._attr_translation_key for entity in added}
         self.assertNotIn("reboot_device", translation_keys)
 
+    def test_reboot_button_is_skipped_for_raspberry_pi_clients(self) -> None:
+        added = []
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            client_type=lambda: "raspberry_pi",
+        )
+        hass = types.SimpleNamespace(data={"djconnect": {"entry-1": runtime}})
+        entry = types.SimpleNamespace(entry_id="entry-1")
+
+        asyncio.run(
+            self.button.async_setup_entry(hass, entry, lambda entities: added.extend(entities))
+        )
+
+        translation_keys = {entity._attr_translation_key for entity in added}
+        self.assertNotIn("reboot_device", translation_keys)
+
     def test_reboot_button_is_added_for_esp32_clients(self) -> None:
         added = []
         runtime = types.SimpleNamespace(

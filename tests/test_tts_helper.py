@@ -872,6 +872,25 @@ class TtsHelperTest(unittest.TestCase):
         self.assertEqual(runtime.device_status["device_id"], device_id)
         self.assertIsNone(self.integration._device_id_mdns_fallback_url(device_id))
 
+    def test_device_auth_accepts_raspberry_pi_id_with_matching_token(self) -> None:
+        entry = types.SimpleNamespace(entry_id="entry-1", data={}, options={})
+        runtime = self.integration.DJConnectRuntime(entry=entry)
+        runtime.device_token = "token-new"
+        runtime.pairing_device_id = "djconnect-328823"
+        runtime.device_status["device_id"] = "djconnect-328823"
+        device_id = "djconnect-raspberry-pi-AbC123xYz789"
+        headers = {
+            "Authorization": "Bearer token-new",
+            "X-DJConnect-Device-ID": device_id,
+        }
+
+        self.assertTrue(
+            runtime.authorize_device_request(headers, device_id, "raspberry_pi")
+        )
+        self.assertEqual(runtime.pairing_device_id, device_id)
+        self.assertEqual(runtime.device_status["device_id"], device_id)
+        self.assertIsNone(self.integration._device_id_mdns_fallback_url(device_id))
+
     def test_device_auth_rejects_client_type_device_id_mismatch(self) -> None:
         entry = types.SimpleNamespace(entry_id="entry-1", data={}, options={})
         runtime = self.integration.DJConnectRuntime(entry=entry)

@@ -12,7 +12,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.1.12`
+- Home Assistant integration: `3.1.13`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -52,7 +52,7 @@ runtime behavior. These decisions are part of the integration contract:
 - **Access-token cache**: Home Assistant caches short-lived Spotify access tokens and refreshes them on demand. A normal one-hour Spotify access-token expiry should not open a Repair flow; only a rejected/revoked refresh token should.
 - **OAuth through Home Assistant external step**: Spotify OAuth uses PKCE and the Home Assistant external step flow. The callback remains `/api/djconnect/spotify/callback`, with Nabu Casa HTTPS URLs preferred.
 - **Pairing over WiFi, BLE only for WiFi credentials**: BLE provisioning writes only WiFi SSID/password to setup-mode devices. Spotify credentials, device tokens and other secrets are never sent over BLE.
-- **mDNS first, Client API URL as fallback**: ESP runtime prefers the device-reported `local_url`, exact `_djconnect._tcp` mDNS matches, then a single visible DJConnect mDNS device. iOS/macOS users enter the Client API URL from the app settings during pairing; ESP users usually leave it empty unless discovery is unavailable.
+- **mDNS first, Client API URL as fallback**: ESP runtime prefers the device-reported `local_url`, exact `_djconnect._tcp` mDNS matches, then a single visible DJConnect mDNS device. iOS/macOS/Raspberry Pi users enter the Client API URL from the client settings during pairing; ESP users usually leave it empty unless discovery is unavailable.
 - **Inline advanced options**: max audio bytes and OTA battery settings are revealed through a local “show advanced options” checkbox instead of Home Assistant's deprecated advanced-mode property. Firmware device selection is automatic through the public multi-device manifest; users can choose the OTA firmware channel, `stable` or `beta`, in options.
 - **Single Home Assistant device**: sensors, buttons, settings, update and playback proxy entities share one stable device identifier so Home Assistant shows one DJConnect device instead of duplicate device entries.
 - **Closed firmware, free integration**: firmware source remains proprietary. The Home Assistant integration is distributed separately under MIT for use with DJConnect devices.
@@ -61,7 +61,7 @@ runtime behavior. These decisions are part of the integration contract:
 
 ## Repository Layout
 
-- Home Assistant integration: `3.1.12`
+- Home Assistant integration: `3.1.13`
 - ESP firmware source: `pcvantol/djconnect-app`
 - Public firmware releases: `pcvantol/djconnect-firmware`
 - Canonical cross-repo sync prompts: [`SYNC_PROMPTS.md`](SYNC_PROMPTS.md)
@@ -92,7 +92,7 @@ Before installing, make sure you have:
 - Home Assistant with HACS installed.
 - A Spotify Premium account.
 - A configured Home Assistant Assist pipeline with working STT and TTS.
-- A DJConnect ESP device or DJConnect iOS/macOS app on the same local network as Home Assistant during pairing.
+- A DJConnect ESP device, DJConnect iOS/macOS app or Raspberry Pi client on the same local network as Home Assistant during pairing.
 - For ESP devices: 2.4 GHz WiFi.
 - For Spotify OAuth: an external HTTPS Home Assistant URL, preferably Nabu Casa.
 
@@ -197,7 +197,7 @@ code` when the ESP shows a new code.
 
 - Pairing is unauthenticated by design, but requires the pairing code or 12-character device suffix shown on the DJConnect device.
 - After pairing, device endpoints use the per-device bearer token.
-- Pairing/status metadata must include `client_type`; ESP firmware sends `esp32`, while app clients send `ios` or `macos`. App device IDs use `djconnect-ios-XXXXXXXXXXXX` or `djconnect-macos-XXXXXXXXXXXX`, where the suffix is the first 12 alphanumeric characters of the app install ID.
+- Pairing/status metadata must include `client_type`; ESP firmware sends `esp32`, app clients send `ios` or `macos`, and the future Raspberry Pi client sends `raspberry_pi`. App/client device IDs use `djconnect-ios-XXXXXXXXXXXX`, `djconnect-macos-XXXXXXXXXXXX` or `djconnect-raspberry-pi-XXXXXXXXXXXX`, where the suffix is the first 12 alphanumeric characters of the stable install ID.
 - Home Assistant keeps pairing status `pending` until the ESP confirms `ha_pairing_status=paired`; a local token alone is not treated as confirmed pairing.
 - Home Assistant calls `POST /api/device/pair` only during initial pairing, explicit re-pair/token rotation, or stale-pairing recovery. Normal status, playback and settings updates never trigger a new direct pair callback.
 - BLE WiFi provisioning sends only SSID/password to the BLE WiFi characteristic; it does not send Spotify credentials, device tokens or other secrets.
@@ -350,7 +350,7 @@ and/or file header. DJConnect does not send Opus or M4A URLs.
 During pairing, DJConnect sends only non-secret device settings to the ESP, such
 as `device_token`, `ha_local_url`, `assist_pipeline_id`, `client_type`,
 `device_language` and `language`. `client_type` identifies the paired
-DJConnect client runtime; current values are `esp32`, `ios` and `macos`, with
+DJConnect client runtime; current values are `esp32`, `ios`, `macos` and `raspberry_pi`, with
 `esp32` as the default for ESP firmware. Device-to-Home Assistant traffic
 always uses `ha_local_url`; cloud/Nabu Casa URLs are not sent to devices and
 are only used by the Spotify OAuth config/repair flow. Spotify OAuth
@@ -406,7 +406,7 @@ POST /api/djconnect/status
 
 Authenticated device requests use the provisioned bearer token and can include `X-DJConnect-Device-ID`.
 Status and pairing payloads use canonical `client_type` metadata so Home
-Assistant can distinguish ESP32 devices from future iOS/macOS app clients.
+Assistant can distinguish ESP32 devices from iOS/macOS app clients and the future Raspberry Pi client.
 ESP JSON payloads must include `client_type`.
 
 BLE setup-mode devices are matched by service UUID:
@@ -477,7 +477,7 @@ Firmware sends backend playback commands to Home Assistant instead of storing Sp
 POST /api/djconnect/command
 ```
 
-Required headers are `Authorization: Bearer <device_token>`, `X-DJConnect-Device-ID` and `Content-Type: application/json`. Supported commands include `status`, `devices`, `queue`, `playlists`, `pause`, `play`, `next`, `previous`, `seek_relative`, `start_liked_proxy`, `start_playlist`, `play_context_at`, `set_shuffle`, `set_repeat`, `set_output` and `set_volume`. `seek_relative` accepts an integer millisecond offset for Apple app skip-forward/skip-back controls; positive values seek forward and negative values seek backward. `set_shuffle` accepts a boolean value; `set_repeat` accepts `off`, `track` or `context`; `play_context_at` accepts a context URI and track offset URI for Up Next playback. Responses are generic JSON shapes with `playback`, `devices`, `queue` or `playlists`, so future backends such as Sonos or Home Assistant media players can be added without firmware changes. `queue` responses include top-level `context_uri` / `contextUri` when known and per-item artwork aliases such as `album_image_url` and `image_url`. Logs never include device tokens, Spotify tokens or backend credentials.
+Required headers are `Authorization: Bearer <device_token>`, `X-DJConnect-Device-ID` and `Content-Type: application/json`. Supported commands include `status`, `devices`, `queue`, `playlists`, `pause`, `play`, `next`, `previous`, `seek_relative`, `start_liked_proxy`, `start_playlist`, `play_context_at`, `set_shuffle`, `set_repeat`, `set_output` and `set_volume`. `seek_relative` accepts an integer millisecond offset for Apple app skip-forward/skip-back controls; positive values seek forward and negative values seek backward. `set_shuffle` accepts a boolean value; `set_repeat` accepts `off`, `track` or `context`; `play_context_at` accepts a context URI and track offset URI for Up Next playback. Responses are generic JSON shapes with `playback`, `devices`, `queue` or `playlists`, so future backends such as Sonos or Home Assistant media players can be added without firmware changes. `queue` responses include top-level `context_uri` / `contextUri` when known and per-item artwork aliases such as `album_image_url` and `image_url`; `playlists` responses include playlist artwork aliases such as `image_url`, `album_image_url` and `media_image_url`. Logs never include device tokens, Spotify tokens or backend credentials.
 
 HA and ESP firmware must share the same `major.minor` protocol version. Patch
 versions may differ, so HA `3.0.x` can talk to ESP `3.0.y`, but HA `3.1.x`
@@ -537,24 +537,24 @@ Example manifest:
 
 ```json
 {
-  "version": "3.1.12",
-  "version_tag": "v3.1.12",
+  "version": "3.1.13",
+  "version_tag": "v3.1.13",
   "channel": "stable",
-  "min_ha_integration": "3.1.12",
+  "min_ha_integration": "3.1.13",
   "firmwares": [
     {
       "board": "t_embed_cc1101",
       "device": "lilygo-t-embed-s3",
-      "asset": "djconnect-lilygo-t-embed-s3-v3.1.12.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.12/djconnect-lilygo-t-embed-s3-v3.1.12.bin",
+      "asset": "djconnect-lilygo-t-embed-s3-v3.1.13.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.13/djconnect-lilygo-t-embed-s3-v3.1.13.bin",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size": 2113136
     },
     {
       "board": "esp32_s3_box3",
       "device": "esp32-s3-box-3",
-      "asset": "djconnect-esp32-s3-box-3-v3.1.12.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.12/djconnect-esp32-s3-box-3-v3.1.12.bin",
+      "asset": "djconnect-esp32-s3-box-3-v3.1.13.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.13/djconnect-esp32-s3-box-3-v3.1.13.bin",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
       "size": 2113136
     }
@@ -577,7 +577,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.1.12
+./release.sh 3.1.13
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -589,14 +589,14 @@ PlatformIO builds, rename firmware binaries to device-specific assets such as
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.1.12 --dry-run
+./release.sh 3.1.13 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
 public-repo option if available:
 
 ```bash
-./release.sh 3.1.12 --publish-firmware-repo ../djconnect-firmware
+./release.sh 3.1.13 --publish-firmware-repo ../djconnect-firmware
 ```
 
 The public `djconnect-firmware` repository should contain only the release
@@ -629,7 +629,7 @@ Tag and publish:
 One-liner:
 
 ```bash
-./release.sh 3.1.12
+./release.sh 3.1.13
 ```
 
 The script updates the integration version in `manifest.json`, `const.py`,
@@ -638,18 +638,18 @@ The script updates the integration version in `manifest.json`, `const.py`,
 Preview without executing git/gh commands:
 
 ```bash
-./release.sh 3.1.12 --dry-run
+./release.sh 3.1.13 --dry-run
 ```
 
 Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.1.12"
-git tag v3.1.12
+git commit -m "Release DJConnect v3.1.13"
+git tag v3.1.13
 git push origin main
-git push origin v3.1.12
-gh release create v3.1.12 --title "DJConnect v3.1.12" --notes-file CHANGELOG.md
+git push origin v3.1.13
+gh release create v3.1.13 --title "DJConnect v3.1.13" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:

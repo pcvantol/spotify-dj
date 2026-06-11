@@ -53,7 +53,7 @@ Sync the DJConnect Home Assistant integration with the Apple app and ESP
 client contracts.
 
 Requirements:
-- Treat iOS/macOS as app clients, not ESP hardware devices.
+- Treat iOS/macOS/Raspberry Pi as app-like clients, not ESP hardware devices.
 - Pair app clients through POST /api/djconnect/pair.
 - Pair ESP clients through their local /api/device/pair flow after resolving
   /api/device/pairing-info and verifying the visible pair_code.
@@ -65,21 +65,21 @@ Requirements:
 - Return ha_local_url and language metadata during successful app pairing.
 - Keep cloud/remote URLs out of Apple app runtime traffic; cloud URLs are only
   needed by Home Assistant-owned Spotify OAuth config flows.
-- When pairing an Apple app client, ask for or use the Client API url shown in
-  the app pairing sheet; do not assume a changing Bonjour hostname remains the
+- When pairing an app-like client, ask for or use the Client API url shown in
+  the client pairing sheet; do not assume a changing Bonjour hostname remains the
   canonical callback target after pairing.
 - Return ha_version or ha_major_minor on status/command responses so Apple
   clients can enforce the matching major.minor contract.
-- Apple clients host local /api/device/* app endpoints for HA -> app traffic,
+- Apple/Raspberry Pi clients host local /api/device/* endpoints for HA -> client traffic,
   but must not implement ESP-only reboot or OTA routes.
-- Persist client_type as ios, macos, or esp32. Do not reintroduce device_type.
+- Persist client_type as ios, macos, raspberry_pi, or esp32. Do not reintroduce device_type.
 - Authenticated status/command/voice routes must accept Authorization: Bearer
   plus X-DJConnect-Device-ID.
 - Support Apple app current-track seeking through
   `command:"seek_relative"` with integer millisecond offsets. Positive values
   seek forward, negative values seek backward. ESP clients may omit this UI.
 - Validate that client_type matches the device_id prefix/model family:
-  ios -> djconnect-ios-*, macos -> djconnect-macos-*, esp32 -> ESP
+  ios -> djconnect-ios-*, macos -> djconnect-macos-*, raspberry_pi -> djconnect-raspberry-pi-*, esp32 -> ESP
   model-specific ids such as djconnect-lilygo-t-embed-s3-*.
 - During app pairing, 401/403 code mismatch responses stop polling, keep the
   visible app code, and do not rotate device_id automatically.
@@ -795,6 +795,7 @@ Assistant integration contract level, but it is not an ESP emulator. Use
 
 - iOS app: `ios`
 - macOS app: `macos`
+- Future Raspberry Pi client: `raspberry_pi`
 - ESP firmware remains: `esp32`
 
 Do not use `device_type` for DJConnect client identity. `device_type` may only
@@ -833,6 +834,7 @@ Suggested format:
 
 - iOS: `djconnect-ios-<stable-install-id>`
 - macOS: `djconnect-macos-<stable-install-id>`
+- Raspberry Pi: `djconnect-raspberry-pi-<stable-install-id>`
 
 The suffix should be stable across app launches, but should reset if the user
 explicitly resets DJConnect pairing in the app. Avoid exposing Apple account,
@@ -861,6 +863,19 @@ For macOS:
   "firmware": "3.1.9",
   "app_version": "3.1.9",
   "platform": "macos"
+}
+```
+
+For Raspberry Pi:
+
+```json
+{
+  "device_id": "djconnect-raspberry-pi-8F3A2C91B45D",
+  "device_name": "DJConnect Raspberry Pi",
+  "client_type": "raspberry_pi",
+  "firmware": "3.1.9",
+  "app_version": "3.1.9",
+  "platform": "raspberry_pi"
 }
 ```
 
@@ -1418,8 +1433,8 @@ Do not put SwiftUI view logic into the HTTP client.
 ## Acceptance Criteria
 
 - App pairs with the existing `djconnect` HA integration.
-- App status posts include `client_type` as `ios` or `macos`.
-- App command posts include `client_type` as `ios` or `macos`.
+- App status posts include `client_type` as `ios`, `macos` or `raspberry_pi`.
+- App command posts include `client_type` as `ios`, `macos` or `raspberry_pi`.
 - App does not send `device_type` for identity.
 - HA backend playback commands work without any Spotify credentials in the app.
 - Backend unavailable does not reset pairing.
@@ -1452,7 +1467,7 @@ Sync the DJConnect Home Assistant integration with the Apple app and ESP
 client contracts.
 
 Requirements:
-- Treat iOS/macOS as app clients, not ESP hardware devices.
+- Treat iOS/macOS/Raspberry Pi as app-like clients, not ESP hardware devices.
 - Pair app clients through POST /api/djconnect/pair.
 - Pair ESP clients through their local /api/device/pair flow after resolving
   /api/device/pairing-info and verifying the visible pair_code.
@@ -1464,18 +1479,18 @@ Requirements:
 - Return ha_local_url and language metadata during successful app pairing.
 - Keep cloud/remote URLs out of Apple app runtime traffic; cloud URLs are only
   needed by Home Assistant-owned Spotify OAuth config flows.
-- When pairing an Apple app client, ask for or use the Client API url shown in
-  the app pairing sheet; do not assume a changing Bonjour hostname remains the
+- When pairing an app-like client, ask for or use the Client API url shown in
+  the client pairing sheet; do not assume a changing Bonjour hostname remains the
   canonical callback target after pairing.
 - Return ha_version or ha_major_minor on status/command responses so Apple
   clients can enforce the matching major.minor contract.
-- Apple clients host local /api/device/* app endpoints for HA -> app traffic,
+- Apple/Raspberry Pi clients host local /api/device/* endpoints for HA -> client traffic,
   but must not implement ESP-only reboot or OTA routes.
-- Persist client_type as ios, macos, or esp32. Do not reintroduce device_type.
+- Persist client_type as ios, macos, raspberry_pi, or esp32. Do not reintroduce device_type.
 - Authenticated status/command/voice routes must accept Authorization: Bearer
   plus X-DJConnect-Device-ID.
 - Validate that client_type matches the device_id prefix/model family:
-  ios -> djconnect-ios-*, macos -> djconnect-macos-*, esp32 -> ESP
+  ios -> djconnect-ios-*, macos -> djconnect-macos-*, raspberry_pi -> djconnect-raspberry-pi-*, esp32 -> ESP
   model-specific ids such as djconnect-lilygo-t-embed-s3-*.
 - During app pairing, 401/403 code mismatch responses stop polling, keep the
   visible app code, and do not rotate device_id automatically.
