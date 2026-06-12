@@ -65,6 +65,29 @@ class DiscoveryHelperTest(unittest.TestCase):
         self.assertEqual(client.local_url, "http://djconnect-mac.local:60955")
         self.assertEqual(client.client_type, "macos")
 
+    def test_raspberry_pi_txt_with_valid_device_id_is_accepted(self) -> None:
+        client = self.discovery._client_from_service_info(
+            self._info(
+                props={
+                    "device_id": "djconnect-raspberry-pi-A1B2C3D4E5F6",
+                    "client_type": "raspberry_pi",
+                    "device_name": "DJConnect Pi",
+                    "local_url": "http://192.168.1.66:61234",
+                    "version": "3.1.20",
+                    "paired": "false",
+                    "api": "/api/device",
+                },
+                server="ignored.local.",
+                port=9999,
+            )
+        )
+
+        self.assertIsNotNone(client)
+        self.assertEqual(client.local_url, "http://192.168.1.66:61234")
+        self.assertEqual(client.client_type, "raspberry_pi")
+        self.assertEqual(client.device_name, "DJConnect Pi")
+        self.assertFalse(client.paired)
+
     def test_client_type_device_id_mismatch_is_ignored(self) -> None:
         client = self.discovery._client_from_service_info(
             self._info(
@@ -116,6 +139,48 @@ class DiscoveryHelperTest(unittest.TestCase):
         self.assertEqual(client.device_name, "Pairing Info Name")
         self.assertEqual(client.pair_code, "123456")
         self.assertEqual(client.version, "3.1.20")
+
+    def test_raspberry_pi_pairing_info_overrides_txt_metadata(self) -> None:
+        base = self.discovery.DiscoveredClient(
+            local_url="http://djconnect-pi.local:61234",
+            device_id="djconnect-raspberry-pi-A1B2C3D4E5F6",
+            client_type="raspberry_pi",
+            device_name="TXT Pi",
+        )
+
+        client = self.discovery._client_with_pairing_info(
+            base,
+            {
+                "local_url": "http://192.168.1.66:61234",
+                "device_id": "djconnect-raspberry-pi-123456789ABC",
+                "client_type": "raspberry_pi",
+                "device_name": "Pairing Pi",
+                "pair_code": "654321",
+                "firmware": "3.1.21",
+                "paired": False,
+            },
+        )
+
+        self.assertEqual(client.local_url, "http://192.168.1.66:61234")
+        self.assertEqual(client.device_id, "djconnect-raspberry-pi-123456789ABC")
+        self.assertEqual(client.client_type, "raspberry_pi")
+        self.assertEqual(client.device_name, "Pairing Pi")
+        self.assertEqual(client.pair_code, "654321")
+        self.assertEqual(client.version, "3.1.21")
+        self.assertFalse(client.pairing_info_failed)
+
+    def test_pairing_info_probe_failure_marks_discovered_client(self) -> None:
+        base = self.discovery.DiscoveredClient(
+            local_url="http://djconnect-pi.local:61234",
+            device_id="djconnect-raspberry-pi-A1B2C3D4E5F6",
+            client_type="raspberry_pi",
+            device_name="TXT Pi",
+        )
+
+        client = self.discovery._client_with_probe_failure(base)
+
+        self.assertTrue(client.pairing_info_failed)
+        self.assertIn("pairing-info unavailable", client.label)
 
 
 if __name__ == "__main__":

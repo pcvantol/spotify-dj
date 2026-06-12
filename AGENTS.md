@@ -58,7 +58,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `djconnect`
 - HACS custom integration.
-- Actuele integratieversie: `3.1.20`.
+- Actuele integratieversie: `3.1.21`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -212,6 +212,7 @@ Tests:
 - Houd tests voor:
   - Spotify OAuth redirect/PKCE URL helpers.
   - Config-flow helper/default gedrag.
+  - App/Raspberry Pi mDNS discovery, pairing-info prefill, duplicate handling en Client API URL fallback.
   - Vertaalcoverage voor config-flow error keys.
   - Diagnostics redaction en legal metadata.
   - HA/ESP `major.minor` version mismatch geeft HTTP 426 `version_mismatch` en houdt pairing intact.

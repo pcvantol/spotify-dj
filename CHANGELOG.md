@@ -1,12 +1,16 @@
 # Changelog
 
-## 3.1.20
+## 3.1.21
 
 - Add Home Assistant mDNS autodiscovery for `_djconnect._tcp` DJConnect clients during pairing, including iOS, macOS, Raspberry Pi and ESP32 client validation.
 - Prefill Client API URL, client type, device name and pairing code from discovered mDNS clients and authoritative `/api/device/pairing-info` responses when available.
+- Prefer TXT `local_url` for discovered clients when advertised, then fall back to the resolved service address and port.
+- Mark discovered Raspberry Pi clients as unverified when `/api/device/pairing-info` cannot be reached, show a translated pairing error, and keep manual Client API URL correction available.
+- Select a single discovered Raspberry Pi client by default while still requiring user confirmation; keep the selector visible when multiple clients are discovered.
+- Use the discovered stable `djconnect-raspberry-pi-XXXXXXXXXXXX` ID for duplicate checks and pairing state instead of creating setup-code entries such as `djconnect-654321`.
 - Keep manual Client API URL pairing as fallback and ensure mDNS discovery never marks a device as paired by itself.
 - Update translations, README and canonical sync prompts for the app-client autodiscovery contract.
-- Add unit coverage for iOS/macOS/ESP discovery validation, pairing-info metadata overrides and config-flow discovery prefill/selection.
+- Add unit coverage for iOS/macOS/ESP/Raspberry Pi discovery validation, pairing-info metadata overrides, config-flow discovery prefill/selection, duplicate handling and unverified pairing-info fallback.
 - Show the configured Client API URL read-only in the options flow, so app-like client pairing can be inspected without accidentally changing the stored URL.
 - Update README, handoff, AGENTS and canonical sync prompts to document the client-type split between shared backend/playback entities and ESP32-only hardware/update entities.
 - Hide ESP-only hardware sensors (`battery`, `WiFi RSSI`, `screen_state` and `led_state`) for iOS, macOS and Raspberry Pi clients while keeping backend/playback sensors visible.

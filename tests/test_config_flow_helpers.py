@@ -425,6 +425,39 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertEqual(defaults[self.const.CONF_CLIENT_TYPE], self.const.CLIENT_TYPE_MACOS)
         self.assertEqual(defaults[self.const.CONF_LOCAL_URL], "http://192.168.1.104:60955")
 
+    def test_pair_step_prefills_single_discovered_raspberry_pi_client(self) -> None:
+        flow = self.config_flow.DJConnectConfigFlow()
+        flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
+        flow._discovered_clients = [
+            self.config_flow.DiscoveredClient(
+                local_url="http://192.168.1.66:61234",
+                device_id="djconnect-raspberry-pi-A1B2C3D4E5F6",
+                client_type=self.const.CLIENT_TYPE_RASPBERRY_PI,
+                device_name="DJConnect Pi",
+                pair_code="654321",
+                source="pairing-info",
+            )
+        ]
+        flow._discovery_checked = True
+        flow._selected_discovered_key = "djconnect-raspberry-pi-A1B2C3D4E5F6"
+        flow._apply_discovered_client(flow._discovered_clients[0])
+
+        result = asyncio.run(flow.async_step_pair())
+        schema = result["data_schema"].schema
+        defaults = {marker.key: marker.default for marker in schema}
+
+        self.assertEqual(
+            defaults[self.config_flow.DISCOVERY_CLIENT_FIELD],
+            "djconnect-raspberry-pi-A1B2C3D4E5F6",
+        )
+        self.assertEqual(defaults[self.const.CONF_PAIR_CODE], "654321")
+        self.assertEqual(defaults[self.const.CONF_DEVICE_NAME], "DJConnect Pi")
+        self.assertEqual(
+            defaults[self.const.CONF_CLIENT_TYPE],
+            self.const.CLIENT_TYPE_RASPBERRY_PI,
+        )
+        self.assertEqual(defaults[self.const.CONF_LOCAL_URL], "http://192.168.1.66:61234")
+
     def test_user_schema_offers_multiple_discovered_clients(self) -> None:
         flow = self.config_flow.DJConnectConfigFlow()
         flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
@@ -452,6 +485,151 @@ class ConfigFlowHelperTest(unittest.TestCase):
         self.assertIn(self.config_flow.DISCOVERY_CLIENT_FIELD, keys)
         self.assertIn("djconnect-macos-68B74487726D", schema[discovery_marker])
         self.assertIn("DJConnect iPhone", schema[discovery_marker]["djconnect-ios-9F8FA6931AA3"])
+
+    def test_user_schema_offers_multiple_discovered_clients_including_raspberry_pi(self) -> None:
+        flow = self.config_flow.DJConnectConfigFlow()
+        flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
+        flow._discovered_clients = [
+            self.config_flow.DiscoveredClient(
+                local_url="http://192.168.1.66:61234",
+                device_id="djconnect-raspberry-pi-A1B2C3D4E5F6",
+                client_type=self.const.CLIENT_TYPE_RASPBERRY_PI,
+                device_name="DJConnect Pi",
+            ),
+            self.config_flow.DiscoveredClient(
+                local_url="http://192.168.1.42:51193",
+                device_id="djconnect-ios-9F8FA6931AA3",
+                client_type=self.const.CLIENT_TYPE_IOS,
+                device_name="DJConnect iPhone",
+            ),
+        ]
+
+        schema = flow._user_schema()
+        discovery_marker = next(
+            marker for marker in schema if marker.key == self.config_flow.DISCOVERY_CLIENT_FIELD
+        )
+
+        self.assertIn("djconnect-raspberry-pi-A1B2C3D4E5F6", schema[discovery_marker])
+        self.assertIn(
+            "DJConnect Pi",
+            schema[discovery_marker]["djconnect-raspberry-pi-A1B2C3D4E5F6"],
+        )
+
+    def test_pair_step_blocks_unverified_raspberry_pi_discovery_until_url_changes(self) -> None:
+        flow = self.config_flow.DJConnectConfigFlow()
+        flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
+        client = self.config_flow.DiscoveredClient(
+            local_url="http://djconnect-pi.local:61234",
+            device_id="djconnect-raspberry-pi-A1B2C3D4E5F6",
+            client_type=self.const.CLIENT_TYPE_RASPBERRY_PI,
+            device_name="DJConnect Pi",
+            pair_code="654321",
+            pairing_info_failed=True,
+        )
+        flow._discovered_clients = [client]
+        flow._selected_discovered_key = "djconnect-raspberry-pi-A1B2C3D4E5F6"
+        flow._apply_discovered_client(client)
+
+        result = asyncio.run(
+            flow.async_step_pair(
+                {
+                    self.config_flow.DISCOVERY_CLIENT_FIELD: "djconnect-raspberry-pi-A1B2C3D4E5F6",
+                    self.const.CONF_PAIR_CODE: "654321",
+                    self.const.CONF_DEVICE_NAME: "DJConnect Pi",
+                    self.const.CONF_CLIENT_TYPE: self.const.CLIENT_TYPE_RASPBERRY_PI,
+                    self.const.CONF_LOCAL_URL: "http://djconnect-pi.local:61234",
+                }
+            )
+        )
+
+        self.assertEqual(result["type"], "form")
+        self.assertEqual(
+            result["errors"]["base"],
+            self.config_flow.DISCOVERY_PAIRING_INFO_ERROR,
+        )
+
+    def test_raspberry_pi_pairing_uses_discovered_stable_device_id(self) -> None:
+        flow = self.config_flow.DJConnectConfigFlow()
+        flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
+        client = self.config_flow.DiscoveredClient(
+            local_url="http://192.168.1.66:61234",
+            device_id="djconnect-raspberry-pi-A1B2C3D4E5F6",
+            client_type=self.const.CLIENT_TYPE_RASPBERRY_PI,
+            device_name="DJConnect Pi",
+            pair_code="654321",
+            source="pairing-info",
+        )
+        flow._discovered_clients = [client]
+        flow._selected_discovered_key = "djconnect-raspberry-pi-A1B2C3D4E5F6"
+        flow._apply_discovered_client(client)
+        async def fake_set_unique_id(unique_id):
+            flow._unique_id = unique_id
+
+        flow.async_set_unique_id = fake_set_unique_id
+        flow._abort_if_unique_id_configured = lambda: None
+
+        async def fake_spotify(user_input=None):
+            return {"type": "next_step", "pairing": flow._pairing}
+
+        flow.async_step_spotify = fake_spotify
+
+        result = asyncio.run(
+            flow.async_step_pair(
+                {
+                    self.config_flow.DISCOVERY_CLIENT_FIELD: "djconnect-raspberry-pi-A1B2C3D4E5F6",
+                    self.const.CONF_PAIR_CODE: "654321",
+                    self.const.CONF_DEVICE_NAME: "DJConnect Pi",
+                    self.const.CONF_CLIENT_TYPE: self.const.CLIENT_TYPE_RASPBERRY_PI,
+                    self.const.CONF_LOCAL_URL: "http://192.168.1.66:61234",
+                }
+            )
+        )
+
+        self.assertEqual(flow._unique_id, "djconnect-raspberry-pi-A1B2C3D4E5F6")
+        self.assertEqual(
+            result["pairing"][self.const.CONF_DEVICE_ID],
+            "djconnect-raspberry-pi-A1B2C3D4E5F6",
+        )
+        self.assertNotEqual(result["pairing"][self.const.CONF_DEVICE_ID], "djconnect-654321")
+
+    def test_raspberry_pi_duplicate_uses_discovered_device_id_for_abort_check(self) -> None:
+        flow = self.config_flow.DJConnectConfigFlow()
+        flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
+        client = self.config_flow.DiscoveredClient(
+            local_url="http://192.168.1.66:61234",
+            device_id="djconnect-raspberry-pi-A1B2C3D4E5F6",
+            client_type=self.const.CLIENT_TYPE_RASPBERRY_PI,
+            device_name="DJConnect Pi",
+            pair_code="654321",
+            source="pairing-info",
+        )
+        flow._discovered_clients = [client]
+        flow._selected_discovered_key = "djconnect-raspberry-pi-A1B2C3D4E5F6"
+        flow._apply_discovered_client(client)
+
+        async def fake_set_unique_id(unique_id):
+            flow._unique_id = unique_id
+
+        def fake_abort_if_configured():
+            raise RuntimeError("already_configured")
+
+        flow.async_set_unique_id = fake_set_unique_id
+        flow._abort_if_unique_id_configured = fake_abort_if_configured
+
+        with self.assertRaisesRegex(RuntimeError, "already_configured"):
+            asyncio.run(
+                flow.async_step_pair(
+                    {
+                        self.config_flow.DISCOVERY_CLIENT_FIELD: "djconnect-raspberry-pi-A1B2C3D4E5F6",
+                        self.const.CONF_PAIR_CODE: "654321",
+                        self.const.CONF_DEVICE_NAME: "DJConnect Pi",
+                        self.const.CONF_CLIENT_TYPE: self.const.CLIENT_TYPE_RASPBERRY_PI,
+                        self.const.CONF_LOCAL_URL: "http://192.168.1.66:61234",
+                    }
+                )
+            )
+
+        self.assertEqual(flow._unique_id, "djconnect-raspberry-pi-A1B2C3D4E5F6")
 
     def test_default_local_url_accepts_only_device_suffix(self) -> None:
         self.assertEqual(self.config_flow._default_local_url("123456"), "")

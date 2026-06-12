@@ -34,6 +34,14 @@
 - Current mitigation: Runtime uses device-reported URL, exact `_djconnect._tcp`, single visible DJConnect service fallback, and advanced manual URL override.
 - Next action: Test on target WiFi/VLAN setup and document any router/mDNS repeater requirements.
 
+### Raspberry Pi pairing-info reachability needs field validation
+
+- Status: open / field validation.
+- Area: pairing/discovery.
+- Symptom: A Raspberry Pi client may be visible through `_djconnect._tcp` while Home Assistant cannot reach the advertised Client API URL or `/api/device/pairing-info`.
+- Current mitigation: Discovery validates `client_type=raspberry_pi` against `djconnect-raspberry-pi-XXXXXXXXXXXX`, uses TXT `local_url` or resolved address/port, probes `/api/device/pairing-info`, pre-fills confirmed metadata, and shows a translated pairing-info reachability error when TXT is visible but the endpoint is not reachable.
+- Next action: Test on the real Pi client/network that the advertised Client API URL is reachable from Home Assistant and that pairing-info returns device ID, client type, name, pair code, version and paired state.
+
 ### Home Assistant restart is still required after HACS update
 
 - Status: known limitation.
@@ -129,7 +137,8 @@
 - Config flow must not expose manual `oauth_result`.
 - Config flow must show `client_type` and Client API URL in normal pairing; iOS/macOS users need it, ESP users usually leave it empty.
 - Config/options flow must not require `spotify_player`.
-- OTA update and reboot entities must not be active/available for `client_type=ios` or `client_type=macos`.
+- OTA update and reboot entities must not be active/available for `client_type=ios`, `client_type=macos` or `client_type=raspberry_pi`.
+- App-like client discovery must not create setup-code-only duplicates when a stable `djconnect-ios-*`, `djconnect-macos-*` or `djconnect-raspberry-pi-*` ID is known.
 - External product website must not imply official Spotify affiliation, endorsement or sponsorship.
 - External product website must stay aligned with current setup requirements and local API architecture.
 - `stt_engine` must remain visible and configurable.

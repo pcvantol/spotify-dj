@@ -95,6 +95,7 @@ BLE_ACTION_PROVISION = "provision_wifi"
 BLE_ACTION_RETRY_SCAN = "retry_ble_scan"
 BLE_ACTION_CONTINUE_PAIRING = "continue_to_pairing"
 DISCOVERY_CLIENT_FIELD = "discovered_client"
+DISCOVERY_PAIRING_INFO_ERROR = "pairing_info_unavailable"
 BLE_DISCOVERY_TIMEOUT = 5
 BLE_PROVISION_TIMEOUT = 25
 SPOTIFY_MARKET_NAMES = {
@@ -926,6 +927,22 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input.get(CONF_CLIENT_TYPE),
                     defaults.get(CONF_CLIENT_TYPE, DEFAULT_CLIENT_TYPE),
                 )
+                local_url = _clean(
+                    user_input.get(CONF_LOCAL_URL),
+                    _clean(defaults.get(CONF_LOCAL_URL), _default_local_url(pair_code)),
+                )
+                selected_client = self._selected_discovered_client()
+                if (
+                    selected_client is not None
+                    and selected_client.pairing_info_failed
+                    and str(local_url or "").strip() == selected_client.local_url
+                ):
+                    errors["base"] = DISCOVERY_PAIRING_INFO_ERROR
+                    return self.async_show_form(
+                        step_id="pair",
+                        data_schema=vol.Schema(self._user_schema()),
+                        errors=errors,
+                    )
                 device_id = str(defaults.get(CONF_DEVICE_ID) or "").strip()
                 if not device_id or client_type == CLIENT_TYPE_ESP32:
                     device_id = f"djconnect-{pair_code}"
@@ -940,10 +957,7 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ),
                     CONF_CLIENT_TYPE: client_type,
                     CONF_DEVICE_TOKEN: secrets.token_urlsafe(32),
-                    CONF_LOCAL_URL: _clean(
-                        user_input.get(CONF_LOCAL_URL),
-                        _clean(defaults.get(CONF_LOCAL_URL), _default_local_url(pair_code)),
-                    ),
+                    CONF_LOCAL_URL: local_url,
                 }
                 if client_type == CLIENT_TYPE_ESP32:
                     self._pairing[CONF_DEVICE_LANGUAGE] = _ha_device_language(
@@ -968,7 +982,9 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.debug("DJConnect config-flow mDNS discovery failed: %s", exc)
             self._discovered_clients = []
         if len(self._discovered_clients) == 1:
-            self._apply_discovered_client(self._discovered_clients[0])
+            client = self._discovered_clients[0]
+            self._selected_discovered_key = self._discovered_client_key(client)
+            self._apply_discovered_client(client)
 
     def _apply_discovered_client_key(self, key: str) -> None:
         """Apply a selected mDNS client as form defaults."""
@@ -977,6 +993,16 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._selected_discovered_key = key
                 self._apply_discovered_client(client)
                 return
+
+    def _selected_discovered_client(self) -> DiscoveredClient | None:
+        """Return the selected mDNS client, if the user picked one."""
+        selected = getattr(self, "_selected_discovered_key", "")
+        if not selected:
+            return None
+        for client in getattr(self, "_discovered_clients", []):
+            if self._discovered_client_key(client) == selected:
+                return client
+        return None
 
     def _apply_discovered_client(self, client: DiscoveredClient) -> None:
         """Use a discovered client as authoritative defaults for pairing."""

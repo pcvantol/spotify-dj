@@ -4,8 +4,8 @@
 
 - Repository: `pcvantol/djconnect`.
 - Integration domain: `djconnect`.
-- Current integration release: `3.1.16`.
-- Release status: DJConnect `3.1.16` is the current released baseline.
+- Current integration release: `3.1.20`.
+- Release status: DJConnect `3.1.20` is the current released baseline.
 - Home Assistant integration is HACS-distributed and MIT-licensed.
 - ESP firmware source remains proprietary in `pcvantol/djconnect-app`.
 - Public firmware release assets live in `pcvantol/djconnect-firmware`.
@@ -131,7 +131,7 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 ## Current Release Notes
 
 - Current release line is `3.1.x`; only the latest GitHub release/tag should be kept after release cleanup.
-- Current latest baseline is `3.1.16`.
+- Current latest baseline is `3.1.20`.
 - HACS-visible docs now show the public DJConnect website. The external website should use the same setup requirements: Home Assistant, HACS, Spotify Premium, HA Assist pipeline with STT/TTS, local-network pairing, and Nabu Casa/external HTTPS URL for Spotify OAuth.
 - Voice/Assist search text such as "ik wil Pearl Jam starten" must resolve to a Spotify artist first; free-text PTT search is artist-only unless the request is an explicit playlist flow or direct Spotify URI.
 - Do not send arbitrary text as `context_uri`, and do not perform broad track/album search for generic artist requests.
@@ -172,6 +172,10 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - Spotify OAuth Repair flow starts an external Spotify OAuth step and does not mark the issue fixed until a new token is stored.
 - Backend playback auth failures are returned as user-friendly JSON without forcing ESP pairing reset.
 - Device number/select entities accept common firmware status aliases and unit conversions.
+- Pairing config-flow browses `_djconnect._tcp` for app-like clients including Raspberry Pi. It validates `client_type=raspberry_pi` against `djconnect-raspberry-pi-XXXXXXXXXXXX`, accepts TXT `local_url` when present, probes `GET /api/device/pairing-info`, and treats pairing-info as authoritative for Client API URL, stable device ID, client type, device name, pair code, version and paired state.
+- A single discovered Raspberry Pi client is selected by default but still requires user confirmation. Multiple discovered clients are offered in the `discovered_client` selector.
+- If a Raspberry Pi mDNS TXT record is visible but `/api/device/pairing-info` cannot be reached, the pairing form shows a clear `pairing_info_unavailable` error while keeping the manual Client API URL field available. This avoids silently creating a `djconnect-{pair_code}` entry for a Pi that already has a stable `djconnect-raspberry-pi-*` identity.
+- Raspberry Pi discovery tests now cover TXT acceptance, TXT `local_url`, pairing-info override, probe-failure fallback, one-client prefill, multi-client selector, duplicate stable-ID abort behavior and proof that pairing uses the stable discovered Pi device ID instead of `djconnect-{pair_code}`.
 
 ## Known Issues / Field Checks
 
@@ -203,6 +207,8 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 13. Run physical PTT end-to-end.
 14. Verify native playback proxy media player controls Spotify backend playback and shows album art.
 15. Verify no Spotify OAuth secrets are sent to ESP or logged.
+16. Pair a Raspberry Pi client from mDNS discovery and verify the form pre-fills Client API URL, `client_type=raspberry_pi`, device name, stable device ID and pair code from `/api/device/pairing-info`.
+17. Test the Raspberry Pi fallback path by advertising `_djconnect._tcp` while blocking `/api/device/pairing-info`; HA should show the translated pairing-info error and allow manual Client API URL correction.
 
 ## Validation Commands
 

@@ -41,13 +41,15 @@ class DiscoveredClient:
     version: str = ""
     paired: bool | None = None
     source: str = "mdns"
+    pairing_info_failed: bool = False
 
     @property
     def label(self) -> str:
         """Return a compact human label for config-flow choices."""
         host = self.local_url.removeprefix("http://").removeprefix("https://")
         name = self.device_name or "DJConnect"
-        return f"{name} · {self.device_id} · {host}"
+        suffix = " · pairing-info unavailable" if self.pairing_info_failed else ""
+        return f"{name} · {self.device_id} · {host}{suffix}"
 
 
 async def async_discover_djconnect_clients(hass: Any) -> list[DiscoveredClient]:
@@ -76,6 +78,8 @@ async def async_discover_djconnect_clients(hass: Any) -> list[DiscoveredClient]:
         pairing_info = await async_probe_pairing_info(session, client.local_url)
         if pairing_info:
             client = _client_with_pairing_info(client, pairing_info)
+        else:
+            client = _client_with_probe_failure(client)
         if _is_valid_discovered_client(client):
             clients.append(client)
 
@@ -166,7 +170,9 @@ def _client_from_service_info(info: Any) -> DiscoveredClient | None:
         client_type,
     ):
         return None
-    local_url = _local_url_from_service_info(info)
+    local_url = str(properties.get(CONF_LOCAL_URL) or "").strip()
+    if not local_url:
+        local_url = _local_url_from_service_info(info)
     if not local_url:
         return None
     return DiscoveredClient(
@@ -187,6 +193,21 @@ def _client_from_service_info(info: Any) -> DiscoveredClient | None:
             or ""
         ).strip(),
         paired=_bool_or_none(properties.get("paired")),
+    )
+
+
+def _client_with_probe_failure(client: DiscoveredClient) -> DiscoveredClient:
+    """Mark a TXT-discovered client when pairing-info could not be verified."""
+    return DiscoveredClient(
+        local_url=client.local_url,
+        device_id=client.device_id,
+        client_type=client.client_type,
+        device_name=client.device_name,
+        pair_code=client.pair_code,
+        version=client.version,
+        paired=client.paired,
+        source=client.source,
+        pairing_info_failed=True,
     )
 
 
@@ -224,6 +245,7 @@ def _client_with_pairing_info(
         if "paired" in pairing_info
         else client.paired,
         source="pairing-info",
+        pairing_info_failed=False,
     )
 
 

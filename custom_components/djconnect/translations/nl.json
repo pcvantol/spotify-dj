@@ -141,6 +141,7 @@
       "ble_device_required": "Selecteer een DJConnect BLE device of voer het Bluetooth adres in.",
       "wifi_ssid_required": "Vul de WiFi SSID in om te provisionen.",
       "ble_wifi_failed": "WiFi provisioning via Bluetooth is mislukt. Controleer device, SSID en wachtwoord en probeer opnieuw.",
+      "pairing_info_unavailable": "Home Assistant ziet deze DJConnect client via mDNS, maar kan de pairing-info endpoint niet bereiken. Controleer de Client API URL of vul die handmatig in.",
       "repair_pairing_failed": "Opnieuw koppelen is mislukt. Controleer of het DJConnect device bereikbaar is en een koppelcode toont."
     },
     "abort": {

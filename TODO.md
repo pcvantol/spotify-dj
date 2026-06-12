@@ -47,7 +47,11 @@
 - Test BLE screen action `Write WiFi over Bluetooth`.
 - Test pairing with Client API URL left empty for ESP devices.
 - Test pairing with iOS/macOS/Raspberry Pi Client API URL copied from client Settings.
-- Test mDNS discovery through `_djconnect._tcp`.
+- Test mDNS discovery through `_djconnect._tcp` for ESP32, iOS, macOS and Raspberry Pi.
+- Test Raspberry Pi mDNS TXT discovery with `client_type=raspberry_pi`, stable `djconnect-raspberry-pi-XXXXXXXXXXXX` ID and TXT `local_url`.
+- Test Raspberry Pi `/api/device/pairing-info` override for Client API URL, client type, device name, device ID, pair code, version and paired state.
+- Test Raspberry Pi pairing-info failure: Home Assistant should show the translated pairing-info reachability error and allow manual Client API URL correction.
+- Test duplicate Raspberry Pi discovery: a previously configured stable Pi device ID should not create a second setup-code-based HA entry.
 - Test mDNS single-device fallback when only one DJConnect device is visible.
 - Test Client API URL fallback on a network where mDNS fails.
 - Confirm invalid pairing code is rejected with a clear user message.

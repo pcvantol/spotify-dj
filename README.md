@@ -12,7 +12,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.1.20`
+- Home Assistant integration: `3.1.21`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -52,7 +52,7 @@ runtime behavior. These decisions are part of the integration contract:
 - **Access-token cache**: Home Assistant caches short-lived Spotify access tokens and refreshes them on demand. A normal one-hour Spotify access-token expiry should not open a Repair flow; only a rejected/revoked refresh token should.
 - **OAuth through Home Assistant external step**: Spotify OAuth uses PKCE and the Home Assistant external step flow. The callback remains `/api/djconnect/spotify/callback`, with Nabu Casa HTTPS URLs preferred.
 - **Pairing over WiFi, BLE only for WiFi credentials**: BLE provisioning writes only WiFi SSID/password to setup-mode devices. Spotify credentials, device tokens and other secrets are never sent over BLE.
-- **mDNS first, Client API URL as fallback**: ESP runtime prefers the device-reported `local_url`, exact `_djconnect._tcp` mDNS matches, then a single visible DJConnect mDNS device. During setup, Home Assistant also browses `_djconnect._tcp` for iOS/macOS/Raspberry Pi app-like clients and can prefill the Client API URL, client type, device name and pairing code when the local client exposes pairing-info. Manual Client API URL entry remains available when discovery is unavailable.
+- **mDNS first, Client API URL as fallback**: ESP runtime prefers the device-reported `local_url`, exact `_djconnect._tcp` mDNS matches, then a single visible DJConnect mDNS device. During setup, Home Assistant also browses `_djconnect._tcp` for iOS/macOS/Raspberry Pi app-like clients, validates `client_type` against the stable device ID, probes `/api/device/pairing-info`, and can prefill the Client API URL, client type, device name and pairing code from authoritative pairing-info. Manual Client API URL entry remains available when discovery or pairing-info reachability fails.
 - **Inline advanced options**: max audio bytes and OTA battery settings are revealed through a local “show advanced options” checkbox instead of Home Assistant's deprecated advanced-mode property. Firmware device selection is automatic through the public multi-device manifest; users can choose the OTA firmware channel, `stable` or `beta`, in options.
 - **Single Home Assistant device**: sensors, buttons, settings, update and playback proxy entities share one stable device identifier so Home Assistant shows one DJConnect device instead of duplicate device entries.
 - **Closed firmware, free integration**: firmware source remains proprietary. The Home Assistant integration is distributed separately under MIT for use with DJConnect devices.
@@ -61,7 +61,7 @@ runtime behavior. These decisions are part of the integration contract:
 
 ## Repository Layout
 
-- Home Assistant integration: `3.1.20`
+- Home Assistant integration: `3.1.21`
 - ESP firmware source: `pcvantol/djconnect-app`
 - Public firmware releases: `pcvantol/djconnect-firmware`
 - Canonical cross-repo sync prompts: [`SYNC_PROMPTS.md`](SYNC_PROMPTS.md)
@@ -559,24 +559,24 @@ Example manifest:
 
 ```json
 {
-  "version": "3.1.20",
-  "version_tag": "v3.1.20",
+  "version": "3.1.21",
+  "version_tag": "v3.1.21",
   "channel": "stable",
-  "min_ha_integration": "3.1.20",
+  "min_ha_integration": "3.1.21",
   "firmwares": [
     {
       "board": "t_embed_cc1101",
       "device": "lilygo-t-embed-s3",
-      "asset": "djconnect-lilygo-t-embed-s3-v3.1.20.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.20/djconnect-lilygo-t-embed-s3-v3.1.20.bin",
+      "asset": "djconnect-lilygo-t-embed-s3-v3.1.21.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.21/djconnect-lilygo-t-embed-s3-v3.1.21.bin",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size": 2113136
     },
     {
       "board": "esp32_s3_box3",
       "device": "esp32-s3-box-3",
-      "asset": "djconnect-esp32-s3-box-3-v3.1.20.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.20/djconnect-esp32-s3-box-3-v3.1.20.bin",
+      "asset": "djconnect-esp32-s3-box-3-v3.1.21.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.21/djconnect-esp32-s3-box-3-v3.1.21.bin",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
       "size": 2113136
     }
@@ -599,7 +599,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.1.20
+./release.sh 3.1.21
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -611,14 +611,14 @@ PlatformIO builds, rename firmware binaries to device-specific assets such as
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.1.20 --dry-run
+./release.sh 3.1.21 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
 public-repo option if available:
 
 ```bash
-./release.sh 3.1.20 --publish-firmware-repo ../djconnect-firmware
+./release.sh 3.1.21 --publish-firmware-repo ../djconnect-firmware
 ```
 
 The public `djconnect-firmware` repository should contain only the release
@@ -651,7 +651,7 @@ Tag and publish:
 One-liner:
 
 ```bash
-./release.sh 3.1.20
+./release.sh 3.1.21
 ```
 
 The script updates the integration version in `manifest.json`, `const.py`,
@@ -660,18 +660,18 @@ The script updates the integration version in `manifest.json`, `const.py`,
 Preview without executing git/gh commands:
 
 ```bash
-./release.sh 3.1.20 --dry-run
+./release.sh 3.1.21 --dry-run
 ```
 
 Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.1.20"
-git tag v3.1.20
+git commit -m "Release DJConnect v3.1.21"
+git tag v3.1.21
 git push origin main
-git push origin v3.1.20
-gh release create v3.1.20 --title "DJConnect v3.1.20" --notes-file CHANGELOG.md
+git push origin v3.1.21
+gh release create v3.1.21 --title "DJConnect v3.1.21" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:
@@ -718,7 +718,7 @@ Run the lightweight unit tests with:
 python3 -m unittest discover -s tests
 ```
 
-These tests use local stubs for Home Assistant imports and focus on pure DJConnect helpers, OAuth URL building, Assist response mapping, and config-flow translation coverage.
+These tests use local stubs for Home Assistant imports and focus on pure DJConnect helpers, OAuth URL building, Assist response mapping, app/Raspberry Pi mDNS discovery, config-flow prefill/selection behavior and translation coverage.
 
 ## Troubleshooting
 
@@ -736,6 +736,7 @@ These tests use local stubs for Home Assistant imports and focus on pure DJConne
 - If an options-flow Spotify OAuth callback reports an empty failure after Spotify approved access, update to this release or newer; the callback now keeps the stored token even when the options dialog was already closed.
 - If the ESP logs `HA playback HTTP 503` immediately after pairing, update to this release or newer; playback backend failures are now returned as JSON without invalidating HA pairing.
 - If provisioning says `local_url is unknown`, make sure the device advertises `_djconnect._tcp` mDNS or enter the Client API URL, for example `http://djconnect-lilygo-t-embed-s3-90B70990A994.local`.
+- If Home Assistant sees a Raspberry Pi/iOS/macOS client through mDNS but pairing shows a pairing-info reachability error, verify that the Client API URL shown in the pairing form opens `/api/device/pairing-info` from the Home Assistant network. Correct the Client API URL manually if Bonjour advertised a hostname or port that Home Assistant cannot reach.
 - If Home Assistant added the integration but the ESP still shows a pairing code, check `sensor.djconnect_ha_pairingstatus`: `pending` means HA has a local token but the ESP has not confirmed `/api/device/pair` yet. Verify the device URL/mDNS reachability and wait for the next pairing retry or re-pair from the config flow.
 - If the ESP briefly shows Home Assistant paired and then returns to a pairing code after the first command, update to this release or newer; DJConnect now accepts the real model-specific device ID after setup-code based direct pairing and logs token/device mismatch reasons without exposing token values.
 - If the ESP logs `HA status response: 401` while HA can still reboot the device, update to this release or newer and re-pair if needed. Status/command/voice auth now accepts `djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX` and `djconnect-esp32-s3-box-3-XXXXXXXXXXXX` with the stored token, learns the current id, and keeps `ha_pairing_status` stable.
