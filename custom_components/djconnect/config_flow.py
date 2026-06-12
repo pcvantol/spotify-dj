@@ -70,12 +70,14 @@ from .const import (
     DEFAULT_TTS_VOICE,
     FIRMWARE_CHANNELS,
     CLIENT_TYPE_NAMES,
+    CLIENT_TYPES,
     CLIENT_TYPE_ESP32,
     DOMAIN,
     SETUP_METHOD_BLE_WIFI,
     SETUP_METHOD_PAIR_EXISTING,
 )
 from .ble import async_discover_devices, async_provision_wifi
+from .discovery import DiscoveredClient, async_discover_djconnect_clients
 from .spotify_oauth import build_authorize_url, build_redirect_uri, create_code_verifier
 
 _LOGGER = logging.getLogger(__name__)
@@ -92,6 +94,7 @@ BLE_ACTION_FIELD = "ble_action"
 BLE_ACTION_PROVISION = "provision_wifi"
 BLE_ACTION_RETRY_SCAN = "retry_ble_scan"
 BLE_ACTION_CONTINUE_PAIRING = "continue_to_pairing"
+DISCOVERY_CLIENT_FIELD = "discovered_client"
 BLE_DISCOVERY_TIMEOUT = 5
 BLE_PROVISION_TIMEOUT = 25
 SPOTIFY_MARKET_NAMES = {
@@ -195,6 +198,12 @@ def _options_action_names(hass: Any) -> dict[str, str]:
     """Return options flow actions in the current HA language."""
     language = str(getattr(getattr(hass, "config", None), "language", "") or "").lower()
     return OPTIONS_ACTION_NAMES_NL if language.startswith("nl") else OPTIONS_ACTION_NAMES_EN
+
+
+def _manual_discovery_label(hass: Any) -> str:
+    """Return the manual-entry label in the current Home Assistant language."""
+    language = str(getattr(getattr(hass, "config", None), "language", "") or "").lower()
+    return "Handmatig invoeren" if language.startswith("nl") else "Manual entry"
 
 
 def _spotify_oauth_title(hass: Any, *, reauth: bool = False) -> str:
@@ -809,6 +818,10 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._spotify: dict[str, Any] = {}
         self._oauth: dict[str, str] = {}
         self._show_advanced_options = False
+        self._discovery_checked = False
+        self._discovered_clients: list[DiscoveredClient] = []
+        self._discovered_defaults: dict[str, Any] = {}
+        self._selected_discovered_key = ""
 
     async def async_step_user(
         self,
@@ -884,9 +897,20 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Pair the DJConnect device using the displayed pair code."""
         errors: dict[str, str] = {}
 
-        if user_input is not None:
+        if user_input is None:
+            await self._ensure_mdns_discovery()
+        else:
             if _request_advanced(self, user_input):
                 return await self.async_step_pair()
+            discovered_key = str(user_input.get(DISCOVERY_CLIENT_FIELD) or "").strip()
+            if DISCOVERY_CLIENT_FIELD in user_input:
+                if discovered_key and discovered_key != self._selected_discovered_key:
+                    self._apply_discovered_client_key(discovered_key)
+                    return await self.async_step_pair()
+                if not discovered_key and self._selected_discovered_key:
+                    self._selected_discovered_key = ""
+                    self._discovered_defaults = {}
+                    return await self.async_step_pair()
             method = user_input.get(CONF_SETUP_METHOD, SETUP_METHOD_PAIR_EXISTING)
             if method == SETUP_METHOD_BLE_WIFI:
                 return await self.async_step_ble_wifi()
@@ -897,11 +921,14 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             elif not _valid_pair_code(pair_code):
                 errors[CONF_PAIR_CODE] = "invalid_pair_code"
             else:
-                device_id = f"djconnect-{pair_code}"
+                defaults = getattr(self, "_discovered_defaults", {})
                 client_type = _clean(
                     user_input.get(CONF_CLIENT_TYPE),
-                    DEFAULT_CLIENT_TYPE,
+                    defaults.get(CONF_CLIENT_TYPE, DEFAULT_CLIENT_TYPE),
                 )
+                device_id = str(defaults.get(CONF_DEVICE_ID) or "").strip()
+                if not device_id or client_type == CLIENT_TYPE_ESP32:
+                    device_id = f"djconnect-{pair_code}"
                 await self.async_set_unique_id(device_id)
                 self._abort_if_unique_id_configured()
                 self._pairing = {
@@ -909,13 +936,13 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_DEVICE_ID: device_id,
                     CONF_DEVICE_NAME: _clean(
                         user_input.get(CONF_DEVICE_NAME),
-                        DEFAULT_DEVICE_NAME,
+                        defaults.get(CONF_DEVICE_NAME, DEFAULT_DEVICE_NAME),
                     ),
                     CONF_CLIENT_TYPE: client_type,
                     CONF_DEVICE_TOKEN: secrets.token_urlsafe(32),
                     CONF_LOCAL_URL: _clean(
                         user_input.get(CONF_LOCAL_URL),
-                        _default_local_url(pair_code),
+                        _clean(defaults.get(CONF_LOCAL_URL), _default_local_url(pair_code)),
                     ),
                 }
                 if client_type == CLIENT_TYPE_ESP32:
@@ -930,25 +957,96 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def _ensure_mdns_discovery(self) -> None:
+        """Discover visible DJConnect clients once per pair flow."""
+        if getattr(self, "_discovery_checked", False):
+            return
+        self._discovery_checked = True
+        try:
+            self._discovered_clients = await async_discover_djconnect_clients(self.hass)
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.debug("DJConnect config-flow mDNS discovery failed: %s", exc)
+            self._discovered_clients = []
+        if len(self._discovered_clients) == 1:
+            self._apply_discovered_client(self._discovered_clients[0])
+
+    def _apply_discovered_client_key(self, key: str) -> None:
+        """Apply a selected mDNS client as form defaults."""
+        for client in getattr(self, "_discovered_clients", []):
+            if self._discovered_client_key(client) == key:
+                self._selected_discovered_key = key
+                self._apply_discovered_client(client)
+                return
+
+    def _apply_discovered_client(self, client: DiscoveredClient) -> None:
+        """Use a discovered client as authoritative defaults for pairing."""
+        self._discovered_defaults = {
+            CONF_DEVICE_ID: client.device_id,
+            CONF_DEVICE_NAME: client.device_name or DEFAULT_DEVICE_NAME,
+            CONF_CLIENT_TYPE: (
+                client.client_type
+                if client.client_type in CLIENT_TYPES
+                else DEFAULT_CLIENT_TYPE
+            ),
+            CONF_LOCAL_URL: client.local_url,
+            CONF_PAIR_CODE: client.pair_code,
+        }
+        if client.pair_code:
+            self._last_pair_code = client.pair_code
+
+    def _discovered_client_options(self) -> dict[str, str]:
+        """Return mDNS discovery choices for the pairing form."""
+        return {
+            self._discovered_client_key(client): client.label
+            for client in getattr(self, "_discovered_clients", [])
+        }
+
+    @staticmethod
+    def _discovered_client_key(client: DiscoveredClient) -> str:
+        return client.device_id or client.local_url
+
     def _user_schema(self) -> dict[Any, Any]:
         """Build pairing schema."""
-        pair_code = getattr(self, "_last_pair_code", "")
+        defaults = getattr(self, "_discovered_defaults", {})
+        pair_code = str(
+            defaults.get(CONF_PAIR_CODE)
+            or getattr(self, "_last_pair_code", "")
+            or ""
+        )
+        device_name = _clean(defaults.get(CONF_DEVICE_NAME), DEFAULT_DEVICE_NAME)
+        client_type = _clean(defaults.get(CONF_CLIENT_TYPE), DEFAULT_CLIENT_TYPE)
+        local_url = _clean(defaults.get(CONF_LOCAL_URL), _default_local_url(pair_code))
         schema: dict[Any, Any] = {
             vol.Optional(
                 CONF_SETUP_METHOD,
                 default=SETUP_METHOD_PAIR_EXISTING,
             ): vol.In(_setup_method_names(getattr(self, "hass", None))),
-            vol.Optional(CONF_PAIR_CODE): str,
+        }
+        discovery_options = self._discovered_client_options()
+        if discovery_options:
+            schema[
+                vol.Optional(
+                    DISCOVERY_CLIENT_FIELD,
+                    default=getattr(self, "_selected_discovered_key", ""),
+                )
+            ] = vol.In(
+                {
+                    "": _manual_discovery_label(getattr(self, "hass", None)),
+                    **discovery_options,
+                }
+            )
+        schema.update({
+            vol.Optional(CONF_PAIR_CODE, default=pair_code): str,
             vol.Optional(
                 CONF_DEVICE_NAME,
-                default=DEFAULT_DEVICE_NAME,
+                default=device_name,
             ): str,
             vol.Optional(
                 CONF_CLIENT_TYPE,
-                default=DEFAULT_CLIENT_TYPE,
+                default=client_type,
             ): vol.In(CLIENT_TYPE_NAMES),
-            vol.Optional(CONF_LOCAL_URL, default=_default_local_url(pair_code)): str,
-        }
+            vol.Optional(CONF_LOCAL_URL, default=local_url): str,
+        })
         return schema
 
     async def async_step_spotify(

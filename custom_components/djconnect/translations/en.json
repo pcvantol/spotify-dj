@@ -13,18 +13,20 @@
       },
       "pair": {
         "title": "Pair DJConnect device",
-        "description": "Enter the pairing code shown on the DJConnect device display. The Client API URL is required for iOS/macOS/Raspberry Pi and only needed for ESP devices when automatic discovery is unavailable. Spotify is a trademark of Spotify AB. DJConnect is not affiliated with, endorsed by, or sponsored by Spotify AB.",
+        "description": "Enter the pairing code shown on your DJConnect device. If Home Assistant finds the app or device through mDNS, Client API URL, client type and device name are prefilled automatically. Spotify is a trademark of Spotify AB. DJConnect is not affiliated with, endorsed by or sponsored by Spotify AB.",
         "data": {
           "pair_code": "Pairing code",
           "device_name": "Device name",
           "client_type": "Client type",
-          "local_url": "Client API URL"
+          "local_url": "Client API URL",
+          "discovered_client": "Discovered DJConnect client"
         },
         "data_description": {
           "pair_code": "The 6 digit code or 12 character device suffix shown on the device display.",
           "device_name": "Friendly name for this DJConnect remote.",
           "client_type": "Type of DJConnect client pairing with Home Assistant: ESP32 device, iOS app, macOS app or Raspberry Pi client.",
-          "local_url": "Required for iOS/macOS/Raspberry Pi: copy the Client API URL from the DJConnect client under Settings. For ESP devices, usually leave this empty unless automatic discovery does not work."
+          "local_url": "Required for iOS/macOS/Raspberry Pi when autodiscovery does not find the client: copy the Client API URL from the DJConnect client settings. For ESP devices, usually leave this empty unless automatic discovery does not work.",
+          "discovered_client": "Choose an automatically discovered DJConnect client to prefill pairing details, or use manual entry."
         }
       },
       "ble_wifi": {

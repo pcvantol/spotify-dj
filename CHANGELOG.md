@@ -1,7 +1,12 @@
 # Changelog
 
-## 3.1.19
+## 3.1.20
 
+- Add Home Assistant mDNS autodiscovery for `_djconnect._tcp` DJConnect clients during pairing, including iOS, macOS, Raspberry Pi and ESP32 client validation.
+- Prefill Client API URL, client type, device name and pairing code from discovered mDNS clients and authoritative `/api/device/pairing-info` responses when available.
+- Keep manual Client API URL pairing as fallback and ensure mDNS discovery never marks a device as paired by itself.
+- Update translations, README and canonical sync prompts for the app-client autodiscovery contract.
+- Add unit coverage for iOS/macOS/ESP discovery validation, pairing-info metadata overrides and config-flow discovery prefill/selection.
 - Show the configured Client API URL read-only in the options flow, so app-like client pairing can be inspected without accidentally changing the stored URL.
 - Update README, handoff, AGENTS and canonical sync prompts to document the client-type split between shared backend/playback entities and ESP32-only hardware/update entities.
 - Hide ESP-only hardware sensors (`battery`, `WiFi RSSI`, `screen_state` and `led_state`) for iOS, macOS and Raspberry Pi clients while keeping backend/playback sensors visible.

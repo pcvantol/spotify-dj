@@ -45,6 +45,7 @@ PAIR_DATA_KEYS = {
     "device_name",
     "client_type",
     "local_url",
+    "discovered_client",
 }
 
 REPAIR_PAIRING_DATA_KEYS = {

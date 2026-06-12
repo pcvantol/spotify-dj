@@ -13,18 +13,20 @@
       },
       "pair": {
         "title": "DJConnect apparaat koppelen",
-        "description": "Voer de koppelcode in die op het DJConnect device-scherm staat. De Client API URL is verplicht voor iOS/macOS/Raspberry Pi en alleen nodig voor ESP devices als automatische discovery niet werkt. Spotify is een handelsmerk van Spotify AB. DJConnect is niet verbonden aan, goedgekeurd door of gesponsord door Spotify AB.",
+        "description": "Voer de koppelcode van je DJConnect device in. Als Home Assistant de app of het device via mDNS vindt, worden Client API URL, clienttype en apparaatnaam automatisch ingevuld. Spotify is een handelsmerk van Spotify AB. DJConnect is niet verbonden aan, goedgekeurd door of gesponsord door Spotify AB.",
         "data": {
           "pair_code": "Koppelcode",
           "device_name": "Apparaatnaam",
           "client_type": "Clienttype",
-          "local_url": "Client API URL"
+          "local_url": "Client API URL",
+          "discovered_client": "Gevonden DJConnect client"
         },
         "data_description": {
           "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het apparaatdisplay.",
           "device_name": "Leesbare naam voor deze DJConnect remote.",
           "client_type": "Type DJConnect client dat koppelt met Home Assistant: ESP32 device, iOS app, macOS app of Raspberry Pi client.",
-          "local_url": "Voor iOS/macOS/Raspberry Pi verplicht: kopieer de Client API URL uit de DJConnect app via Instellingen. Voor ESP devices meestal leeg laten, tenzij automatische discovery niet werkt."
+          "local_url": "Voor iOS/macOS/Raspberry Pi verplicht als autodiscovery niets vindt: kopieer de Client API URL uit de DJConnect client via Instellingen. Voor ESP devices meestal leeg laten, tenzij automatische discovery niet werkt.",
+          "discovered_client": "Kies een automatisch gevonden DJConnect client om de koppelgegevens voor te vullen, of gebruik handmatige invoer."
         }
       },
       "ble_wifi": {

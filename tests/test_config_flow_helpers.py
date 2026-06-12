@@ -404,6 +404,55 @@ class ConfigFlowHelperTest(unittest.TestCase):
             "http://djconnect-lilygo-t-embed-s3-90B70990A994.local",
         )
 
+
+    def test_user_schema_prefills_single_discovered_app_client(self) -> None:
+        flow = self.config_flow.DJConnectConfigFlow()
+        flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
+        client = self.config_flow.DiscoveredClient(
+            local_url="http://192.168.1.104:60955",
+            device_id="djconnect-macos-68B74487726D",
+            client_type=self.const.CLIENT_TYPE_MACOS,
+            device_name="DJConnect Mac",
+            pair_code="555293",
+        )
+
+        flow._apply_discovered_client(client)
+        schema = flow._user_schema()
+        defaults = {marker.key: marker.default for marker in schema}
+
+        self.assertEqual(defaults[self.const.CONF_PAIR_CODE], "555293")
+        self.assertEqual(defaults[self.const.CONF_DEVICE_NAME], "DJConnect Mac")
+        self.assertEqual(defaults[self.const.CONF_CLIENT_TYPE], self.const.CLIENT_TYPE_MACOS)
+        self.assertEqual(defaults[self.const.CONF_LOCAL_URL], "http://192.168.1.104:60955")
+
+    def test_user_schema_offers_multiple_discovered_clients(self) -> None:
+        flow = self.config_flow.DJConnectConfigFlow()
+        flow.hass = types.SimpleNamespace(config=types.SimpleNamespace(language="en-US"))
+        flow._discovered_clients = [
+            self.config_flow.DiscoveredClient(
+                local_url="http://192.168.1.104:60955",
+                device_id="djconnect-macos-68B74487726D",
+                client_type=self.const.CLIENT_TYPE_MACOS,
+                device_name="DJConnect Mac",
+            ),
+            self.config_flow.DiscoveredClient(
+                local_url="http://192.168.1.42:51193",
+                device_id="djconnect-ios-9F8FA6931AA3",
+                client_type=self.const.CLIENT_TYPE_IOS,
+                device_name="DJConnect iPhone",
+            ),
+        ]
+
+        schema = flow._user_schema()
+        keys = {marker.key for marker in schema}
+        discovery_marker = next(
+            marker for marker in schema if marker.key == self.config_flow.DISCOVERY_CLIENT_FIELD
+        )
+
+        self.assertIn(self.config_flow.DISCOVERY_CLIENT_FIELD, keys)
+        self.assertIn("djconnect-macos-68B74487726D", schema[discovery_marker])
+        self.assertIn("DJConnect iPhone", schema[discovery_marker]["djconnect-ios-9F8FA6931AA3"])
+
     def test_default_local_url_accepts_only_device_suffix(self) -> None:
         self.assertEqual(self.config_flow._default_local_url("123456"), "")
         self.assertEqual(

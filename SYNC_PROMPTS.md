@@ -82,6 +82,13 @@ Requirements:
   be outbound-only and may not provide a Client API URL; HA must still be able
   to complete pairing, issue a device_token, and rely on Pi -> HA status and
   command traffic.
+- Discover visible DJConnect clients through Bonjour/mDNS service
+  `_djconnect._tcp`. TXT records must include device_id, client_type,
+  device_name, version, paired and api=/api/device where available. Validate
+  client_type against the device_id prefix, optionally probe
+  GET /api/device/pairing-info, and use pairing-info as authoritative metadata
+  for Client API URL, client_type, device_name and pair_code prefill. Discovery
+  is convenience only and must never mark a device paired.
 - Return ha_version or ha_major_minor on status/command responses so Apple
   clients can enforce the matching major.minor contract.
 - Apple clients host local /api/device/* endpoints for HA -> client traffic,
@@ -1577,6 +1584,13 @@ Requirements:
   be outbound-only and may not provide a Client API URL; HA must still be able
   to complete pairing, issue a device_token, and rely on Pi -> HA status and
   command traffic.
+- Discover visible DJConnect clients through Bonjour/mDNS service
+  `_djconnect._tcp`. TXT records must include device_id, client_type,
+  device_name, version, paired and api=/api/device where available. Validate
+  client_type against the device_id prefix, optionally probe
+  GET /api/device/pairing-info, and use pairing-info as authoritative metadata
+  for Client API URL, client_type, device_name and pair_code prefill. Discovery
+  is convenience only and must never mark a device paired.
 - Return ha_version or ha_major_minor on status/command responses so Apple
   clients can enforce the matching major.minor contract.
 - Apple clients host local /api/device/* endpoints for HA -> client traffic,
