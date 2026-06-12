@@ -1162,6 +1162,46 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertIn("'device_token': '<redacted>'", logs)
         self.assertNotIn("device-token", logs)
 
+    def test_pair_view_omits_device_language_for_app_clients(self) -> None:
+        const = importlib.import_module("custom_components.djconnect.const")
+
+        class Runtime:
+            config = {
+                const.CONF_PAIR_CODE: "555293",
+                const.CONF_CLIENT_TYPE: "macos",
+            }
+            device_status = {const.CONF_CLIENT_TYPE: "macos"}
+
+            def ensure_device_token(self):
+                self.device_token = "device-token"
+                return self.device_token
+
+            def device_language(self):
+                return "nl"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+
+        class Request:
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
+
+            async def json(self):
+                return {
+                    "device_id": "djconnect-macos-68B74487726D",
+                    "client_type": "macos",
+                    "pair_code": "555293",
+                    "local_url": "http://192.168.1.104:60955",
+                }
+
+        response = asyncio.run(self.http.DJConnectPairView(None).post(Request()))
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertEqual(response["payload"]["client_type"], "macos")
+        self.assertNotIn("device_language", response["payload"])
+        self.assertNotIn("language", response["payload"])
+
     def test_status_view_reprovisions_when_spotify_configured_false(self) -> None:
         const = importlib.import_module("custom_components.djconnect.const")
 
@@ -1376,6 +1416,8 @@ class VoiceHttpHelperTest(unittest.TestCase):
 
         self.assertEqual(response["status_code"], 200)
         self.assertEqual(response["payload"]["client_type"], "ios")
+        self.assertNotIn("device_language", response["payload"])
+        self.assertNotIn("language", response["payload"])
         self.assertFalse(runtime.ota_in_progress)
         self.assertEqual(runtime.device_status["device_id"], "djconnect-lilygo-90B70990A994")
         self.assertEqual(runtime.device_status["client_type"], "ios")

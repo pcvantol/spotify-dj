@@ -30,7 +30,7 @@ commit the updated `SYNC_PROMPTS.md` there.
 ## Current Protocol Line
 
 The current shared protocol/release line is `3.1.x`; this bundle was last
-aligned after Apple app release `v3.1.12`. DJConnect clients on the `3.1.x`
+aligned after Apple app release `v3.1.13`. DJConnect clients on the `3.1.x`
 line are compatible with Home Assistant integration versions `>=3.1.0` and
 `<3.2.0`.
 
@@ -39,13 +39,14 @@ line are compatible with Home Assistant integration versions `>=3.1.0` and
 ## Cross-Repo Quick Prompts
 
 Use these prompts when handing work between the Home Assistant integration,
-Apple app, and ESP firmware repos.
+Apple app, ESP firmware, and website/docs repos.
 
 Canonical repo locations:
 
 - Home Assistant integration: `pcvantol/djconnect`
 - Apple app: `pcvantol/djconnect-app`
 - ESP firmware: `pcvantol/djconnect-esp32`
+- Website/docs: `pcvantol/djconnect-website`
 
 ## Home Assistant Integration
 
@@ -63,7 +64,9 @@ Requirements:
 - Accept the app-generated code as pair_code, pairing_code, or pairing_token.
 - Return a DJConnect bearer token on success. The current compatible field is
   device_token; bearer_token and token may also be returned.
-- Return ha_local_url and language metadata during successful app pairing.
+- Return ha_local_url during successful app pairing. Do not return
+  device_language/language for iOS, macOS or Raspberry Pi clients; those
+  clients determine their UI language locally.
 - Keep cloud/remote URLs out of Apple app runtime traffic; cloud URLs are only
   needed by Home Assistant-owned Spotify OAuth config flows.
 - When pairing an app-like client, ask for or use the Client API url shown in
@@ -88,7 +91,9 @@ Requirements:
 - Create native HA entities for paired app clients when status is received.
 - Create only client/runtime and backend/playback entities for ios, macos, and
   raspberry_pi clients; do not create ESP-only battery, Wi-Fi RSSI, screen
-  state, LED state, firmware OTA, or reboot entities for app-like clients.
+  state, LED state, screen brightness/timeout, speaker volume, device language,
+  auto-off, theme/log-level, firmware OTA, or reboot entities for app-like
+  clients.
 - Support App Store review by allowing Apple clients to enter local Demo Mode
   without HA; Demo Mode must not create HA devices/entities, tokens, or backend
   traffic. Local sample DJ announcement audio/text in Demo Mode is app-local and
@@ -348,6 +353,8 @@ Voor `POST /api/djconnect/command` met `command:"queue"`:
 
 Regels:
 
+- App-clients mogen `limit:100` meesturen; HA retourneert maximaal 100 echte
+  backend queue-items.
 - Retourneer de echte backend queue/context, niet dezelfde current track als padding.
 - Als er maar 1 queue-item is, retourneer 1 item.
 - `context_uri` blijft nodig voor ESP/web per-item play.
@@ -621,6 +628,18 @@ Verwachte response shapes:
     }
   }
 }
+Command responses are transport/command success first, playback-state second.
+A command response with `success:true` and `playback.has_playback:false` is not
+an error state.
+
+When `playback.has_playback == false`, clients must treat the playback snapshot
+as valid but empty. Playback fields may be `null` or empty strings, including
+`progress_ms`, `duration_ms`, `volume_percent`, `device.volume_percent`,
+`title`, `track_name`, `artist`, `album_name`, `uri`, `context_uri`,
+`queue_context` and artwork URLs. Swift/Kotlin/TypeScript models must make
+these fields nullable/optional and must not fail decoding because no playback is
+active.
+
 Backend unavailable/auth failure:
 
 {
@@ -862,8 +881,8 @@ Recommended fields:
   "device_id": "djconnect-ios-8F3A2C91B45D",
   "device_name": "DJConnect iPhone",
   "client_type": "ios",
-  "firmware": "3.1.12",
-  "app_version": "3.1.12",
+  "firmware": "3.1.13",
+  "app_version": "3.1.13",
   "platform": "ios"
 }
 ```
@@ -875,8 +894,8 @@ For macOS:
   "device_id": "djconnect-macos-8F3A2C91B45D",
   "device_name": "DJConnect Mac",
   "client_type": "macos",
-  "firmware": "3.1.12",
-  "app_version": "3.1.12",
+  "firmware": "3.1.13",
+  "app_version": "3.1.13",
   "platform": "macos"
 }
 ```
@@ -910,7 +929,7 @@ Expected response:
   "success": false,
   "error": "version_mismatch",
   "message": "DJConnect Home Assistant integration and device firmware major.minor versions must match.",
-  "ha_version": "3.1.12",
+  "ha_version": "3.1.13",
   "ha_major_minor": "3.1",
   "firmware": "3.0.9",
   "firmware_major_minor": "3.0"
@@ -1027,8 +1046,8 @@ should not be implemented unless the Apple app has a real equivalent.
   "device_name": "DJConnect iPhone",
   "pair_code": "123456",
   "client_type": "ios",
-  "firmware": "3.1.12",
-  "app_version": "3.1.12",
+  "firmware": "3.1.13",
+  "app_version": "3.1.13",
   "local_url": "http://djconnect-ios-8F3A2C91B45D.local:18080"
 }
 ```
@@ -1044,10 +1063,7 @@ Never use `device_type` for identity.
   "device_id": "djconnect-ios-8F3A2C91B45D",
   "client_type": "ios",
   "device_token": "<device-token>",
-  "ha_local_url": "http://192.168.1.x:8123",
-  "ha_remote_url": "https://xxxx.ui.nabu.casa",
-  "device_language": "nl",
-  "language": "nl"
+  "ha_local_url": "http://192.168.1.x:8123"
 }
 ```
 
@@ -1055,7 +1071,7 @@ Rules:
 
 - Accept only this app installation's own `device_id`.
 - Accept only the expected `client_type` for the target app (`ios` or `macos`).
-- Store only the DJConnect bearer token, HA URLs, language and lightweight
+- Store only the DJConnect bearer token, HA local URL and lightweight
   DJConnect settings.
 - Keep `ha_local_url` as the normal route for app -> HA status, command and
   voice calls; `ha_remote_url` is fallback/diagnostics, not the normal path.
@@ -1101,8 +1117,8 @@ Minimum payload:
   "device_id": "djconnect-ios-8F3A2C91B45D",
   "client_type": "ios",
   "ha_pairing_status": "paired",
-  "firmware": "3.1.12",
-  "app_version": "3.1.12",
+  "firmware": "3.1.13",
+  "app_version": "3.1.13",
   "state": "online",
   "status": "online",
   "battery_percent": 85,
@@ -1132,15 +1148,14 @@ Status responses may include:
 {
   "success": true,
   "client_type": "ios",
-  "device_language": "nl",
-  "language": "nl",
   "backend_available": true,
   "playback": {}
 }
 ```
 
-Use `device_language`/`language` to update app UI language only if the app
-supports remote language sync. Otherwise keep it as informational state.
+Home Assistant must not send `device_language` or `language` to iOS, macOS or
+Raspberry Pi clients in pairing/status responses. App-like clients own their UI
+language setting locally.
 
 Status is authoritative for Home Assistant entities that represent the app
 client. Command payloads must not be used as partial status snapshots.
@@ -1164,7 +1179,7 @@ Examples:
 ```json
 {"device_id":"djconnect-ios-8F3A2C91B45D","client_type":"ios","command":"status"}
 {"device_id":"djconnect-ios-8F3A2C91B45D","client_type":"ios","command":"devices"}
-{"device_id":"djconnect-ios-8F3A2C91B45D","client_type":"ios","command":"queue"}
+{"device_id":"djconnect-ios-8F3A2C91B45D","client_type":"ios","command":"queue","limit":100}
 {"device_id":"djconnect-ios-8F3A2C91B45D","client_type":"ios","command":"playlists"}
 {"device_id":"djconnect-ios-8F3A2C91B45D","client_type":"ios","command":"pause"}
 {"device_id":"djconnect-ios-8F3A2C91B45D","client_type":"ios","command":"play"}
@@ -1241,6 +1256,18 @@ Expected success shape:
   }
 }
 ```
+
+Command responses are transport/command success first, playback-state second.
+A command response with `success:true` and `playback.has_playback:false` is not
+an error state.
+
+When `playback.has_playback == false`, clients must treat the playback snapshot
+as valid but empty. Playback fields may be `null` or empty strings, including
+`progress_ms`, `duration_ms`, `volume_percent`, `device.volume_percent`,
+`title`, `track_name`, `artist`, `album_name`, `uri`, `context_uri`,
+`queue_context` and artwork URLs. Swift/Kotlin/TypeScript models must make
+these fields nullable/optional and must not fail decoding because no playback is
+active.
 
 Backend unavailable is not an auth failure:
 
@@ -1454,13 +1481,14 @@ Do not put SwiftUI view logic into the HTTP client.
 # Sync Prompts
 
 Use these prompts when handing work between the Home Assistant integration,
-Apple app, and ESP firmware repos.
+Apple app, ESP firmware, and website/docs repos.
 
 Canonical repo locations:
 
 - Home Assistant integration: `pcvantol/djconnect`
 - Apple app: `pcvantol/djconnect-app`
 - ESP firmware: `pcvantol/djconnect-esp32`
+- Website/docs: `pcvantol/djconnect-website`
 
 ## Home Assistant Integration
 
@@ -1478,7 +1506,9 @@ Requirements:
 - Accept the app-generated code as pair_code, pairing_code, or pairing_token.
 - Return a DJConnect bearer token on success. The current compatible field is
   device_token; bearer_token and token may also be returned.
-- Return ha_local_url and language metadata during successful app pairing.
+- Return ha_local_url during successful app pairing. Do not return
+  device_language/language for iOS, macOS or Raspberry Pi clients; those
+  clients determine their UI language locally.
 - Keep cloud/remote URLs out of Apple app runtime traffic; cloud URLs are only
   needed by Home Assistant-owned Spotify OAuth config flows.
 - When pairing an app-like client, ask for or use the Client API url shown in
@@ -1500,7 +1530,9 @@ Requirements:
 - Create native HA entities for paired app clients when status is received.
 - Create only client/runtime and backend/playback entities for ios, macos, and
   raspberry_pi clients; do not create ESP-only battery, Wi-Fi RSSI, screen
-  state, LED state, firmware OTA, or reboot entities for app-like clients.
+  state, LED state, screen brightness/timeout, speaker volume, device language,
+  auto-off, theme/log-level, firmware OTA, or reboot entities for app-like
+  clients.
 - Support App Store review by allowing Apple clients to enter local Demo Mode
   without HA; Demo Mode must not create HA devices/entities, tokens, or backend
   traffic. Local sample DJ announcement audio/text in Demo Mode is app-local and

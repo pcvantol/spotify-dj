@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import CLIENT_TYPE_ESP32, DOMAIN
 from .entity_ids import entry_unique_id
 from .spotify_backend import handle_spotify_command
 
@@ -23,45 +23,47 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     runtime = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(
-        [
-            DJConnectVolumeNumber(runtime, hass),
-            DJConnectCommandNumber(
-                runtime,
-                hass,
-                "screen_brightness",
-                "brightness",
-                "screen_brightness",
-                "value",
-                0,
-                100,
-                "%",
-            ),
-            DJConnectCommandNumber(
-                runtime,
-                hass,
-                "screen_timeout",
-                "screen_timeout",
-                "screen_dim_timeout",
-                "value",
-                0,
-                600,
-                "s",
-                value_multiplier=1000,
-            ),
-            DJConnectCommandNumber(
-                runtime,
-                hass,
-                "speaker_volume",
-                "speaker_volume",
-                "speaker_volume",
-                "value",
-                0,
-                100,
-                "%",
-            ),
-        ]
-    )
+    entities: list[NumberEntity] = [DJConnectVolumeNumber(runtime, hass)]
+    if _runtime_client_type(runtime) == CLIENT_TYPE_ESP32:
+        entities.extend(
+            [
+                DJConnectCommandNumber(
+                    runtime,
+                    hass,
+                    "screen_brightness",
+                    "brightness",
+                    "screen_brightness",
+                    "value",
+                    0,
+                    100,
+                    "%",
+                ),
+                DJConnectCommandNumber(
+                    runtime,
+                    hass,
+                    "screen_timeout",
+                    "screen_timeout",
+                    "screen_dim_timeout",
+                    "value",
+                    0,
+                    600,
+                    "s",
+                    value_multiplier=1000,
+                ),
+                DJConnectCommandNumber(
+                    runtime,
+                    hass,
+                    "speaker_volume",
+                    "speaker_volume",
+                    "speaker_volume",
+                    "value",
+                    0,
+                    100,
+                    "%",
+                ),
+            ]
+        )
+    async_add_entities(entities)
 
 
 class DJConnectVolumeNumber(NumberEntity):
@@ -255,3 +257,12 @@ def _status_key_aliases(status_key: str, value_multiplier: int) -> list[tuple[st
             ("auto_off_timeout", value_multiplier),
         ]
     return [(status_key, 1)]
+
+
+def _runtime_client_type(runtime: Any) -> str:
+    getter = getattr(runtime, "client_type", None)
+    if callable(getter):
+        return str(getter() or CLIENT_TYPE_ESP32)
+    status = getattr(runtime, "device_status", {}) or {}
+    config = getattr(runtime, "config", {}) or {}
+    return str(status.get("client_type") or config.get("client_type") or CLIENT_TYPE_ESP32)

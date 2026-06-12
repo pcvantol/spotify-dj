@@ -27,6 +27,7 @@ from .const import (
     CONF_MAX_AUDIO_BYTES,
     CONF_PAIR_CODE,
     DOMAIN,
+    CLIENT_TYPE_ESP32,
     CLIENT_TYPES,
     DEFAULT_CLIENT_TYPE,
     DEFAULT_MAX_AUDIO_BYTES,
@@ -736,6 +737,14 @@ def _device_language(runtime: Any) -> str:
     return "nl" if language.startswith("nl") else "en"
 
 
+def _esp32_language_payload(runtime: Any) -> dict[str, str]:
+    """Return HA-provisioned language metadata for ESP32 clients only."""
+    if _runtime_client_type(runtime) != CLIENT_TYPE_ESP32:
+        return {}
+    language = _device_language(runtime)
+    return {"device_language": language, "language": language}
+
+
 def _failure_kind(exc: Exception) -> str:
     text = str(exc).lower()
     if any(word in text for word in ("assist", "conversation", "pipeline")):
@@ -894,13 +903,12 @@ class DJConnectPairView(HomeAssistantView):
             "client_type": _runtime_client_type(runtime),
             "device_token": token,
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
-            "device_language": runtime.device_language(),
-            "language": runtime.device_language(),
             "api_base": "/api/djconnect",
             "voice_path": API_VOICE,
             "status_path": API_STATUS,
             "event_path": API_EVENT,
         }
+        response.update(_esp32_language_payload(runtime))
         response.update(await async_ha_url_payload(hass, conf))
         _LOGGER.debug(
             "DJConnect pairing response status=200 payload=%s",
@@ -984,10 +992,9 @@ class DJConnectStatusView(HomeAssistantView):
             "success": True,
             "client_type": _runtime_client_type(runtime),
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
-            "device_language": runtime.device_language(),
-            "language": runtime.device_language(),
             "playback": getattr(runtime, "last_playback", None) or {},
         }
+        response.update(_esp32_language_payload(runtime))
         response.update(await async_ha_url_payload(hass, conf))
         backend_available = bool(_current_spotify_credentials(runtime))
         _LOGGER.debug(

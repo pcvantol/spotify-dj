@@ -679,6 +679,8 @@ class TtsHelperTest(unittest.TestCase):
         self.assertEqual(payload["device_id"], "djconnect-macos-68B74487726D")
         self.assertEqual(payload["client_type"], "macos")
         self.assertEqual(payload["pair_code"], "555293")
+        self.assertNotIn("device_language", payload)
+        self.assertNotIn("language", payload)
         self.assertEqual(runtime.device_status["device_id"], "djconnect-macos-68B74487726D")
         self.assertEqual(runtime.device_status["client_type"], "macos")
 

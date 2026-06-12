@@ -58,7 +58,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `djconnect`
 - HACS custom integration.
-- Actuele integratieversie: `3.1.16`.
+- Actuele integratieversie: `3.1.17`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -83,7 +83,7 @@ HA integration:
 - Options-flow bevat aparte acties voor instellingen opslaan, pairing opnieuw proberen met de huidige code, en volledig opnieuw koppelen met een nieuwe koppelcode; re-pair maakt een nieuw device token, bewaart dat persistent en probeert `/api/device/pair` opnieuw.
 - `POST /api/device/pair` mag alleen bij initiële config-flow pairing, expliciete re-pair/token rotation of stale-pairing recovery worden aangeroepen; nooit bij normale status sync, playback commands, settings sync of HA startup als er al een device token is opgeslagen.
 - Setup-code based pairing mag tijdelijk `djconnect-[6-cijferige-code]` gebruiken, maar HA moet na de eerste ESP status/command/voice call met dezelfde bearer token alleen de echte model-specifieke `djconnect-lilygo-t-embed-s3-XXXXXXXXXXXX` of `djconnect-esp32-s3-box-3-XXXXXXXXXXXX` device-id accepteren, leren en persistent opslaan.
-- Device UI language wordt tijdens pairing gekozen als `en`/`nl`, default op HA taal indien ondersteund, en meegestuurd als `device_language` en `language`; ESP slaat dit op als `provision.language`.
+- ESP32 device UI language wordt tijdens pairing automatisch gekozen als `en`/`nl`, default op HA taal indien ondersteund, en alleen voor ESP32 meegestuurd als `device_language` en `language`; ESP slaat dit op als `provision.language`. iOS, macOS en Raspberry Pi clients bepalen hun taal zelf en krijgen geen HA-geforceerde `device_language`/`language` in pairing/status responses.
 - HA stuurt tijdens pairing `client_type` mee en bewaart dit persistent; ESP firmware gebruikt `esp32`, iOS/macOS app-clients gebruiken respectievelijk `ios` of `macos`, en de toekomstige Raspberry Pi client gebruikt `raspberry_pi`.
 - Koppelcode/device-suffix uit de HA config-flow moet worden opgeslagen en ESP pairing moet een afwijkende code weigeren.
 - HA pairingstatus mag pas `paired` tonen nadat ESP `ha_pairing_status=paired` bevestigt; een lokaal HA `device_token` is hooguit `pending`.
@@ -108,7 +108,7 @@ HA integration:
 - Verberg lokale/manual device URL in de normale flow; toon die alleen onder HA advanced options als mDNS/manual override nodig is.
 - Als manual device URL leeg is tijdens setup, sla alleen automatisch een model-specifieke hostname zoals `http://djconnect-lilygo-t-embed-s3-[device-suffix].local` op als de pairingwaarde een echte 12-hex device suffix is; runtime blijft device-reported `local_url` en `_djconnect._tcp` mDNS prefereren en negeert oude `djconnect-[6-digit-code].local` fallbacks.
 - Alle DJConnect entities moeten onder één HA device vallen met hetzelfde device identifier.
-- ESP32 clients krijgen ESP-only hardware/update entities zoals batterij, WiFi RSSI, schermstatus, LED status, firmware update en reboot. iOS, macOS en Raspberry Pi clients krijgen die ESP-only entities niet; zij houden client/runtime en backend/playback entities.
+- ESP32 clients krijgen ESP-only hardware/update/settings entities zoals batterij, WiFi RSSI, schermstatus, LED status, schermhelderheid/timeout, speaker volume, device language, auto-off, theme/log-level, firmware update en reboot. iOS, macOS en Raspberry Pi clients krijgen die ESP-only entities niet; zij houden client/runtime en backend/playback entities.
 - ESP status payloads naar HA moeten actuele device settings meesturen voor native entities, zoals screen_brightness_percent/screen_brightness, speaker_volume_percent/speaker_volume, screen_off_timeout_ms, turn_off_after/turn_off_after_ms, nested `settings`, `screen` en `led`; HA accepteert aliases en converteert milliseconden naar seconden/minuten.
 - `number.djconnect_volume` mag onbekende devicewaarden zoals `-1` nooit publiceren; geef dan `None/unavailable` terug binnen HA range 0–60.
 - Config-flow foutpaden moeten heldere NL/EN gebruikersmeldingen hebben, bijvoorbeeld bij lege of foutieve koppelcode/device-suffix, ontbrekende Spotify Client ID, foutieve external URL en OAuth fouten.

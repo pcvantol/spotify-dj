@@ -43,7 +43,6 @@ BLE_WIFI_DATA_KEYS = {
 PAIR_DATA_KEYS = {
     "pair_code",
     "device_name",
-    "device_language",
     "client_type",
     "local_url",
 }

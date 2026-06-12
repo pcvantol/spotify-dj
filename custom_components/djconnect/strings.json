@@ -17,14 +17,12 @@
         "data": {
           "pair_code": "Koppelcode",
           "device_name": "Apparaatnaam",
-          "device_language": "Apparaattaal",
           "client_type": "Clienttype",
           "local_url": "Client API URL"
         },
         "data_description": {
           "pair_code": "De 6-cijferige code of 12 tekens lange device-suffix op het DJConnect device.",
           "device_name": "Leesbare naam voor deze DJConnect remote.",
-          "device_language": "Taal voor de UI op het DJConnect device. Deze wordt tijdens pairing naar het device gestuurd.",
           "client_type": "Type DJConnect client dat koppelt met Home Assistant: ESP32 device, iOS app, macOS app of Raspberry Pi client.",
           "local_url": "Voor iOS/macOS/Raspberry Pi verplicht: kopieer de Client API URL uit de DJConnect app via Instellingen. Voor ESP devices meestal leeg laten, tenzij automatische discovery niet werkt."
         }

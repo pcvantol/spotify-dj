@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import CLIENT_TYPE_ESP32, DOMAIN
 from .entity_ids import entry_unique_id
 from .spotify_backend import handle_spotify_command
 
@@ -24,24 +24,27 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     runtime = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(
-        [
-            DJConnectCommandSelect(
-                runtime,
-                hass,
-                "sound_output",
-                "sound_output",
-                "set_output",
-                _options_from_status(runtime.device_status),
-            ),
-            DJConnectCommandSelect(
-                runtime,
-                hass,
-                "repeat_state",
-                "repeat_state",
-                "set_repeat",
-                ["off", "track", "context"],
-            ),
+    entities: list[SelectEntity] = [
+        DJConnectCommandSelect(
+            runtime,
+            hass,
+            "sound_output",
+            "sound_output",
+            "set_output",
+            _options_from_status(runtime.device_status),
+        ),
+        DJConnectCommandSelect(
+            runtime,
+            hass,
+            "repeat_state",
+            "repeat_state",
+            "set_repeat",
+            ["off", "track", "context"],
+        ),
+    ]
+    if _runtime_client_type(runtime) == CLIENT_TYPE_ESP32:
+        entities.extend(
+            [
             DJConnectCommandSelect(
                 runtime,
                 hass,
@@ -74,8 +77,9 @@ async def async_setup_entry(
                 "log_level",
                 ["debug", "info", "warning", "error"],
             ),
-        ]
-    )
+            ]
+        )
+    async_add_entities(entities)
 
 
 class DJConnectCommandSelect(SelectEntity):
@@ -293,3 +297,12 @@ def _closest_turn_off_after_minutes(value: Any) -> int:
         return 15
     allowed = [int(option) for option in TURN_OFF_AFTER_OPTIONS]
     return min(allowed, key=lambda option: abs(option - minutes))
+
+
+def _runtime_client_type(runtime: Any) -> str:
+    getter = getattr(runtime, "client_type", None)
+    if callable(getter):
+        return str(getter() or CLIENT_TYPE_ESP32)
+    status = getattr(runtime, "device_status", {}) or {}
+    config = getattr(runtime, "config", {}) or {}
+    return str(status.get("client_type") or config.get("client_type") or CLIENT_TYPE_ESP32)

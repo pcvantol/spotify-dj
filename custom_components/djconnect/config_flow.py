@@ -70,6 +70,7 @@ from .const import (
     DEFAULT_TTS_VOICE,
     FIRMWARE_CHANNELS,
     CLIENT_TYPE_NAMES,
+    CLIENT_TYPE_ESP32,
     DOMAIN,
     SETUP_METHOD_BLE_WIFI,
     SETUP_METHOD_PAIR_EXISTING,
@@ -897,6 +898,10 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors[CONF_PAIR_CODE] = "invalid_pair_code"
             else:
                 device_id = f"djconnect-{pair_code}"
+                client_type = _clean(
+                    user_input.get(CONF_CLIENT_TYPE),
+                    DEFAULT_CLIENT_TYPE,
+                )
                 await self.async_set_unique_id(device_id)
                 self._abort_if_unique_id_configured()
                 self._pairing = {
@@ -906,20 +911,17 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         user_input.get(CONF_DEVICE_NAME),
                         DEFAULT_DEVICE_NAME,
                     ),
-                    CONF_DEVICE_LANGUAGE: _clean(
-                        user_input.get(CONF_DEVICE_LANGUAGE),
-                        _ha_device_language(getattr(self, "hass", None)),
-                    ),
-                    CONF_CLIENT_TYPE: _clean(
-                        user_input.get(CONF_CLIENT_TYPE),
-                        DEFAULT_CLIENT_TYPE,
-                    ),
+                    CONF_CLIENT_TYPE: client_type,
                     CONF_DEVICE_TOKEN: secrets.token_urlsafe(32),
                     CONF_LOCAL_URL: _clean(
                         user_input.get(CONF_LOCAL_URL),
                         _default_local_url(pair_code),
                     ),
                 }
+                if client_type == CLIENT_TYPE_ESP32:
+                    self._pairing[CONF_DEVICE_LANGUAGE] = _ha_device_language(
+                        getattr(self, "hass", None)
+                    )
                 return await self.async_step_spotify()
 
         return self.async_show_form(
@@ -941,10 +943,6 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_DEVICE_NAME,
                 default=DEFAULT_DEVICE_NAME,
             ): str,
-            vol.Optional(
-                CONF_DEVICE_LANGUAGE,
-                default=_ha_device_language(getattr(self, "hass", None)),
-            ): vol.In(DEVICE_LANGUAGE_NAMES),
             vol.Optional(
                 CONF_CLIENT_TYPE,
                 default=DEFAULT_CLIENT_TYPE,

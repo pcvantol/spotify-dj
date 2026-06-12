@@ -386,7 +386,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
 
         self.assertIn(self.const.CONF_CLIENT_TYPE, keys)
         self.assertIn(self.const.CONF_LOCAL_URL, keys)
-        self.assertIn(self.const.CONF_DEVICE_LANGUAGE, keys)
+        self.assertNotIn(self.const.CONF_DEVICE_LANGUAGE, keys)
 
     def test_user_schema_prefills_manual_device_url_from_pair_code(self) -> None:
         flow = self.config_flow.DJConnectConfigFlow()

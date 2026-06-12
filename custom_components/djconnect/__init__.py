@@ -599,16 +599,20 @@ class DJConnectRuntime:
             self.device_status["local_url"] = reported_local_url
         token = self.ensure_device_token()
         url = local_url.rstrip("/") + "/api/device/pair"
+        payload_client_type = (
+            reported_client_type if reported_client_type in CLIENT_TYPES else self.client_type()
+        )
         payload = {
             "pair_code": conf.get(CONF_PAIR_CODE),
             "device_id": reported_device_id or conf.get(CONF_DEVICE_ID),
             "device_name": conf.get(CONF_DEVICE_NAME, "DJConnect"),
-            "client_type": reported_client_type if reported_client_type in CLIENT_TYPES else self.client_type(),
-            "device_language": self.device_language(),
-            "language": self.device_language(),
+            "client_type": payload_client_type,
             "device_token": token,
             "assist_pipeline_id": conf.get(CONF_ASSIST_PIPELINE_ID, ""),
         }
+        if payload_client_type == CLIENT_TYPE_ESP32:
+            payload["device_language"] = self.device_language()
+            payload["language"] = self.device_language()
         payload.update(await async_ha_url_payload(hass, conf))
         if not payload.get("ha_local_url"):
             raise RuntimeError("Home Assistant local URL is required for pairing")

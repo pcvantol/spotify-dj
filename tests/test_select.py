@@ -78,6 +78,49 @@ class DJConnectSelectTest(unittest.TestCase):
         self.assertEqual(log_level.current_option, "info")
         self.assertEqual(language.current_option, "nl")
 
+    def test_setup_entry_skips_device_selects_for_app_clients(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={"client_type": "ios"},
+            device_status={"client_type": "ios"},
+            listeners=[],
+        )
+        hass = types.SimpleNamespace(data={"djconnect": {"entry-1": runtime}})
+        entry = types.SimpleNamespace(entry_id="entry-1")
+        added = []
+
+        asyncio.run(self.select.async_setup_entry(hass, entry, added.extend))
+
+        self.assertEqual(
+            [entity._attr_translation_key for entity in added],
+            ["sound_output", "repeat_state"],
+        )
+
+    def test_setup_entry_adds_device_selects_for_esp32(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={"client_type": "esp32"},
+            device_status={"client_type": "esp32"},
+            listeners=[],
+        )
+        hass = types.SimpleNamespace(data={"djconnect": {"entry-1": runtime}})
+        entry = types.SimpleNamespace(entry_id="entry-1")
+        added = []
+
+        asyncio.run(self.select.async_setup_entry(hass, entry, added.extend))
+
+        self.assertEqual(
+            [entity._attr_translation_key for entity in added],
+            [
+                "sound_output",
+                "repeat_state",
+                "language",
+                "turn_off_after",
+                "theme",
+                "log_level",
+            ],
+        )
+
     def test_repeat_select_uses_spotify_backend_command(self) -> None:
         calls = []
         runtime = types.SimpleNamespace(

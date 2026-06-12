@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import importlib
 from pathlib import Path
 import sys
@@ -149,6 +150,39 @@ class NumberTest(unittest.TestCase):
         self.assertEqual(brightness.native_value, 73)
         self.assertEqual(speaker.native_value, 44)
         self.assertEqual(screen_timeout.native_value, 45)
+
+    def test_setup_entry_adds_only_playback_volume_for_app_clients(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={"client_type": "macos"},
+            device_status={"client_type": "macos"},
+            listeners=[],
+        )
+        hass = types.SimpleNamespace(data={"djconnect": {"entry-1": runtime}})
+        entry = types.SimpleNamespace(entry_id="entry-1")
+        added = []
+
+        asyncio.run(self.number.async_setup_entry(hass, entry, added.extend))
+
+        self.assertEqual([entity._attr_translation_key for entity in added], ["volume"])
+
+    def test_setup_entry_adds_device_numbers_for_esp32(self) -> None:
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={"client_type": "esp32"},
+            device_status={"client_type": "esp32"},
+            listeners=[],
+        )
+        hass = types.SimpleNamespace(data={"djconnect": {"entry-1": runtime}})
+        entry = types.SimpleNamespace(entry_id="entry-1")
+        added = []
+
+        asyncio.run(self.number.async_setup_entry(hass, entry, added.extend))
+
+        self.assertEqual(
+            [entity._attr_translation_key for entity in added],
+            ["volume", "brightness", "screen_timeout", "speaker_volume"],
+        )
 
 
 if __name__ == "__main__":

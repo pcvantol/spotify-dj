@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.1.16
+## 3.1.17
 
 - Show the configured Client API URL read-only in the options flow, so app-like client pairing can be inspected without accidentally changing the stored URL.
 - Update README, handoff, AGENTS and canonical sync prompts to document the client-type split between shared backend/playback entities and ESP32-only hardware/update entities.
