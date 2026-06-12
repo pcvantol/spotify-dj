@@ -860,7 +860,7 @@ Na succesvolle HA direct pair en eerste geaccepteerde HA command/status mag UI n
 Backend unavailable mag niet terug naar pairing-code scherm forceren.
 Pairing stale mag duidelijk tonen: reset/re-pair nodig.
 Soft reset/reboot moet local cue sound en felle witte LED-ring flash tonen vlak voor reboot.
-Bonus games Pong, Asteroids, Fly en Pacman mogen in UI blijven.
+Bonus games Paddle Rally, Meteor Run, Sky Dash en Maze Chase mogen in UI blijven.
 10. Tests
 Voeg/update host tests waar mogelijk:
 
