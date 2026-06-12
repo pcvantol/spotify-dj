@@ -183,17 +183,23 @@ Requirements:
 - Use client_type raspberry_pi and device IDs shaped like
   djconnect-raspberry-pi-XXXXXXXXXXXX.
 - Treat the Pi as an app-like display remote, not ESP firmware.
-- Pair through POST /api/djconnect/pair and store only the returned
-  DJConnect bearer token plus ha_local_url.
+- Support both outbound POST /api/djconnect/pair and the app-like local Client
+  API URL flow. The Pi exposes GET /api/device/info, GET /api/device/pairing-info,
+  POST /api/device/pair, POST /api/device/command, POST /api/device/dj_response
+  and POST /api/device/forget.
+- Advertise `_djconnect._tcp` mDNS on the local Client API port with TXT records
+  including device_id, client_type=raspberry_pi, version, device_name and
+  local_url.
+- Store only the returned DJConnect bearer token plus ha_local_url.
 - Send status to POST /api/djconnect/status with device_id, device_name,
   client_type, version, firmware, ha_pairing_status and display-remote
   capabilities.
 - Send playback commands to POST /api/djconnect/command. Supported first
   version commands are status, play, pause, next, previous, set_volume,
   set_shuffle and set_repeat.
-- Do not implement PTT, microphone capture, POST /api/djconnect/voice, local
-  DJ response audio playback, or local /api/device/dj_response in the initial
-  Pi client.
+- Do not implement PTT, microphone capture, POST /api/djconnect/voice or local
+  DJ response audio playback. POST /api/device/dj_response displays text on
+  screen and may report audio_played:false when no audio device is configured.
 - Do not expose ESP-only reboot, OTA, battery, Wi-Fi RSSI, screen brightness,
   screen timeout, speaker volume, LED, log-level or firmware entities.
 - Keep the updater and OS maintenance daemon separate from the touch UI and

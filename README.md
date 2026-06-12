@@ -12,7 +12,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.1.18`
+- Home Assistant integration: `3.1.19`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -61,7 +61,7 @@ runtime behavior. These decisions are part of the integration contract:
 
 ## Repository Layout
 
-- Home Assistant integration: `3.1.18`
+- Home Assistant integration: `3.1.19`
 - ESP firmware source: `pcvantol/djconnect-app`
 - Public firmware releases: `pcvantol/djconnect-firmware`
 - Canonical cross-repo sync prompts: [`SYNC_PROMPTS.md`](SYNC_PROMPTS.md)
@@ -559,24 +559,24 @@ Example manifest:
 
 ```json
 {
-  "version": "3.1.18",
-  "version_tag": "v3.1.18",
+  "version": "3.1.19",
+  "version_tag": "v3.1.19",
   "channel": "stable",
-  "min_ha_integration": "3.1.18",
+  "min_ha_integration": "3.1.19",
   "firmwares": [
     {
       "board": "t_embed_cc1101",
       "device": "lilygo-t-embed-s3",
-      "asset": "djconnect-lilygo-t-embed-s3-v3.1.18.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.18/djconnect-lilygo-t-embed-s3-v3.1.18.bin",
+      "asset": "djconnect-lilygo-t-embed-s3-v3.1.19.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.19/djconnect-lilygo-t-embed-s3-v3.1.19.bin",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size": 2113136
     },
     {
       "board": "esp32_s3_box3",
       "device": "esp32-s3-box-3",
-      "asset": "djconnect-esp32-s3-box-3-v3.1.18.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.18/djconnect-esp32-s3-box-3-v3.1.18.bin",
+      "asset": "djconnect-esp32-s3-box-3-v3.1.19.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.19/djconnect-esp32-s3-box-3-v3.1.19.bin",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
       "size": 2113136
     }
@@ -599,7 +599,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.1.18
+./release.sh 3.1.19
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -611,14 +611,14 @@ PlatformIO builds, rename firmware binaries to device-specific assets such as
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.1.18 --dry-run
+./release.sh 3.1.19 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
 public-repo option if available:
 
 ```bash
-./release.sh 3.1.18 --publish-firmware-repo ../djconnect-firmware
+./release.sh 3.1.19 --publish-firmware-repo ../djconnect-firmware
 ```
 
 The public `djconnect-firmware` repository should contain only the release
@@ -651,7 +651,7 @@ Tag and publish:
 One-liner:
 
 ```bash
-./release.sh 3.1.18
+./release.sh 3.1.19
 ```
 
 The script updates the integration version in `manifest.json`, `const.py`,
@@ -660,18 +660,18 @@ The script updates the integration version in `manifest.json`, `const.py`,
 Preview without executing git/gh commands:
 
 ```bash
-./release.sh 3.1.18 --dry-run
+./release.sh 3.1.19 --dry-run
 ```
 
 Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.1.18"
-git tag v3.1.18
+git commit -m "Release DJConnect v3.1.19"
+git tag v3.1.19
 git push origin main
-git push origin v3.1.18
-gh release create v3.1.18 --title "DJConnect v3.1.18" --notes-file CHANGELOG.md
+git push origin v3.1.19
+gh release create v3.1.19 --title "DJConnect v3.1.19" --notes-file CHANGELOG.md
 ```
 
 Optional release cleanup helper:
