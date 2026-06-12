@@ -152,19 +152,21 @@ class NumberTest(unittest.TestCase):
         self.assertEqual(screen_timeout.native_value, 45)
 
     def test_setup_entry_adds_only_playback_volume_for_app_clients(self) -> None:
-        runtime = types.SimpleNamespace(
-            entry=types.SimpleNamespace(entry_id="entry-1"),
-            config={"client_type": "macos"},
-            device_status={"client_type": "macos"},
-            listeners=[],
-        )
-        hass = types.SimpleNamespace(data={"djconnect": {"entry-1": runtime}})
-        entry = types.SimpleNamespace(entry_id="entry-1")
-        added = []
+        for client_type in ("ios", "macos", "raspberry_pi"):
+            with self.subTest(client_type=client_type):
+                runtime = types.SimpleNamespace(
+                    entry=types.SimpleNamespace(entry_id="entry-1"),
+                    config={"client_type": client_type},
+                    device_status={"client_type": client_type},
+                    listeners=[],
+                )
+                hass = types.SimpleNamespace(data={"djconnect": {"entry-1": runtime}})
+                entry = types.SimpleNamespace(entry_id="entry-1")
+                added = []
 
-        asyncio.run(self.number.async_setup_entry(hass, entry, added.extend))
+                asyncio.run(self.number.async_setup_entry(hass, entry, added.extend))
 
-        self.assertEqual([entity._attr_translation_key for entity in added], ["volume"])
+                self.assertEqual([entity._attr_translation_key for entity in added], ["volume"])
 
     def test_setup_entry_adds_device_numbers_for_esp32(self) -> None:
         runtime = types.SimpleNamespace(
