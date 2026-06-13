@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.1.22
+## 3.1.23
 
 - Refresh HACS-facing copy and repository description with the DJConnect proposition: “Muziekbediening met karakter”.
 - Add Home Assistant mDNS autodiscovery for `_djconnect._tcp` DJConnect clients during pairing, including iOS, macOS, Raspberry Pi and ESP32 client validation.
