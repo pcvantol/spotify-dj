@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.29
+
+- Expand local PTT Spotify intent parsing for explicit artist, track, album, playlist and default-playlist requests in Dutch and English.
+- Keep generic spoken music requests artist-first, while explicit words such as `nummer`, `liedje`, `track`, `album`, `playlist` and `afspeellijst` select the corresponding Spotify Search type.
+- Add regression coverage for spoken DJ request variants and Spotify backend search type routing for `track`, `album` and `playlist`.
+
 ## 3.1.28
 
 - Complete the active Spotify reauthorization Repair flow from the OAuth callback, so Home Assistant can close the external-step popup after Spotify returns successfully instead of leaving an empty “Open website” dialog behind.

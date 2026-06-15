@@ -84,6 +84,81 @@ class SpotifyIntentTest(unittest.TestCase):
                 self.assertEqual(media, expected)
                 self.assertEqual(media_type, "artist")
 
+    def test_spoken_playlist_variants_extract_playlist(self) -> None:
+        examples = {
+            "speel playlist Roadtrip": "Roadtrip",
+            "start mijn playlist Rustig wakker worden": "Rustig wakker worden",
+            "zet afspeellijst Dinner Jazz op": "Dinner Jazz",
+            "draai Sunday Morning playlist": "Sunday Morning",
+            "play playlist Workout": "Workout",
+            "put on Chill playlist": "Chill",
+        }
+
+        for text, expected in examples.items():
+            with self.subTest(text=text):
+                media, media_type = self.spotify._media_from_intent(
+                    {"type": "search", "spotify_search_query": text},
+                    {},
+                )
+                self.assertEqual(media, expected)
+                self.assertEqual(media_type, "playlist")
+
+    def test_spoken_track_variants_extract_track(self) -> None:
+        examples = {
+            "speel nummer Black van Pearl Jam": "Black Pearl Jam",
+            "start het liedje Everlong": "Everlong",
+            "zet track Nothing Else Matters van Metallica op": "Nothing Else Matters Metallica",
+            "draai nummer Teardrop van Massive Attack": "Teardrop Massive Attack",
+            "play song Paranoid Android by Radiohead": "Paranoid Android Radiohead",
+            "put on track Heroes by David Bowie": "Heroes David Bowie",
+        }
+
+        for text, expected in examples.items():
+            with self.subTest(text=text):
+                media, media_type = self.spotify._media_from_intent(
+                    {"type": "search", "spotify_search_query": text},
+                    {},
+                )
+                self.assertEqual(media, expected)
+                self.assertEqual(media_type, "track")
+
+    def test_spoken_album_variants_extract_album(self) -> None:
+        examples = {
+            "speel album Ten van Pearl Jam": "Ten Pearl Jam",
+            "start het album Nevermind": "Nevermind",
+            "zet de plaat OK Computer van Radiohead op": "OK Computer Radiohead",
+            "draai album Rumours van Fleetwood Mac": "Rumours Fleetwood Mac",
+            "play album In Rainbows by Radiohead": "In Rainbows Radiohead",
+            "put on the album Blue": "Blue",
+        }
+
+        for text, expected in examples.items():
+            with self.subTest(text=text):
+                media, media_type = self.spotify._media_from_intent(
+                    {"type": "search", "spotify_search_query": text},
+                    {},
+                )
+                self.assertEqual(media, expected)
+                self.assertEqual(media_type, "album")
+
+    def test_spoken_default_playlist_variants_use_configured_playlist(self) -> None:
+        examples = (
+            "speel standaard playlist",
+            "start mijn favorieten",
+            "zet liked songs op",
+            "play default playlist",
+            "start my favorites",
+        )
+
+        for text in examples:
+            with self.subTest(text=text):
+                media, media_type = self.spotify._media_from_intent(
+                    {"type": "search", "spotify_search_query": text},
+                    {"liked_proxy_playlist_uri": "spotify:playlist:default"},
+                )
+                self.assertEqual(media, "spotify:playlist:default")
+                self.assertEqual(media_type, "playlist")
+
     def test_explicit_artist_intent_wins_over_fallback_text(self) -> None:
         media, media_type = self.spotify._media_from_intent(
             {
@@ -96,6 +171,31 @@ class SpotifyIntentTest(unittest.TestCase):
 
         self.assertEqual(media, "Nirvana")
         self.assertEqual(media_type, "artist")
+
+    def test_explicit_track_and_album_intents_use_specific_search_types(self) -> None:
+        media, media_type = self.spotify._media_from_intent(
+            {
+                "type": "track",
+                "title": "Black",
+                "artist": "Pearl Jam",
+                "spotify_search_query": "speel Pearl Jam",
+            },
+            {},
+        )
+        self.assertEqual(media, "Black Pearl Jam")
+        self.assertEqual(media_type, "track")
+
+        media, media_type = self.spotify._media_from_intent(
+            {
+                "type": "album",
+                "album": "Nevermind",
+                "artist": "Nirvana",
+                "spotify_search_query": "speel Nirvana",
+            },
+            {},
+        )
+        self.assertEqual(media, "Nevermind Nirvana")
+        self.assertEqual(media_type, "album")
 
     def test_play_from_intent_prefers_fresh_search_selection_over_stale_playback(self) -> None:
         async def command(hass, runtime, command, value, play=True):

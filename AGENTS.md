@@ -59,7 +59,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `djconnect`
 - HACS custom integration.
-- Actuele integratieversie: `3.1.28`.
+- Actuele integratieversie: `3.1.29`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -180,6 +180,7 @@ README/release:
   - Controleer bij elke code- of contractwijziging expliciet of de testdekking uitgebreid moet worden; voeg tests toe voor nieuwe gedragspaden, regressierisico's, vertalingen en edge cases.
   - Controleer `custom_components/djconnect/brand/icon.png`, `icon@2x.png` en `logo.png`.
   - Controleer dat `LICENSE` de HA integration dekt en `FIRMWARE-LICENSE.md` firmware binaries dekt.
+  - Controleer vóór build/test/release of third-party libraries, frameworks en build tools updates hebben; voer veilige upgrades uit als reviewbare wijzigingen en werk lockfiles/manifests, `THIRD_PARTY_NOTICES.md` en `TECHNICAL_DESIGN_DECISIONS.md` bij. Als dependency/framework/tool-versies zijn geüpgraded, is actualisatie van `THIRD_PARTY_NOTICES.md` en dependency/design documentatie verplicht. Als een upgrade bewust wordt overgeslagen, noteer waarom in `HANDOFF.md`.
   - Controleer dat `THIRD_PARTY_NOTICES.md` actueel is voor manifest dependencies/requirements.
   - Controleer README/config-flow/options-flow/diagnostics legal notices.
   - Draai `python3 -m unittest discover -s tests`.

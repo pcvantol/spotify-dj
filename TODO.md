@@ -5,6 +5,7 @@
 - Install the latest HACS release in Home Assistant.
 - Restart Home Assistant after installation.
 - Open DJConnect options flow and confirm there is no internal server error.
+- Before release/build validation, check for updates to third-party libraries, frameworks and build tools; when versions are upgraded, update `THIRD_PARTY_NOTICES.md` and dependency/design documentation, or document skipped upgrades in `HANDOFF.md`.
 - Confirm `TECHNICAL_DESIGN_DECISIONS.md` remains current when code patterns, dependencies, licenses or external APIs change.
 - Confirm existing paired device remains paired after HA restart when ESP reports `ha_pairing_status=paired`.
 - Confirm iOS/macOS/Raspberry Pi paired clients do not show active/available firmware OTA or reboot entities.
@@ -23,6 +24,7 @@
 - Confirm selected HA STT provider accepts the WAV metadata.
 - Confirm recognized text reaches DJConnect command processing.
 - Confirm Spotify playback action runs when Spotify is idle.
+- Confirm PTT artist, track, album, playlist and default-playlist phrases resolve to the intended Spotify search type.
 - Confirm a new PTT request such as Nirvana does not reuse previous Spotify playback metadata such as Red Hot Chili Peppers in the DJ aankondiging.
 - Confirm repeated iOS/macOS/Raspberry Pi PTT requests reuse or serialize Spotify token refresh without false `invalid_grant` repairs.
 - Confirm artist queue/up-next selection does not send invalid Spotify artist offset payloads.

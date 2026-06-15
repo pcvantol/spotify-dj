@@ -244,6 +244,11 @@ Why:
 Pattern:
 
 - Raw WAV PTT uploads are processed by HA STT/Assist helpers.
+- `pipeline.py` asks HA Assist for DJConnect intent data, but `spotify.py`
+  keeps a deterministic local fallback parser for common Dutch/English PTT
+  phrases. Generic music requests stay artist-first; explicit media words map
+  to Spotify Search types (`track`, `album`, `playlist`) or the configured
+  default playlist.
 - DJ announcement text is generated through Home Assistant Assist where
   possible, then converted to a temporary WAV/MP3 URL through HA TTS.
 - Local fallback text is deliberately neutral and not a hidden prompt-style
@@ -254,6 +259,7 @@ Primary source files:
 - `custom_components/djconnect/assist_stt.py`
 - `custom_components/djconnect/pipeline.py`
 - `custom_components/djconnect/processor.py`
+- `custom_components/djconnect/spotify.py`
 - `custom_components/djconnect/dj_response.py`
 - `custom_components/djconnect/tts.py`
 - `custom_components/djconnect/wav_util.py`
@@ -262,6 +268,9 @@ Why:
 
 - Keeps active routes inside Home Assistant's configured Assist/TTS setup.
 - Avoids direct external AI/STT/TTS dependencies in this integration.
+- Prevents broad or ambiguous STT text from becoming arbitrary track/album
+  searches while still supporting explicit user phrasing for tracks, albums and
+  playlists.
 - Keeps DJ response audio on the DJConnect device, not the Spotify playback
   device.
 
@@ -507,4 +516,3 @@ unless imported or declared here.
 - Keep license information aligned with upstream source URLs and
   `THIRD_PARTY_NOTICES.md`.
 - Re-run `python3 -m unittest discover -s tests` after code or contract changes.
-

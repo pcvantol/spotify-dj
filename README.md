@@ -14,7 +14,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.1.28`
+- Home Assistant integration: `3.1.29`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -63,7 +63,7 @@ runtime behavior. These decisions are part of the integration contract:
 
 ## Repository Layout
 
-- Home Assistant integration: `3.1.28`
+- Home Assistant integration: `3.1.29`
 - ESP firmware source: `pcvantol/djconnect-app`
 - Public firmware releases: `pcvantol/djconnect-firmware`
 - Canonical cross-repo sync prompts: [`SYNC_PROMPTS.md`](SYNC_PROMPTS.md)
@@ -296,12 +296,20 @@ DJConnect does not use that sentence as the DJ announcement. It keeps the
 Spotify search intent based on the original command and falls back to the
 DJConnect DJ announcement text unless Assist returns explicit `djconnect` data.
 Plain voice/search commands such as "ik wil Pearl Jam starten" are resolved
-through Spotify Search before playback starts. Text searches are intentionally
-restricted to Spotify artists, so a spoken artist request starts the artist
-context instead of picking an arbitrary track or album result. If Spotify
-reports that no active playback device exists, DJConnect refreshes available
-Spotify devices, selects the configured Spotify source when possible, transfers
-playback there and retries the command once.
+through Spotify Search before playback starts. Generic spoken music requests
+remain artist-first, so "speel Nirvana" starts the artist context instead of
+picking an arbitrary track. Explicit media words select a more specific Spotify
+Search type:
+
+- Artist: "ik heb zin in Pearl Jam", "ik wil Metallica horen", "Nirvana wil ik wel horen", "speel maar af Above & Beyond", "I feel like Fleetwood Mac".
+- Track: "speel nummer Black van Pearl Jam", "start het liedje Everlong", "zet track Nothing Else Matters van Metallica op", "play song Paranoid Android by Radiohead".
+- Album: "speel album Ten van Pearl Jam", "start het album Nevermind", "zet de plaat OK Computer van Radiohead op", "play album In Rainbows by Radiohead".
+- Playlist: "speel playlist Roadtrip", "start mijn playlist Rustig wakker worden", "zet afspeellijst Dinner Jazz op", "play playlist Workout".
+- Default playlist: "speel standaard playlist", "start mijn favorieten", "zet liked songs op", "play default playlist".
+
+If Spotify reports that no active playback device exists, DJConnect refreshes
+available Spotify devices, selects the configured Spotify source when possible,
+transfers playback there and retries the command once.
 
 Developer action overview:
 
@@ -562,24 +570,24 @@ Example manifest:
 
 ```json
 {
-  "version": "3.1.28",
-  "version_tag": "v3.1.28",
+  "version": "3.1.29",
+  "version_tag": "v3.1.29",
   "channel": "stable",
-  "min_ha_integration": "3.1.28",
+  "min_ha_integration": "3.1.29",
   "firmwares": [
     {
       "board": "t_embed_cc1101",
       "device": "lilygo-t-embed-s3",
-      "asset": "djconnect-lilygo-t-embed-s3-v3.1.28.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.28/djconnect-lilygo-t-embed-s3-v3.1.28.bin",
+      "asset": "djconnect-lilygo-t-embed-s3-v3.1.29.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.29/djconnect-lilygo-t-embed-s3-v3.1.29.bin",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size": 2113136
     },
     {
       "board": "esp32_s3_box3",
       "device": "esp32-s3-box-3",
-      "asset": "djconnect-esp32-s3-box-3-v3.1.28.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.28/djconnect-esp32-s3-box-3-v3.1.28.bin",
+      "asset": "djconnect-esp32-s3-box-3-v3.1.29.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.29/djconnect-esp32-s3-box-3-v3.1.29.bin",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
       "size": 2113136
     }
@@ -602,7 +610,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.1.28
+./release.sh 3.1.29
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -614,14 +622,14 @@ PlatformIO builds, rename firmware binaries to device-specific assets such as
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.1.28 --dry-run
+./release.sh 3.1.29 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
 public-repo option if available:
 
 ```bash
-./release.sh 3.1.28 --publish-firmware-repo ../djconnect-firmware
+./release.sh 3.1.29 --publish-firmware-repo ../djconnect-firmware
 ```
 
 The public `djconnect-firmware` repository should contain only the release
@@ -648,6 +656,7 @@ Pre-release checklist:
 - Explicitly decide whether test coverage needs to be expanded for the change; add tests for new behavior paths, regression risks, translations and edge cases. Documentation-only changes may rely on existing tests.
 - Verify `custom_components/djconnect/brand/` contains `icon.png`, `icon@2x.png` and `logo.png`.
 - Verify `LICENSE` covers the Home Assistant integration and `FIRMWARE-LICENSE.md` covers firmware binaries.
+- Before build/test/release validation, check for available updates to third-party libraries, frameworks and build tools. Apply safe upgrades as reviewable changes and update lockfiles/manifests, `THIRD_PARTY_NOTICES.md` and `TECHNICAL_DESIGN_DECISIONS.md`. When dependency, framework or tool versions are upgraded, updating third-party notices and dependency/design documentation is mandatory; document skipped upgrades in `HANDOFF.md`.
 - Run the lightweight tests:
 
 ```bash
@@ -659,7 +668,7 @@ Tag and publish:
 One-liner:
 
 ```bash
-./release.sh 3.1.28
+./release.sh 3.1.29
 ```
 
 The script updates the integration version in `manifest.json`, `const.py`,
@@ -670,18 +679,18 @@ above.
 Preview without executing git/gh commands:
 
 ```bash
-./release.sh 3.1.28 --dry-run
+./release.sh 3.1.29 --dry-run
 ```
 
 Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.1.28"
-git tag v3.1.28
+git commit -m "Release DJConnect v3.1.29"
+git tag v3.1.29
 git push origin main
-git push origin v3.1.28
-gh release create v3.1.28 --title "DJConnect v3.1.28" --notes-file CHANGELOG.md
+git push origin v3.1.29
+gh release create v3.1.29 --title "DJConnect v3.1.29" --notes-file CHANGELOG.md
 ```
 
 Release cleanup helper:

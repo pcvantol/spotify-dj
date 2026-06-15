@@ -227,8 +227,8 @@ Every release must review this roadmap.
 
 ### HACS / Home Assistant
 
-- [ ] Expanded Dutch/English local fallback parser for artist, track, album and
-  playlist commands.
+- [x] Expanded Dutch/English local fallback parser for explicit artist, track,
+  album, playlist and default-playlist commands (3.1, HA).
 - [ ] Parsed intent debug attributes: media type, query, artist, title,
   playlist, market and Spotify result.
 - [ ] Correction/follow-up commands: "niet deze", "de live versie", "meer zoals

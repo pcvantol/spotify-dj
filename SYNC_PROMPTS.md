@@ -66,6 +66,10 @@ Before publishing:
 - Bump the repo version according to that repo's release mechanism.
 - Run build cleanup before release/build commands so stale assets do not leak
   into published artifacts.
+- For repos with managed third-party build dependencies, update/upgrade
+  frameworks, libraries and build tools before compiling release artifacts. If
+  dependency versions changed, update third-party notices and dependency
+  inventory/design documentation before publishing.
 - Run the relevant automated tests for the repo.
 - Run build/package validation for every supported target.
 - Deploy to a connected app/device when the repo has a connected local target

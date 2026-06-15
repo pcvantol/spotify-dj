@@ -55,6 +55,12 @@ class SpotifyBackendTest(unittest.TestCase):
     def setUp(self) -> None:
         self.issues.clear()
 
+    def test_spotify_search_type_supports_track_album_and_playlist(self) -> None:
+        self.assertEqual(self.backend._spotify_search_type("track"), "track")
+        self.assertEqual(self.backend._spotify_search_type("album"), "album")
+        self.assertEqual(self.backend._spotify_search_type("playlist"), "playlist")
+        self.assertEqual(self.backend._spotify_search_type("artist"), "artist")
+
     def test_normalize_playback_exposes_best_album_art_for_media_player(self) -> None:
         playback = self.backend._normalize_playback(
             {

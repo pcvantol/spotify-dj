@@ -607,6 +607,10 @@ def _spotify_search_type(media_type: str) -> str:
     normalized = str(media_type or "").strip().lower()
     if normalized == "playlist":
         return "playlist"
+    if normalized == "track":
+        return "track"
+    if normalized == "album":
+        return "album"
     return "artist"
 
 
