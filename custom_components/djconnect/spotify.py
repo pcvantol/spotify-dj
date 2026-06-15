@@ -153,6 +153,7 @@ def _query_with_artist(title: str, artist: str) -> str:
 
 
 _ARTIST_QUERY_PATTERNS = (
+    r"^\s*(?:artiest|band|artist)\s+(.+?)\s*$",
     r"^\s*ik\s+heb\s+(?:wel\s+)?(?:zin|trek)\s+in\s+(.+?)\s*$",
     r"^\s*ik\s+wil\s+(?:wel\s+|graag\s+)?(.+?)\s+(?:horen|luisteren|starten|opzetten|spelen)\s*$",
     r"^\s*(.+?)\s+wil\s+ik\s+(?:wel\s+|graag\s+)?(?:horen|luisteren|starten|opzetten|spelen)\s*$",
@@ -174,17 +175,34 @@ _PLAYLIST_QUERY_PATTERNS = (
 )
 
 _TRACK_QUERY_PATTERNS = (
+    r"^\s*(?:speel|start|zet|draai)\s+(?:het\s+)?(?:nummer|liedje|track)\s+(.+?)\s+van\s+(?:artiest|band)\s+(.+?)\s*(?:op|af|aan)?\s*$",
     r"^\s*(?:speel|start|zet|draai)\s+(?:het\s+)?(?:nummer|liedje|track)\s+(.+?)\s+van\s+(.+?)\s*(?:op|af|aan)?\s*$",
+    r"^\s*(?:het\s+)?(?:nummer|liedje|track)\s+(.+?)\s+van\s+(?:artiest|band)\s+(.+?)\s*$",
     r"^\s*(?:speel|start|zet|draai)\s+(?:het\s+)?(?:nummer|liedje|track)\s+(.+?)\s*(?:op|af|aan)?\s*$",
+    r"^\s*(?:het\s+)?(?:nummer|liedje|track)\s+(.+?)\s+van\s+(.+?)\s*$",
+    r"^\s*(?:het\s+)?(?:nummer|liedje|track)\s+(.+?)\s*$",
     r"^\s*(?:play|start|put\s+on)\s+(?:the\s+)?(?:song|track)\s+(.+?)\s+by\s+(.+?)\s*$",
     r"^\s*(?:play|start|put\s+on)\s+(?:the\s+)?(?:song|track)\s+(.+?)\s*$",
+    r"^\s*(?:the\s+)?(?:song|track)\s+(.+?)\s+by\s+(.+?)\s*$",
+    r"^\s*(?:the\s+)?(?:song|track)\s+(.+?)\s*$",
+)
+
+_ARTIST_WITH_TRACK_QUERY_PATTERNS = (
+    r"^\s*(?:speel|start|zet|draai)\s+(?:artiest|band)\s+(.+?)\s+met\s+(?:het\s+)?(?:nummer|liedje|track)\s+(.+?)\s*(?:op|af|aan)?\s*$",
+    r"^\s*(?:artiest|band)\s+(.+?)\s+met\s+(?:het\s+)?(?:nummer|liedje|track)\s+(.+?)\s*$",
+    r"^\s*(?:play|start|put\s+on)\s+(?:artist|band)\s+(.+?)\s+with\s+(?:the\s+)?(?:song|track)\s+(.+?)\s*$",
+    r"^\s*(?:artist|band)\s+(.+?)\s+with\s+(?:the\s+)?(?:song|track)\s+(.+?)\s*$",
 )
 
 _ALBUM_QUERY_PATTERNS = (
     r"^\s*(?:speel|start|zet|draai)\s+(?:het\s+)?(?:album|de\s+plaat)\s+(.+?)\s+van\s+(.+?)\s*(?:op|af|aan)?\s*$",
     r"^\s*(?:speel|start|zet|draai)\s+(?:het\s+)?(?:album|de\s+plaat)\s+(.+?)\s*(?:op|af|aan)?\s*$",
+    r"^\s*(?:het\s+)?(?:album|de\s+plaat)\s+(.+?)\s+van\s+(.+?)\s*$",
     r"^\s*(?:play|start|put\s+on)\s+(?:the\s+)?album\s+(.+?)\s+by\s+(.+?)\s*$",
     r"^\s*(?:play|start|put\s+on)\s+(?:the\s+)?album\s+(.+?)\s*$",
+    r"^\s*(?:the\s+)?album\s+(.+?)\s+by\s+(.+?)\s*$",
+    r"^\s*(?:the\s+)?album\s+(.+?)\s*$",
+    r"^\s*(?:het\s+)?(?:album|de\s+plaat)\s+(.+?)\s*$",
 )
 
 
@@ -199,6 +217,15 @@ def parse_spoken_music_request(text: str) -> dict[str, str | None]:
     playlist = _match_single_value(_PLAYLIST_QUERY_PATTERNS, query)
     if playlist:
         return _parsed_request("playlist", playlist, playlist=playlist)
+    artist_track = _match_artist_title(_ARTIST_WITH_TRACK_QUERY_PATTERNS, query)
+    if artist_track:
+        artist, title = artist_track
+        return _parsed_request(
+            "track",
+            _query_with_artist(title, artist),
+            title=title,
+            artist=artist,
+        )
     track = _match_title_artist(_TRACK_QUERY_PATTERNS, query)
     if track:
         title, artist = track
@@ -257,6 +284,18 @@ def _match_title_artist(patterns: tuple[str, ...], query: str) -> tuple[str, str
         artist = _clean_artist_query(match.group(2)) if len(match.groups()) > 1 else ""
         if title:
             return title, artist
+    return None
+
+
+def _match_artist_title(patterns: tuple[str, ...], query: str) -> tuple[str, str] | None:
+    for pattern in patterns:
+        match = re.match(pattern, query, flags=re.IGNORECASE)
+        if not match:
+            continue
+        artist = _clean_artist_query(match.group(1))
+        title = _clean_artist_query(match.group(2)) if len(match.groups()) > 1 else ""
+        if artist and title:
+            return artist, title
     return None
 
 

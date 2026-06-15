@@ -31,6 +31,10 @@ def install_update_stubs() -> None:
             self.write_count = getattr(self, "write_count", 0) + 1
             self.wrote_state = True
 
+        async def async_update_ha_state(self, force_refresh=False):
+            self.update_ha_state_calls = getattr(self, "update_ha_state_calls", 0) + 1
+            self.update_ha_state_force_refresh = force_refresh
+
     class Feature:
         INSTALL = 1
         SPECIFIC_VERSION = 2
@@ -150,8 +154,67 @@ class DJConnectUpdateEntityTest(unittest.TestCase):
         finally:
             self.update.fetch_latest_firmware_release = original
 
-        self.assertEqual(calls, 2)
+        self.assertEqual(calls, 1)
         self.assertEqual(entity.latest_version, "3.0.6")
+
+    def test_install_refresh_bypasses_release_check_throttle(self) -> None:
+        github = importlib.import_module("custom_components.djconnect.github")
+        runtime = types.SimpleNamespace(
+            entry=types.SimpleNamespace(entry_id="entry-1"),
+            config={},
+            device_status={"firmware": "3.0.5", "usb_powered": True},
+            ota_in_progress=False,
+            ota_last_error=None,
+            listeners=[],
+            start_ota_calls=0,
+        )
+
+        async def start_ota(hass, release):
+            runtime.start_ota_calls += 1
+
+        async def refresh_device_info(hass):
+            runtime.device_status["firmware"] = "3.0.6"
+
+        def update_runtime(**kwargs):
+            return None
+
+        runtime.start_ota = start_ota
+        runtime.async_refresh_device_info = refresh_device_info
+        runtime.update = update_runtime
+
+        entity = self.update.DJConnectFirmwareUpdate(runtime, object())
+        release = github.FirmwareRelease(
+            version="3.0.6",
+            title="DJConnect v3.0.6",
+            body="Release notes",
+            firmware_url="https://example.test/djconnect-lilygo-t-embed-s3-v3.0.6.bin",
+            firmware_asset="djconnect-lilygo-t-embed-s3-v3.0.6.bin",
+            manifest_url="https://example.test/firmware_manifest.json",
+            device="lilygo-t-embed-s3",
+        )
+        calls = 0
+
+        async def fetch(hass, config):
+            nonlocal calls
+            calls += 1
+            return release
+
+        async def no_sleep(delay):
+            return None
+
+        original_fetch = self.update.fetch_latest_firmware_release
+        original_sleep = self.update.asyncio.sleep
+        self.update.fetch_latest_firmware_release = fetch
+        self.update.asyncio.sleep = no_sleep
+        try:
+            asyncio.run(entity.async_update())
+            asyncio.run(entity.async_install())
+        finally:
+            self.update.fetch_latest_firmware_release = original_fetch
+            self.update.asyncio.sleep = original_sleep
+
+        self.assertEqual(calls, 2)
+        self.assertEqual(runtime.start_ota_calls, 1)
 
     def test_firmware_update_entity_does_not_poll(self) -> None:
         runtime = types.SimpleNamespace(

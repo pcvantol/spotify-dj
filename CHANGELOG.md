@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.1.31
+
+- Require a Spotify `media_player` entity before starting DJConnect setup and show a clear config-flow error when the Home Assistant Spotify integration is not configured yet.
+- Add config-flow and translation coverage for Spotify media player prerequisite detection.
+- Let options-flow re-pairing with a new pairing code reuse the stored Client API URL when the URL field is left empty.
+- Add regression coverage for re-pairing with an empty Client API URL.
+- Replace technical/English command-failure fallback text with localized, user-friendly DJ request messages and guard against prompt/error text leaking to the client display.
+- Add regression coverage for localized command-failure fallback text.
+- Return `backend_available:true` for successful ESP `command:"playlists"` responses even when Spotify playback is idle, and fetch up to 100 playlists from Spotify.
+- Add HTTP/backend coverage for the ESP playlists command response contract.
+- Respect ESP `command:"playlists"` `limit` values, default ESP playlist browsing to 20 items, and always return a non-empty JSON body with `playlists: []` on playlist backend failures.
+- Prevent Home Assistant/front-end forced update refreshes from bypassing the firmware release-check throttle, while keeping OTA install-time refresh explicit.
+- Add firmware update entity regression coverage for throttled force refreshes and install-time bypass.
+- Expand local Spotify intent parsing for prefix-only track/artist/album requests such as `nummer Lithium`, `artiest Nirvana` and `album Nevermind`.
+- Add support for artist-plus-track requests such as `Speel artiest Nirvana met nummer Lithium`.
+
 ## 3.1.30
 
 - Add `djconnect.test_ptt_text`, a Developer Tools action that starts immediately after STT by accepting recognized natural-language text, then runs intent parsing, Spotify search/playback, DJ announcement generation, TTS audio creation and delivery to the connected DJConnect device/client.

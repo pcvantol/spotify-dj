@@ -173,12 +173,16 @@ class DJConnectFirmwareUpdate(UpdateEntity):
         )
 
     async def async_update(self, *, force: bool = False) -> None:
+        await self._async_refresh_latest_release(bypass_throttle=False)
+
+    async def _async_refresh_latest_release(self, *, bypass_throttle: bool = False) -> None:
+        """Refresh GitHub firmware metadata while protecting against HA refresh storms."""
         if not self.available:
             self._latest = None
             self._update_error = "Firmware OTA is only available for ESP32 clients"
             return
         now = time.monotonic()
-        if not force and self._next_update_check > now:
+        if not bypass_throttle and self._next_update_check > now:
             return
         try:
             self._latest = await fetch_latest_firmware_release(
@@ -210,7 +214,7 @@ class DJConnectFirmwareUpdate(UpdateEntity):
     ) -> None:
         if not self.available:
             raise RuntimeError("Firmware OTA is only available for ESP32 clients")
-        await self.async_update(force=True)
+        await self._async_refresh_latest_release(bypass_throttle=True)
         if not self._latest:
             raise RuntimeError("No DJConnect firmware release found")
         if version and version != self._latest.version:

@@ -783,6 +783,8 @@ class SpotifyBackendTest(unittest.TestCase):
         self.assertEqual(len(runtime.device_status["queue"]["items"]), 100)
 
     def test_playlists_command_returns_playlist_art_aliases(self) -> None:
+        requested_urls = []
+
         class Response:
             status = 200
 
@@ -821,6 +823,7 @@ class SpotifyBackendTest(unittest.TestCase):
 
         class Session:
             def request(self, method, url, **kwargs):
+                requested_urls.append(url)
                 return Response()
 
         entry = types.SimpleNamespace(
@@ -855,6 +858,73 @@ class SpotifyBackendTest(unittest.TestCase):
         self.assertEqual(playlist["album_image_url"], "https://example.test/playlist-large.jpg")
         self.assertEqual(playlist["media_image_url"], "https://example.test/playlist-large.jpg")
         self.assertEqual(runtime.device_status["playlists"], result["playlists"])
+        self.assertTrue(any("/me/playlists?limit=100" in url for url in requested_urls))
+
+    def test_playlists_command_respects_esp_limit(self) -> None:
+        requested_urls = []
+
+        class Response:
+            status = 200
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return None
+
+            async def json(self, content_type=None):
+                return {
+                    "items": [
+                        {
+                            "name": f"Playlist {index}",
+                            "uri": f"spotify:playlist:{index}",
+                            "owner": {"display_name": "Peter"},
+                            "images": [],
+                        }
+                        for index in range(30)
+                    ]
+                }
+
+            async def text(self):
+                return "{}"
+
+        class Session:
+            def request(self, method, url, **kwargs):
+                requested_urls.append(url)
+                return Response()
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={"spotify_client_id": "client-id", "spotify_refresh_token": "refresh"},
+            options={},
+        )
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            latest_spotify_refresh_token=None,
+            spotify_access_token="access",
+            spotify_access_token_expires_at=time.time() + 1800,
+            backend_cache={},
+            device_status={},
+            update=lambda **kwargs: None,
+        )
+        runtime.config = dict(entry.data)
+
+        original_clientsession = self.backend.async_get_clientsession
+        self.backend.async_get_clientsession = lambda hass: Session()
+        try:
+            result = asyncio.run(
+                self.backend.handle_spotify_command(
+                    object(),
+                    runtime,
+                    "playlists",
+                    {"client_type": "esp32", "limit": 20},
+                )
+            )
+        finally:
+            self.backend.async_get_clientsession = original_clientsession
+
+        self.assertEqual(len(result["playlists"]), 20)
+        self.assertTrue(any("/me/playlists?limit=20" in url for url in requested_urls))
 
     def test_play_context_at_artist_context_plays_track_without_offset(self) -> None:
         class Response:

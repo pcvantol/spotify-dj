@@ -106,11 +106,19 @@ class SpotifyIntentTest(unittest.TestCase):
     def test_spoken_track_variants_extract_track(self) -> None:
         examples = {
             "speel nummer Black van Pearl Jam": "Black Pearl Jam",
+            "speel nummer Lithium van artiest Nirvana": "Lithium Nirvana",
             "start het liedje Everlong": "Everlong",
             "zet track Nothing Else Matters van Metallica op": "Nothing Else Matters Metallica",
             "draai nummer Teardrop van Massive Attack": "Teardrop Massive Attack",
+            "nummer Lithium": "Lithium",
+            "liedje Lithium van Nirvana": "Lithium Nirvana",
+            "speel artiest Nirvana met nummer Lithium": "Lithium Nirvana",
+            "zet band Pearl Jam met track Black op": "Black Pearl Jam",
+            "artiest Radiohead met liedje Creep": "Creep Radiohead",
             "play song Paranoid Android by Radiohead": "Paranoid Android Radiohead",
             "put on track Heroes by David Bowie": "Heroes David Bowie",
+            "play artist Nirvana with song Lithium": "Lithium Nirvana",
+            "song Lithium": "Lithium",
         }
 
         for text, expected in examples.items():
@@ -122,14 +130,33 @@ class SpotifyIntentTest(unittest.TestCase):
                 self.assertEqual(media, expected)
                 self.assertEqual(media_type, "track")
 
+    def test_spoken_artist_prefix_variants_extract_artist(self) -> None:
+        examples = {
+            "artiest Nirvana": "Nirvana",
+            "band Pearl Jam": "Pearl Jam",
+            "artist Radiohead": "Radiohead",
+        }
+
+        for text, expected in examples.items():
+            with self.subTest(text=text):
+                media, media_type = self.spotify._media_from_intent(
+                    {"type": "search", "spotify_search_query": text},
+                    {},
+                )
+                self.assertEqual(media, expected)
+                self.assertEqual(media_type, "artist")
+
     def test_spoken_album_variants_extract_album(self) -> None:
         examples = {
             "speel album Ten van Pearl Jam": "Ten Pearl Jam",
             "start het album Nevermind": "Nevermind",
             "zet de plaat OK Computer van Radiohead op": "OK Computer Radiohead",
             "draai album Rumours van Fleetwood Mac": "Rumours Fleetwood Mac",
+            "album Nevermind": "Nevermind",
+            "de plaat Ten van Pearl Jam": "Ten Pearl Jam",
             "play album In Rainbows by Radiohead": "In Rainbows Radiohead",
             "put on the album Blue": "Blue",
+            "album In Rainbows by Radiohead": "In Rainbows Radiohead",
         }
 
         for text, expected in examples.items():

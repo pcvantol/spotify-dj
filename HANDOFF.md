@@ -149,8 +149,9 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - Parser prompts must be isolated from response prompts so text such as "Noem waar mogelijk..." can never leak into Spotify search queries like `Opdracht Metallica`.
 - If Spotify playback fails because there is no active device, refresh `/me/player/devices`, prefer configured `spotify_source` by id or visible name, transfer playback and retry once.
 - `spotify_source` is a normal options-flow field again because it is needed for reliable voice playback routing; firmware/OTA overrides remain hidden behind the local advanced checkbox.
+- Config flow requires the official Home Assistant Spotify integration to expose at least one Spotify `media_player` entity before DJConnect setup can continue. If missing, the user sees a translated setup error instead of reaching pairing/OAuth with no playback backend.
 - Pairing prevents Nabu Casa/cloud URLs from being sent as `ha_local_url` and falls back to HA network/source-IP local URL discovery, then `http://homeassistant.local:8123`.
-- The options-flow “re-pair with new pairing code” field stays empty instead of pre-filling the old stored pairing code.
+- The options-flow “re-pair with new pairing code” field stays empty instead of pre-filling the old stored pairing code; leaving Client API URL empty reuses the stored URL for that client.
 - Firmware update entity is non-polling. It checks GitHub on add/manual refresh/install and then on a one-hour internal schedule, so HA must not refresh the entity every 10 seconds.
 - Firmware channel is a user-facing options-flow dropdown: `stable` uses GitHub `/releases/latest`; `beta` uses the newest prerelease from `pcvantol/djconnect-firmware`. Firmware repo/device remain automatic and hidden.
 - Sensor entities are push-only through runtime listeners. `last_command` and `last_track` additionally write HA state only when their cached value or relevant debug attributes actually change.

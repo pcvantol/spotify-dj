@@ -14,7 +14,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.1.30`
+- Home Assistant integration: `3.1.31`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -63,7 +63,7 @@ runtime behavior. These decisions are part of the integration contract:
 
 ## Repository Layout
 
-- Home Assistant integration: `3.1.30`
+- Home Assistant integration: `3.1.31`
 - ESP firmware source: `pcvantol/djconnect-app`
 - Public firmware releases: `pcvantol/djconnect-firmware`
 - Canonical cross-repo sync prompts: [`SYNC_PROMPTS.md`](SYNC_PROMPTS.md)
@@ -94,6 +94,8 @@ Before installing, make sure you have:
 
 - Home Assistant with HACS installed.
 - A Spotify Premium account.
+- The Home Assistant Spotify integration configured with at least one Spotify
+  `media_player` entity.
 - A configured Home Assistant Assist pipeline with working STT and TTS.
 - A DJConnect ESP device, DJConnect iOS/macOS app or Raspberry Pi client on the same local network as Home Assistant during pairing.
 - For ESP devices: 2.4 GHz WiFi.
@@ -104,7 +106,9 @@ Before installing, make sure you have:
 3. Select category `Integration`.
 4. Install DJConnect.
 5. Restart Home Assistant.
-6. Go to **Settings -> Devices & services -> Add integration -> DJConnect**.
+6. Configure the Home Assistant Spotify integration and confirm that a Spotify
+   `media_player` entity exists.
+7. Go to **Settings -> Devices & services -> Add integration -> DJConnect**.
 
 HACS deeplink:
 
@@ -148,6 +152,10 @@ http://homeassistant.local:8123/api/djconnect/spotify/callback
 The redirect URI in Spotify must exactly match the Home Assistant external URL plus `/api/djconnect/spotify/callback`.
 
 ## Add DJConnect In Home Assistant
+
+DJConnect checks for a Spotify `media_player` when you start setup. If the
+Home Assistant Spotify integration is not configured yet, the setup flow shows
+a clear message and asks you to configure Spotify first.
 
 1. Choose whether the DJConnect device is already on WiFi or needs BLE WiFi provisioning.
 2. If needed, choose one BLE action: write WiFi over Bluetooth, rescan Bluetooth devices, or continue directly to pairing when WiFi was already configured through the device captive portal.
@@ -306,9 +314,9 @@ remain artist-first, so "speel Nirvana" starts the artist context instead of
 picking an arbitrary track. Explicit media words select a more specific Spotify
 Search type:
 
-- Artist: "ik heb zin in Pearl Jam", "ik wil Metallica horen", "Nirvana wil ik wel horen", "speel maar af Above & Beyond", "I feel like Fleetwood Mac".
-- Track: "speel nummer Black van Pearl Jam", "start het liedje Everlong", "zet track Nothing Else Matters van Metallica op", "play song Paranoid Android by Radiohead".
-- Album: "speel album Ten van Pearl Jam", "start het album Nevermind", "zet de plaat OK Computer van Radiohead op", "play album In Rainbows by Radiohead".
+- Artist: "ik heb zin in Pearl Jam", "ik wil Metallica horen", "Nirvana wil ik wel horen", "artiest Nirvana", "band Pearl Jam", "speel maar af Above & Beyond", "I feel like Fleetwood Mac".
+- Track: "speel nummer Black van Pearl Jam", "speel nummer Lithium van artiest Nirvana", "speel artiest Nirvana met nummer Lithium", "nummer Lithium", "start het liedje Everlong", "zet track Nothing Else Matters van Metallica op", "play song Paranoid Android by Radiohead".
+- Album: "speel album Ten van Pearl Jam", "album Nevermind", "start het album Nevermind", "zet de plaat OK Computer van Radiohead op", "play album In Rainbows by Radiohead".
 - Playlist: "speel playlist Roadtrip", "start mijn playlist Rustig wakker worden", "zet afspeellijst Dinner Jazz op", "play playlist Workout".
 - Default playlist: "speel standaard playlist", "start mijn favorieten", "zet liked songs op", "play default playlist".
 
@@ -524,7 +532,7 @@ Firmware sends backend playback commands to Home Assistant instead of storing Sp
 POST /api/djconnect/command
 ```
 
-Required headers are `Authorization: Bearer <device_token>`, `X-DJConnect-Device-ID` and `Content-Type: application/json`. Supported commands include `status`, `devices`, `queue`, `playlists`, `pause`, `play`, `next`, `previous`, `seek_relative`, `start_liked_proxy`, `start_playlist`, `play_context_at`, `set_shuffle`, `set_repeat`, `set_output` and `set_volume`. `seek_relative` accepts an integer millisecond offset for Apple app skip-forward/skip-back controls; positive values seek forward and negative values seek backward. `set_shuffle` accepts a boolean value; `set_repeat` accepts `off`, `track` or `context`; `play_context_at` accepts a context URI and track offset URI for Up Next playback. Responses are generic JSON shapes with `playback`, `devices`, `queue` or `playlists`, so future backends such as Sonos or Home Assistant media players can be added without firmware changes. `queue` responses include at most 100 items, top-level `context_uri` / `contextUri` when known and per-item artwork aliases such as `album_image_url` and `image_url`; `playlists` responses include playlist artwork aliases such as `image_url`, `album_image_url` and `media_image_url`. Logs never include device tokens, Spotify tokens or backend credentials.
+Required headers are `Authorization: Bearer <device_token>`, `X-DJConnect-Device-ID` and `Content-Type: application/json`. Supported commands include `status`, `devices`, `queue`, `playlists`, `pause`, `play`, `next`, `previous`, `seek_relative`, `start_liked_proxy`, `start_playlist`, `play_context_at`, `set_shuffle`, `set_repeat`, `set_output` and `set_volume`. `seek_relative` accepts an integer millisecond offset for Apple app skip-forward/skip-back controls; positive values seek forward and negative values seek backward. `set_shuffle` accepts a boolean value; `set_repeat` accepts `off`, `track` or `context`; `play_context_at` accepts a context URI and track offset URI for Up Next playback. Responses are generic JSON shapes with `playback`, `devices`, `queue` or `playlists`, so future backends such as Sonos or Home Assistant media players can be added without firmware changes. `queue` responses include at most 100 items, top-level `context_uri` / `contextUri` when known and per-item artwork aliases such as `album_image_url` and `image_url`; `playlists` responses include Spotify playlists with `name`, `uri`, `owner`, `image_url` and artwork aliases such as `album_image_url` and `media_image_url`. ESP32 `playlists` requests may send `limit`; when omitted, HA returns a safe default of 20 items for ESP32 and up to 100 for app-like clients. A successful `playlists` response returns `backend_available:true` even when Spotify playback is idle; backend failures still return a non-empty JSON body with `success:false`, `backend_available:false` and `playlists:[]`. Logs never include device tokens, Spotify tokens or backend credentials.
 
 HA and ESP firmware must share the same `major.minor` protocol version. Patch
 versions may differ, so HA `3.0.x` can talk to ESP `3.0.y`, but HA `3.1.x`
@@ -584,24 +592,24 @@ Example manifest:
 
 ```json
 {
-  "version": "3.1.30",
-  "version_tag": "v3.1.30",
+  "version": "3.1.31",
+  "version_tag": "v3.1.31",
   "channel": "stable",
-  "min_ha_integration": "3.1.30",
+  "min_ha_integration": "3.1.31",
   "firmwares": [
     {
       "board": "t_embed_cc1101",
       "device": "lilygo-t-embed-s3",
-      "asset": "djconnect-lilygo-t-embed-s3-v3.1.30.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.30/djconnect-lilygo-t-embed-s3-v3.1.30.bin",
+      "asset": "djconnect-lilygo-t-embed-s3-v3.1.31.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.31/djconnect-lilygo-t-embed-s3-v3.1.31.bin",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size": 2113136
     },
     {
       "board": "esp32_s3_box3",
       "device": "esp32-s3-box-3",
-      "asset": "djconnect-esp32-s3-box-3-v3.1.30.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.30/djconnect-esp32-s3-box-3-v3.1.30.bin",
+      "asset": "djconnect-esp32-s3-box-3-v3.1.31.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.31/djconnect-esp32-s3-box-3-v3.1.31.bin",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
       "size": 2113136
     }
@@ -624,7 +632,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.1.30
+./release.sh 3.1.31
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -636,14 +644,14 @@ PlatformIO builds, rename firmware binaries to device-specific assets such as
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.1.30 --dry-run
+./release.sh 3.1.31 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
 public-repo option if available:
 
 ```bash
-./release.sh 3.1.30 --publish-firmware-repo ../djconnect-firmware
+./release.sh 3.1.31 --publish-firmware-repo ../djconnect-firmware
 ```
 
 The public `djconnect-firmware` repository should contain only the release
@@ -667,6 +675,8 @@ Pre-release checklist:
 - Keep `HANDOFF.md`, `TODO.md` and `ISSUES.md` aligned with release status, known checks and remaining field validation.
 - Keep `SYNC_PROMPTS.md` current when cross-repo contracts, client types, endpoints or pairing/discovery behavior change.
 - Keep `info.md` and HACS-facing copy current for users.
+- Review and update all Dutch and English translations for changed config-flow,
+  options-flow, repair-flow, entity and service strings.
 - Explicitly decide whether test coverage needs to be expanded for the change; add tests for new behavior paths, regression risks, translations and edge cases. Documentation-only changes may rely on existing tests.
 - Verify `custom_components/djconnect/brand/` contains `icon.png`, `icon@2x.png` and `logo.png`.
 - Verify `LICENSE` covers the Home Assistant integration and `FIRMWARE-LICENSE.md` covers firmware binaries.
@@ -682,7 +692,7 @@ Tag and publish:
 One-liner:
 
 ```bash
-./release.sh 3.1.30
+./release.sh 3.1.31
 ```
 
 The script updates the integration version in `manifest.json`, `const.py`,
@@ -693,18 +703,18 @@ above.
 Preview without executing git/gh commands:
 
 ```bash
-./release.sh 3.1.30 --dry-run
+./release.sh 3.1.31 --dry-run
 ```
 
 Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.1.30"
-git tag v3.1.30
+git commit -m "Release DJConnect v3.1.31"
+git tag v3.1.31
 git push origin main
-git push origin v3.1.30
-gh release create v3.1.30 --title "DJConnect v3.1.30" --notes-file CHANGELOG.md
+git push origin v3.1.31
+gh release create v3.1.31 --title "DJConnect v3.1.31" --notes-file CHANGELOG.md
 ```
 
 Release cleanup helper:
@@ -758,6 +768,10 @@ These tests use local stubs for Home Assistant imports and focus on pure DJConne
 ## Troubleshooting
 
 - If Spotify login does not return to Home Assistant, verify the Spotify redirect URI exactly matches the Nabu Casa or external Home Assistant URL.
+- If Add integration shows that a Spotify media player is required, configure
+  the official Home Assistant Spotify integration first and confirm that a
+  `media_player.spotify...` entity exists. DJConnect uses that HA-owned Spotify
+  connection for playback.
 - If the config flow does not load, restart Home Assistant and check that HACS installed `custom_components/djconnect`.
 - If Home Assistant discovery still shows an old `spotify_dj` / `SpotifyDJ` card next to DJConnect, remove the old custom integration from Home Assistant: delete `/config/custom_components/spotify_dj`, remove any old HACS custom repository for SpotifyDJ, clear ignored/discovered SpotifyDJ entries from Settings -> Devices & services where needed, and restart Home Assistant. DJConnect itself only ships the `djconnect` integration domain; the old card means Home Assistant is still loading stale SpotifyDJ integration files or stale firmware/discovery from an ESP that has not been renamed yet.
 - If the integration icon stays white or generic, update/re-download the HACS integration, restart Home Assistant, and refresh the browser/app cache. Home Assistant 2026.3+ reads custom integration brand images from `custom_components/djconnect/brand/`.

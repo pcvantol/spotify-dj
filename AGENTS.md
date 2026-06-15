@@ -59,8 +59,9 @@ Licentie/commercieel:
 HA integration:
 - domain: `djconnect`
 - HACS custom integration.
-- Actuele integratieversie: `3.1.30`.
+- Actuele integratieversie: `3.1.31`.
 - Config flow moet blijven laden.
+- Config flow moet vóór pairing controleren dat de officiële Home Assistant Spotify integratie minstens één Spotify `media_player` entity heeft; ontbreekt die, toon een duidelijke vertaalde foutmelding in plaats van stil verder te gaan.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
 - Spotify OAuth gebruikt standaard de ingebouwde Spotify Client ID; toon `spotify_client_id` alleen advanced en prefilled voor override.
@@ -177,6 +178,7 @@ README/release:
   - Houd `SYNC_PROMPTS.md` actueel als cross-repo contracten, clienttypes, endpoints of pairing/discovery wijzigen.
   - Houd `TECHNICAL_DESIGN_DECISIONS.md` actueel als code-level design patterns, coding conventions, frameworks, libraries, third-party dependencies, versions, licenses of source URLs wijzigen.
   - Houd `info.md` en HACS-facing tekst actueel voor de gebruiker.
+  - Controleer en actualiseer alle Nederlandse en Engelse vertalingen voor gewijzigde config-flow, options-flow, repair-flow, entity- en service-teksten.
   - Controleer bij elke code- of contractwijziging expliciet of de testdekking uitgebreid moet worden; voeg tests toe voor nieuwe gedragspaden, regressierisico's, vertalingen en edge cases.
   - Controleer `custom_components/djconnect/brand/icon.png`, `icon@2x.png` en `logo.png`.
   - Controleer dat `LICENSE` de HA integration dekt en `FIRMWARE-LICENSE.md` firmware binaries dekt.
@@ -188,6 +190,7 @@ README/release:
   - One-liner mag via `./release.sh X.Y.Z`.
   - `./release.sh X.Y.Z` moet de versie automatisch bijwerken in `manifest.json`, `const.py`, `README.md`, `CHANGELOG.md`, `AGENTS.md` en relevante voorbeeldmetadata voordat commit/tag gebeurt.
   - Controleer vóór release handmatig of alle documentatiebestanden (`README.md`, `CHANGELOG.md`, `AGENTS.md`, `HANDOFF.md`, `TODO.md`, `ISSUES.md`, `SYNC_PROMPTS.md`, `TECHNICAL_DESIGN_DECISIONS.md`, `info.md`, `examples/*`) inhoudelijk kloppen; niet alleen versienummers.
+  - Controleer vóór release handmatig dat alle Nederlandse en Engelse vertalingen compleet en passend zijn.
   - Controleer vóór release handmatig of de testdekking past bij de wijziging; documentatie-only changes mogen zonder nieuwe tests, maar code-/contract-/UI-string changes moeten expliciet bestaande of nieuwe tests dekken.
   - Dry-run kan via `./release.sh X.Y.Z --dry-run`.
   - `git add .`

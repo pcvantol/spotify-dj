@@ -295,6 +295,30 @@ Why:
   silently when Spotify revokes the refresh token.
 - Repairs keep unavoidable user action inside native Home Assistant UX.
 
+### Localized Safe Fallback Copy
+
+Pattern:
+
+- Device/client DJ response fallback text is generated from a fixed localized
+  copy table, selected by the configured device language.
+- Raw exceptions, Assist prompts, Spotify response bodies and parser prompts
+  are not forwarded as spoken/displayed DJ response text.
+- Known Home Assistant Assist device-lookup errors are mapped to a friendly
+  DJConnect request retry message instead of leaking prompt fragments such as
+  "Noem de artiest..." to the client.
+
+Primary source files:
+
+- `custom_components/djconnect/http.py`
+- `custom_components/djconnect/pipeline.py`
+- `custom_components/djconnect/dj_response.py`
+
+Why:
+
+- App/device screens are user-facing surfaces, not debug logs.
+- Keeps command failures readable in the user's language while preserving
+  detailed diagnostics in Home Assistant logs/entities.
+
 ### Defensive Diagnostics And Logging
 
 Pattern:

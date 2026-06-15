@@ -150,6 +150,12 @@ def install_homeassistant_stubs() -> None:
     selector.SelectSelectorConfig = SelectSelectorConfig
     selector.SelectSelector = SelectSelector
     selector.SelectOptionDict = SelectOptionDict
+    entity_registry = sys.modules.setdefault(
+        "homeassistant.helpers.entity_registry",
+        types.ModuleType("homeassistant.helpers.entity_registry"),
+    )
+    entity_registry.async_get = lambda hass: getattr(hass, "entity_registry", None)
+    helpers.entity_registry = entity_registry
 
     package = types.ModuleType("custom_components.djconnect")
     package.__path__ = [str(ROOT / "custom_components" / "djconnect")]
@@ -377,6 +383,78 @@ class ConfigFlowHelperTest(unittest.TestCase):
 
     def test_voice_errors_allow_device_owned_spotify_playback(self) -> None:
         self.assertEqual(self.config_flow._voice_errors({}), {})
+
+    def test_spotify_media_player_detection_uses_states(self) -> None:
+        class State:
+            entity_id = "media_player.spotify_peter"
+            attributes = {"friendly_name": "Spotify Peter"}
+
+        class States:
+            def async_all(self, domain=None):
+                return [State()] if domain == "media_player" else []
+
+        hass = types.SimpleNamespace(states=States())
+
+        self.assertEqual(
+            self.config_flow._spotify_media_player_entities(hass),
+            ["media_player.spotify_peter"],
+        )
+        self.assertTrue(self.config_flow._has_spotify_media_player(hass))
+
+    def test_spotify_media_player_detection_uses_entity_registry(self) -> None:
+        registry = types.SimpleNamespace(
+            entities={
+                "media_player.spotify": types.SimpleNamespace(
+                    domain="media_player",
+                    platform="spotify",
+                    entity_id="media_player.spotify",
+                )
+            }
+        )
+        hass = types.SimpleNamespace(entity_registry=registry, states=None)
+
+        self.assertEqual(
+            self.config_flow._spotify_media_player_entities(hass),
+            ["media_player.spotify"],
+        )
+
+    def test_user_step_requires_spotify_media_player(self) -> None:
+        class States:
+            def async_all(self, domain=None):
+                return []
+
+        flow = self.config_flow.DJConnectConfigFlow()
+        flow.hass = types.SimpleNamespace(
+            config=types.SimpleNamespace(language="en-US"),
+            states=States(),
+        )
+
+        result = asyncio.run(flow.async_step_user())
+
+        self.assertEqual(result["type"], "form")
+        self.assertEqual(result["step_id"], "user")
+        self.assertEqual(result["errors"]["base"], "spotify_media_player_required")
+
+    def test_user_step_allows_setup_when_spotify_media_player_exists(self) -> None:
+        class State:
+            entity_id = "media_player.spotify"
+            attributes = {"friendly_name": "Spotify"}
+
+        class States:
+            def async_all(self, domain=None):
+                return [State()] if domain == "media_player" else []
+
+        flow = self.config_flow.DJConnectConfigFlow()
+        flow.hass = types.SimpleNamespace(
+            config=types.SimpleNamespace(language="en-US"),
+            states=States(),
+        )
+
+        result = asyncio.run(flow.async_step_user())
+
+        self.assertEqual(result["type"], "form")
+        self.assertEqual(result["step_id"], "user")
+        self.assertEqual(result.get("errors"), {})
 
     def test_user_schema_shows_client_type_and_local_url_without_advanced(self) -> None:
         flow = self.config_flow.DJConnectConfigFlow()
@@ -1154,6 +1232,73 @@ class ConfigFlowHelperTest(unittest.TestCase):
                 {
                     self.const.CONF_PAIR_CODE: "555293",
                     self.const.CONF_LOCAL_URL: "http://192.168.1.104:60955",
+                }
+            )
+        )
+
+        self.assertEqual(result["type"], "create_entry")
+        self.assertIn(
+            (
+                "pair_device",
+                "555293",
+                "djconnect-555293",
+                "http://192.168.1.104:60955",
+            ),
+            calls,
+        )
+        self.assertEqual(entry.data[self.const.CONF_LOCAL_URL], "http://192.168.1.104:60955")
+
+    def test_options_repair_pairing_empty_local_url_reuses_stored_url(self) -> None:
+        calls = []
+
+        class Runtime:
+            def __init__(self):
+                self.device_status = {
+                    "local_url": "http://runtime.local:18080",
+                }
+                self.device_token = None
+                self.pairing_code = None
+                self.pairing_device_id = None
+
+            def update(self, **kwargs):
+                calls.append(("update", kwargs))
+
+            async def pair_device(self, hass):
+                calls.append(
+                    (
+                        "pair_device",
+                        self.pairing_code,
+                        self.pairing_device_id,
+                        self.device_status.get("local_url"),
+                    )
+                )
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={
+                self.const.CONF_PAIR_CODE: "253940",
+                self.const.CONF_LOCAL_URL: "http://192.168.1.104:60955",
+            },
+            options={},
+        )
+        runtime = Runtime()
+
+        class ConfigEntries:
+            def async_update_entry(self, entry_arg, *, data):
+                entry_arg.data = data
+
+        flow = self.config_flow.DJConnectOptionsFlow(entry)
+        flow.hass = types.SimpleNamespace(
+            data={self.const.DOMAIN: {entry.entry_id: runtime}},
+            config_entries=ConfigEntries(),
+            states=None,
+        )
+
+        result = asyncio.run(
+            flow.async_step_repair_pairing(
+                {
+                    self.const.CONF_PAIR_CODE: "555293",
+                    self.const.CONF_LOCAL_URL: "",
                 }
             )
         )

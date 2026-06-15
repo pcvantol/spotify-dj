@@ -293,32 +293,32 @@ ERROR_MESSAGES = {
 DJ_FAILURE_TEXTS = {
     "assist": {
         "en": (
-            "Sorry, I could not process your voice command with Home Assistant Assist. "
-            "Check the selected Assist pipeline and try again."
+            "I heard you, but I could not turn that into a DJConnect request yet. "
+            "Try asking for the artist or song again."
         ),
         "nl": (
-            "Sorry, ik kon je spraakopdracht niet verwerken met Home Assistant Assist. "
-            "Controleer de gekozen Assist pipeline en probeer het opnieuw."
+            "Ik heb je gehoord, maar kon er nog geen DJConnect verzoek van maken. "
+            "Vraag de artiest of het nummer nog een keer."
         ),
     },
     "spotify": {
         "en": (
-            "Sorry, I understood your request, but I could not start Spotify playback. "
-            "Check whether a Spotify playback device is available and try again."
+            "Ik heb je verzoek begrepen, maar Spotify kon nu niet starten. "
+            "Controleer de koppeling in Home Assistant en probeer het opnieuw."
         ),
         "nl": (
-            "Sorry, ik heb je verzoek begrepen, maar ik kon Spotify niet starten. "
-            "Controleer of er een Spotify afspeelapparaat beschikbaar is en probeer het opnieuw."
+            "Ik heb je verzoek begrepen, maar Spotify kon nu niet starten. "
+            "Controleer de koppeling in Home Assistant en probeer het opnieuw."
         ),
     },
     "generic": {
         "en": (
-            "Sorry, something went wrong while handling your DJConnect command. "
-            "Please try again."
+            "Er ging iets mis bij DJConnect. "
+            "Vraag je muziek zo nog een keer aan."
         ),
         "nl": (
-            "Sorry, er ging iets mis bij het verwerken van je DJConnect opdracht. "
-            "Probeer het opnieuw."
+            "Er ging iets mis bij DJConnect. "
+            "Vraag je muziek zo nog een keer aan."
         ),
     },
 }
@@ -747,6 +747,13 @@ def _esp32_language_payload(runtime: Any) -> dict[str, str]:
 
 def _failure_kind(exc: Exception) -> str:
     text = str(exc).lower()
+    if "kan geen apparaat vinden" in text or "cannot find a device" in text:
+        return "assist"
+    if "niet vinden" in text and any(
+        fragment in text
+        for fragment in ("noem de artiest", "media type", "antwoord alleen")
+    ):
+        return "assist"
     if any(word in text for word in ("assist", "conversation", "pipeline")):
         return "assist"
     if any(
@@ -766,6 +773,29 @@ def _command_failed_text(runtime: Any, exc: Exception | None = None) -> str:
 
 def _test_dj_text(runtime: Any) -> str:
     return DJ_TEST_TEXTS[_device_language(runtime)]
+
+
+def _backend_unavailable_payload(
+    command: str,
+    runtime: Any,
+    exc: Exception,
+) -> dict[str, Any]:
+    """Return a non-empty JSON body for backend command failures."""
+    if str(command or "").strip().lower() == "playlists":
+        return {
+            "success": False,
+            "error": "playback_backend_unavailable",
+            "message": "Playback backend unavailable",
+            "backend_available": False,
+            "playlists": [],
+        }
+    return {
+        "success": False,
+        "error": "backend_unavailable",
+        "message": str(exc) or ERROR_MESSAGES["backend_unavailable"],
+        "backend_available": False,
+        "playback": getattr(runtime, "last_playback", None) or {},
+    }
 
 
 async def _send_failure_dj_response(
@@ -1063,43 +1093,36 @@ class DJConnectCommandView(HomeAssistantView):
             data.get("device_id"),
             command,
         )
+        command_value = data.get("value")
+        if command.lower() == "playlists" and command_value is None:
+            command_value = {
+                "client_type": client_type,
+                "limit": data.get("limit"),
+            }
         try:
             result = await handle_spotify_command(
                 hass,
                 runtime,
                 command,
-                data.get("value"),
+                command_value,
                 play=bool(data.get("play", False)),
             )
             runtime.update(last_error=None)
+            if result.get("success"):
+                result.setdefault("backend_available", True)
+                runtime.device_status["backend_available"] = True
             return self.json(result)
         except ValueError as exc:
             return _json_error(self, "invalid_command", 400, str(exc))
         except SpotifyBackendError as exc:
             runtime.update(last_error=str(exc))
             runtime.device_status["backend_available"] = False
-            return self.json(
-                {
-                    "success": False,
-                    "error": "backend_unavailable",
-                    "message": str(exc) or ERROR_MESSAGES["backend_unavailable"],
-                    "backend_available": False,
-                    "playback": getattr(runtime, "last_playback", None) or {},
-                }
-            )
+            return self.json(_backend_unavailable_payload(command, runtime, exc))
         except Exception as exc:  # noqa: BLE001
             _LOGGER.warning("DJConnect backend command failed: %s", exc)
             runtime.update(last_error=str(exc))
             runtime.device_status["backend_available"] = False
-            return self.json(
-                {
-                    "success": False,
-                    "error": "backend_unavailable",
-                    "message": str(exc) or ERROR_MESSAGES["backend_unavailable"],
-                    "backend_available": False,
-                    "playback": getattr(runtime, "last_playback", None) or {},
-                }
-            )
+            return self.json(_backend_unavailable_payload(command, runtime, exc))
 
 
 class DJConnectEventView(HomeAssistantView):

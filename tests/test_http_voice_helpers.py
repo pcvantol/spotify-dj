@@ -99,29 +99,41 @@ class VoiceHttpHelperTest(unittest.TestCase):
         unknown_runtime = types.SimpleNamespace()
 
         self.assertIn(
-            "Spotify niet starten",
+            "Spotify kon nu niet starten",
             self.http._command_failed_text(
                 nl_runtime,
                 RuntimeError("Spotify playback device unavailable"),
             ),
         )
         self.assertIn(
-            "could not start Spotify playback",
+            "Spotify",
             self.http._command_failed_text(
                 en_runtime,
                 RuntimeError("media_player.play_media failed"),
             ),
         )
         self.assertIn(
-            "Assist pipeline",
+            "could not turn that into a DJConnect request",
             self.http._command_failed_text(
                 en_runtime,
                 RuntimeError("HA Assist pipeline failed"),
             ),
         )
         self.assertIn(
-            "something went wrong",
+            "Er ging iets mis bij DJConnect",
             self.http._command_failed_text(unknown_runtime),
+        )
+        leaked_prompt_error = (
+            "Sorry, ik kan Noem de artiest en het nummer Media type artist "
+            "artiest Nirvana niet vinden"
+        )
+        self.assertNotIn(
+            "Noem de artiest",
+            self.http._command_failed_text(nl_runtime, RuntimeError(leaked_prompt_error)),
+        )
+        self.assertIn(
+            "geen DJConnect verzoek",
+            self.http._command_failed_text(nl_runtime, RuntimeError(leaked_prompt_error)),
         )
 
     def test_voice_view_text_request_runs_direct_dj_response_test(self) -> None:
@@ -423,7 +435,8 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(response["status_code"], 200)
         self.assertTrue(response["payload"]["success"])
         self.assertEqual(response["payload"]["error"], "command_failed")
-        self.assertIn("Spotify niet starten", response["payload"]["dj_text"])
+        self.assertIn("geen DJConnect verzoek", response["payload"]["dj_text"])
+        self.assertNotIn("geen apparaat vinden", response["payload"]["dj_text"])
         self.assertEqual(response["payload"]["recognized_text"], "Test")
         self.assertEqual(response["payload"]["dj_response"], {"success": True, "spoken": False})
 
@@ -1943,6 +1956,120 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertTrue(response["payload"]["success"])
         self.assertEqual(response["payload"]["devices"][0]["name"], "iPhone")
         self.assertEqual(calls, [("devices", "", False)])
+
+    def test_command_view_playlists_marks_backend_available_when_idle(self) -> None:
+        const = importlib.import_module("custom_components.djconnect.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {"device_id": "djconnect-lilygo-90B70990A994"}
+            config = {}
+            last_playback = {"has_playback": False, "is_playing": False}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return headers.get("Authorization") == "Bearer device-token"
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        runtime = Runtime()
+
+        async def command_handler(hass, runtime_arg, command, value=None, *, play=None):
+            self.assertEqual(command, "playlists")
+            self.assertEqual(value, {"client_type": "esp32", "limit": 20})
+            self.assertEqual(runtime_arg.last_playback["has_playback"], False)
+            return {
+                "success": True,
+                "playlists": [
+                    {
+                        "name": "DJConnect",
+                        "uri": "spotify:playlist:abc",
+                        "owner": "Peter",
+                        "image_url": "https://example.test/cover.jpg",
+                    }
+                ],
+            }
+
+        class Request:
+            headers = {
+                "Authorization": "Bearer device-token",
+                "X-DJConnect-Device-ID": "djconnect-lilygo-90B70990A994",
+            }
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": runtime}})}
+
+            async def json(self):
+                return {
+                    "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
+                    "command": "playlists",
+                    "limit": 20,
+                }
+
+        original = self.http.handle_spotify_command
+        self.http.handle_spotify_command = command_handler
+        try:
+            response = asyncio.run(self.http.DJConnectCommandView(None).post(Request()))
+        finally:
+            self.http.handle_spotify_command = original
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertTrue(response["payload"]["success"])
+        self.assertTrue(response["payload"]["backend_available"])
+        self.assertTrue(runtime.device_status["backend_available"])
+        self.assertEqual(
+            response["payload"]["playlists"],
+            [
+                {
+                    "name": "DJConnect",
+                    "uri": "spotify:playlist:abc",
+                    "owner": "Peter",
+                    "image_url": "https://example.test/cover.jpg",
+                }
+            ],
+        )
+
+    def test_command_view_playlists_backend_failure_returns_non_empty_body(self) -> None:
+        const = importlib.import_module("custom_components.djconnect.const")
+
+        class Runtime:
+            device_token = "device-token"
+            device_status = {}
+            config = {}
+
+            def authorize_device_request(self, headers, body_device_id=None):
+                return True
+
+            def update(self, **kwargs):
+                self.last_update = kwargs
+
+        async def command_handler(hass, runtime, command, value=None, *, play=None):
+            raise self.http.SpotifyBackendError("Spotify OAuth is not configured")
+
+        class Request:
+            headers = {"Authorization": "Bearer device-token"}
+            app = {"hass": types.SimpleNamespace(data={const.DOMAIN: {"runtime": Runtime()}})}
+
+            async def json(self):
+                return {
+                    "device_id": "djconnect-lilygo-90B70990A994",
+                    "client_type": "esp32",
+                    "command": "playlists",
+                    "limit": 20,
+                }
+
+        original = self.http.handle_spotify_command
+        self.http.handle_spotify_command = command_handler
+        try:
+            response = asyncio.run(self.http.DJConnectCommandView(None).post(Request()))
+        finally:
+            self.http.handle_spotify_command = original
+
+        self.assertEqual(response["status_code"], 200)
+        self.assertFalse(response["payload"]["success"])
+        self.assertFalse(response["payload"]["backend_available"])
+        self.assertEqual(response["payload"]["error"], "playback_backend_unavailable")
+        self.assertEqual(response["payload"]["message"], "Playback backend unavailable")
+        self.assertEqual(response["payload"]["playlists"], [])
 
     def test_command_view_returns_backend_unavailable_json(self) -> None:
         const = importlib.import_module("custom_components.djconnect.const")

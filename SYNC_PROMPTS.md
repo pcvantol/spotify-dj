@@ -59,6 +59,8 @@ Before publishing:
 - Update README, handoff, tests, design decisions, Postman collections,
   third-party notices and repo-specific docs when product behavior, APIs,
   release flow, dependencies or public contracts changed.
+- Review and update all user-facing translations for changed setup, options,
+  repair, entity and service strings in repos that ship localized UI.
 - Update this `SYNC_PROMPTS.md` when the cross-repo contract or release
   checklist changes.
 - Sync the updated `PRODUCT_ROADMAP.md` and `SYNC_PROMPTS.md` to all sibling
@@ -118,6 +120,10 @@ client contracts.
 
 Requirements:
 - Treat iOS/macOS/Raspberry Pi as app-like clients, not ESP hardware devices.
+- Before pairing, require that Home Assistant has the official Spotify
+  integration configured with at least one Spotify `media_player` entity; if
+  not, show a clear localized config-flow error telling the user to configure
+  Spotify first.
 - Pair app-like clients through POST /api/djconnect/pair. For Raspberry Pi, this is
   the primary pairing path; do not try to call a Pi-local /api/device/pair
   endpoint during initial pairing.
@@ -792,6 +798,16 @@ Command responses are transport/command success first, playback-state second.
 A command response with `success:true` and `playback.has_playback:false` is not
 an error state.
 
+`command:"playlists"` is browsing, not active playback. If Spotify credentials
+are valid and playlist browsing succeeds, HA must return HTTP 200 with
+`success:true`, `backend_available:true` and `playlists[]` items containing at
+least `name`, `uri`, `owner` and `image_url`, even when Spotify playback is
+idle. ESP32 clients may send `limit`; HA must cap the response to that limit
+and use a safe default of 20 when ESP omits it. App-like clients may request up
+to 100 playlists. Use `backend_available:false` only when the backend is
+genuinely unavailable or auth is invalid, and still return a non-empty JSON body
+with `success:false`, `error:"playback_backend_unavailable"` and `playlists:[]`.
+
 When `playback.has_playback == false`, clients must treat the playback snapshot
 as valid but empty. Playback fields may be `null` or empty strings, including
 `progress_ms`, `duration_ms`, `volume_percent`, `device.volume_percent`,
@@ -1421,6 +1437,16 @@ Command responses are transport/command success first, playback-state second.
 A command response with `success:true` and `playback.has_playback:false` is not
 an error state.
 
+`command:"playlists"` is browsing, not active playback. If Spotify credentials
+are valid and playlist browsing succeeds, HA must return HTTP 200 with
+`success:true`, `backend_available:true` and `playlists[]` items containing at
+least `name`, `uri`, `owner` and `image_url`, even when Spotify playback is
+idle. ESP32 clients may send `limit`; HA must cap the response to that limit
+and use a safe default of 20 when ESP omits it. App-like clients may request up
+to 100 playlists. Use `backend_available:false` only when the backend is
+genuinely unavailable or auth is invalid, and still return a non-empty JSON body
+with `success:false`, `error:"playback_backend_unavailable"` and `playlists:[]`.
+
 When `playback.has_playback == false`, clients must treat the playback snapshot
 as valid but empty. Playback fields may be `null` or empty strings, including
 `progress_ms`, `duration_ms`, `volume_percent`, `device.volume_percent`,
@@ -1659,6 +1685,10 @@ client contracts.
 
 Requirements:
 - Treat iOS/macOS/Raspberry Pi as app-like clients, not ESP hardware devices.
+- Before pairing, require that Home Assistant has the official Spotify
+  integration configured with at least one Spotify `media_player` entity; if
+  not, show a clear localized config-flow error telling the user to configure
+  Spotify first.
 - Pair app-like clients through POST /api/djconnect/pair. For Raspberry Pi, this is
   the primary pairing path; do not try to call a Pi-local /api/device/pair
   endpoint during initial pairing.

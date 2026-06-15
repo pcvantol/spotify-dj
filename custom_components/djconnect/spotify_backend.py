@@ -24,6 +24,9 @@ SPOTIFY_API_BASE = "https://api.spotify.com/v1"
 CACHE_TTL_SECONDS = 30
 ACCESS_TOKEN_EXPIRY_SAFETY_SECONDS = 60
 MAX_QUEUE_ITEMS = 100
+MAX_PLAYLIST_ITEMS = 100
+DEFAULT_PLAYLIST_LIMIT = 100
+ESP_DEFAULT_PLAYLIST_LIMIT = 20
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -54,7 +57,7 @@ async def handle_spotify_command(
     if normalized == "queue":
         return {"success": True, **await backend.queue()}
     if normalized == "playlists":
-        return {"success": True, "playlists": await backend.playlists()}
+        return {"success": True, "playlists": await backend.playlists(limit=_playlist_limit(value))}
     if normalized == "pause":
         await backend.pause()
         return {"success": True, "playback": await backend.playback_state()}
@@ -361,12 +364,19 @@ class SpotifyBackend:
             "contextUri": context_uri,
         }
 
-    async def playlists(self) -> list[dict[str, str]]:
-        async def load():
-            data = await self._request("GET", "/me/playlists?limit=50")
-            return [_normalize_playlist(item) for item in data.get("items", [])]
+    async def playlists(self, *, limit: int | None = DEFAULT_PLAYLIST_LIMIT) -> list[dict[str, str]]:
+        limit = DEFAULT_PLAYLIST_LIMIT if limit is None else int(limit)
+        limit = max(0, min(MAX_PLAYLIST_ITEMS, limit))
+        if limit <= 0:
+            self.runtime.device_status["playlists"] = []
+            self.runtime.update()
+            return []
 
-        playlists = await self._cached("playlists", load)
+        async def load():
+            data = await self._request("GET", f"/me/playlists?limit={limit}")
+            return [_normalize_playlist(item) for item in data.get("items", [])][:limit]
+
+        playlists = await self._cached(f"playlists:{limit}", load)
         self.runtime.device_status["playlists"] = playlists
         self.runtime.update()
         return playlists
@@ -612,6 +622,23 @@ def _spotify_search_type(media_type: str) -> str:
     if normalized == "album":
         return "album"
     return "artist"
+
+
+def _playlist_limit(value: Any) -> int:
+    """Return client-aware playlist limit for Spotify browsing commands."""
+    raw_limit = None
+    client_type = ""
+    if isinstance(value, dict):
+        raw_limit = value.get("limit")
+        client_type = str(value.get("client_type") or "").strip().lower()
+    else:
+        raw_limit = value
+    default = ESP_DEFAULT_PLAYLIST_LIMIT if client_type == "esp32" else DEFAULT_PLAYLIST_LIMIT
+    try:
+        limit = int(raw_limit)
+    except (TypeError, ValueError):
+        limit = default
+    return max(0, min(MAX_PLAYLIST_ITEMS, limit))
 
 
 def _first_search_item(data: dict[str, Any], spotify_type: str) -> dict[str, Any]:

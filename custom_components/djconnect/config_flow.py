@@ -213,6 +213,59 @@ def _manual_discovery_label(hass: Any) -> str:
     return "Handmatig invoeren" if language.startswith("nl") else "Manual entry"
 
 
+def _spotify_media_player_entities(hass: Any) -> list[str]:
+    """Return known Spotify media_player entities from registry or current states."""
+    entities: set[str] = set()
+    try:
+        from homeassistant.helpers import entity_registry as er
+
+        registry = er.async_get(hass)
+        registry_entities = getattr(registry, "entities", {})
+        values = (
+            registry_entities.values()
+            if hasattr(registry_entities, "values")
+            else registry_entities
+        )
+        for entry in values:
+            if (
+                getattr(entry, "domain", "") == "media_player"
+                and getattr(entry, "platform", "") == "spotify"
+            ):
+                entity_id = str(getattr(entry, "entity_id", "") or "").strip()
+                if entity_id:
+                    entities.add(entity_id)
+    except Exception:  # noqa: BLE001
+        pass
+
+    states = getattr(hass, "states", None)
+    async_all = getattr(states, "async_all", None)
+    if callable(async_all):
+        try:
+            media_player_states = async_all("media_player")
+        except TypeError:
+            media_player_states = [
+                state
+                for state in async_all()
+                if str(getattr(state, "entity_id", "")).startswith("media_player.")
+            ]
+        for state in media_player_states or []:
+            entity_id = str(getattr(state, "entity_id", "") or "").strip()
+            attributes = getattr(state, "attributes", {}) or {}
+            friendly_name = str(attributes.get("friendly_name") or "").strip()
+            platform = str(
+                attributes.get("platform") or attributes.get("integration") or ""
+            ).strip()
+            haystack = " ".join((entity_id, friendly_name, platform)).lower()
+            if entity_id.startswith("media_player.") and "spotify" in haystack:
+                entities.add(entity_id)
+    return sorted(entities)
+
+
+def _has_spotify_media_player(hass: Any) -> bool:
+    """Return whether Home Assistant has a Spotify media_player entity available."""
+    return bool(_spotify_media_player_entities(hass))
+
+
 def _device_name_for_client_type(client_type: Any, base_name: Any = DEFAULT_DEVICE_NAME) -> str:
     """Return the suggested HA device name with a client-type suffix."""
     name = str(base_name or DEFAULT_DEVICE_NAME).strip() or DEFAULT_DEVICE_NAME
@@ -852,6 +905,25 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         user_input: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Choose setup path."""
+        errors: dict[str, str] = {}
+        if not _has_spotify_media_player(getattr(self, "hass", None)):
+            errors["base"] = "spotify_media_player_required"
+            if user_input is not None:
+                return self.async_show_form(
+                    step_id="user",
+                    data_schema=vol.Schema(
+                        {
+                            vol.Required(
+                                CONF_SETUP_METHOD,
+                                default=user_input.get(
+                                    CONF_SETUP_METHOD,
+                                    DEFAULT_SETUP_METHOD,
+                                ),
+                            ): vol.In(_setup_method_names(getattr(self, "hass", None))),
+                        }
+                    ),
+                    errors=errors,
+                )
         if user_input is not None:
             method = user_input.get(CONF_SETUP_METHOD, DEFAULT_SETUP_METHOD)
             if method == SETUP_METHOD_BLE_WIFI:
@@ -868,6 +940,7 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): vol.In(_setup_method_names(getattr(self, "hass", None))),
                 }
             ),
+            errors=errors,
         )
 
     async def async_step_ble_wifi(
@@ -1454,7 +1527,7 @@ class DJConnectOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
         if user_input is not None:
             pair_code = str(user_input.get(CONF_PAIR_CODE, "")).strip()
-            local_url = _clean(user_input.get(CONF_LOCAL_URL), "")
+            local_url = _clean(user_input.get(CONF_LOCAL_URL), None)
             if not pair_code:
                 errors[CONF_PAIR_CODE] = "missing_pair_code"
             elif not _valid_pair_code(pair_code):
@@ -1494,9 +1567,14 @@ class DJConnectOptionsFlow(config_entries.OptionsFlow):
                     device_id = f"djconnect-{pair_code}"
                     data[CONF_PAIR_CODE] = pair_code
                     data[CONF_DEVICE_ID] = device_id
+                    stored_local_url = _clean(
+                        data.get(CONF_LOCAL_URL)
+                        or runtime.device_status.get("local_url"),
+                        "",
+                    )
                     cleaned_local_url = _clean(
                         local_url,
-                        _clean(data.get(CONF_LOCAL_URL), _default_local_url(pair_code)),
+                        stored_local_url or _default_local_url(pair_code),
                     )
                     data[CONF_LOCAL_URL] = cleaned_local_url
                     runtime.pairing_code = pair_code
