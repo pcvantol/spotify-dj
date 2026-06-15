@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.1.25
+
+- Prevent stale Spotify playback snapshots from being used as DJ announcement media after a new voice/playback request when fresh `resolved_media` is missing, so asking for Nirvana cannot generate a DJ response for a previous Red Hot Chili Peppers playback state.
+- Add processor regression coverage for DJ response media selection when the latest Spotify command returns an older current-playback snapshot.
+- Cap `queue` command responses at 100 real backend items before returning data to DJConnect clients or HA queue sensor attributes.
+- Add Spotify backend coverage for the 100-item queue response cap.
+
 ## 3.1.24
 
 - Harden Spotify refresh-token handling so a stale in-memory runtime token does not immediately create a Spotify reauthorization Repair when the config entry already contains a newer stored refresh token.

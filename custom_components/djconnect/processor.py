@@ -21,11 +21,12 @@ async def process_text_command(
     playback = None
     if play:
         playback = await play_from_intent(hass, runtime, intent, conf)
-    fallback_dj_text = _dj_response_text(intent, playback, conf)
+    response_media = _dj_response_media(intent, playback)
+    fallback_dj_text = _dj_response_text(intent, playback, conf, media=response_media)
     dj_response_debug: dict[str, Any] = {}
     dj_text = await generate_dj_response_with_assist(
         hass,
-        media=_resolved_media(playback) or intent,
+        media=response_media,
         fallback_text=fallback_dj_text,
         conf=conf,
         debug=dj_response_debug,
@@ -50,9 +51,11 @@ def _dj_response_text(
     intent: dict[str, Any],
     playback: dict[str, Any] | None,
     conf: dict[str, Any],
+    *,
+    media: dict[str, Any] | None = None,
 ) -> str:
     """Create a concrete device DJ response from the resolved playback result."""
-    media = _resolved_media(playback) or intent
+    media = media or _dj_response_media(intent, playback)
     title = _first_text(media, "track_name", "title", "name")
     artist = _first_text(media, "artist", "artist_name")
     album = _first_text(media, "album_name", "album")
@@ -76,12 +79,33 @@ def _dj_response_text(
     return "Daar gaan we. Ik zet hem voor je klaar." if is_nl else "Here we go. I'll start it for you."
 
 
-def _resolved_media(playback: dict[str, Any] | None) -> dict[str, Any]:
+def _dj_response_media(
+    intent: dict[str, Any],
+    playback: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Return media metadata for the spoken DJ response without reusing stale playback."""
+    if not isinstance(playback, dict):
+        return intent
+    resolved = _resolved_media(playback, allow_device_response=False)
+    if resolved:
+        return resolved
+    if playback.get("media_content_id"):
+        return intent
+    return _resolved_media(playback, allow_device_response=True) or intent
+
+
+def _resolved_media(
+    playback: dict[str, Any] | None,
+    *,
+    allow_device_response: bool = True,
+) -> dict[str, Any]:
     if not isinstance(playback, dict):
         return {}
     resolved = playback.get("resolved_media")
     if isinstance(resolved, dict) and any(resolved.get(key) for key in ("title", "track_name", "artist")):
         return resolved
+    if not allow_device_response:
+        return {}
     response = playback.get("device_response") or {}
     if isinstance(response, dict):
         current = response.get("playback") or response

@@ -219,6 +219,65 @@ class ProcessorRuntimeTest(unittest.TestCase):
         )
         self.assertNotIn("spotify:artist", result["dj_text"])
 
+    def test_process_text_command_does_not_use_stale_device_playback_for_dj_response(self) -> None:
+        async def assist(hass, user_text, conf):
+            return {
+                "type": "search",
+                "artist": "Nirvana",
+                "spotify_search_query": "Nirvana",
+                "dj_announcement": "Daar gaan we.",
+            }
+
+        async def play(hass, runtime, intent, conf):
+            return {
+                "played": True,
+                "media_content_id": "Nirvana",
+                "media_content_type": "artist",
+                "resolved_media": None,
+                "device_response": {
+                    "playback": {
+                        "type": "artist",
+                        "artist": "Red Hot Chili Peppers",
+                        "artist_name": "Red Hot Chili Peppers",
+                    }
+                },
+            }
+
+        async def generated_dj_response(hass, *, media, fallback_text, conf, debug=None):
+            self.assertEqual(media["artist"], "Nirvana")
+            self.assertNotIn("Red Hot Chili Peppers", fallback_text)
+            if debug is not None:
+                debug["fallback_used"] = False
+            return f"Generated for {media['artist']}"
+
+        original_assist = self.processor.process_text_with_assist
+        original_play = self.processor.play_from_intent
+        original_dj_response = self.processor.generate_dj_response_with_assist
+        self.processor.process_text_with_assist = assist
+        self.processor.play_from_intent = play
+        self.processor.generate_dj_response_with_assist = generated_dj_response
+        runtime = Runtime()
+        runtime.config = {
+            "dj_response_prompt": "Noem de artiest.",
+            "tts_language": "nl",
+        }
+        try:
+            result = asyncio.run(
+                self.processor.process_text_command(
+                    object(),
+                    runtime,
+                    "speel Nirvana",
+                    play=True,
+                )
+            )
+        finally:
+            self.processor.process_text_with_assist = original_assist
+            self.processor.play_from_intent = original_play
+            self.processor.generate_dj_response_with_assist = original_dj_response
+
+        self.assertEqual(result["dj_text"], "Generated for Nirvana")
+        self.assertEqual(runtime.last_dj_text, "Generated for Nirvana")
+
     def test_process_text_command_keeps_intent_when_playback_fails(self) -> None:
         async def assist(hass, user_text, conf):
             return {

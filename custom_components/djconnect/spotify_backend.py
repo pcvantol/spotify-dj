@@ -23,6 +23,7 @@ from .spotify_oauth import SpotifyTokenRefreshError, refresh_access_token
 SPOTIFY_API_BASE = "https://api.spotify.com/v1"
 CACHE_TTL_SECONDS = 30
 ACCESS_TOKEN_EXPIRY_SAFETY_SECONDS = 60
+MAX_QUEUE_ITEMS = 100
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -345,7 +346,7 @@ class SpotifyBackend:
     async def queue(self) -> dict[str, Any]:
         data = await self._request("GET", "/me/player/queue")
         queue = data.get("queue") or []
-        normalized = [_normalize_queue_item(item) for item in queue]
+        normalized = [_normalize_queue_item(item) for item in queue[:MAX_QUEUE_ITEMS]]
         playback = self.runtime.last_playback or {}
         context_uri = str(playback.get("context_uri") or playback.get("queue_context") or "").strip()
         self.runtime.device_status["queue"] = {

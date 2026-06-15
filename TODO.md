@@ -23,6 +23,7 @@
 - Confirm selected HA STT provider accepts the WAV metadata.
 - Confirm recognized text reaches DJConnect command processing.
 - Confirm Spotify playback action runs when Spotify is idle.
+- Confirm a new PTT request such as Nirvana does not reuse previous Spotify playback metadata such as Red Hot Chili Peppers in the DJ aankondiging.
 - Confirm repeated iOS/macOS/Raspberry Pi PTT requests reuse or serialize Spotify token refresh without false `invalid_grant` repairs.
 - Confirm artist queue/up-next selection does not send invalid Spotify artist offset payloads.
 - Confirm friendly DJ fallback response is returned when Spotify playback fails.
