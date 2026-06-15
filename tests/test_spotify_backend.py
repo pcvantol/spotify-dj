@@ -406,6 +406,53 @@ class SpotifyBackendTest(unittest.TestCase):
         self.assertEqual(self.issues, [])
         self.assertFalse(hasattr(runtime, "last_update"))
 
+    def test_invalid_grant_retries_entry_token_when_runtime_token_is_stale(self) -> None:
+        calls = []
+
+        async def refresh(*args, **kwargs):
+            refresh_token = kwargs["refresh_token"]
+            calls.append(refresh_token)
+            if refresh_token == "old-runtime-refresh":
+                raise self.oauth.SpotifyTokenRefreshError(
+                    400,
+                    {"error": "invalid_grant", "error_description": "Refresh token revoked"},
+                )
+            return {"access_token": "new-access", "expires_in": 3600}
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={
+                "spotify_client_id": "client-id",
+                "spotify_refresh_token": "new-entry-refresh",
+            },
+            options={},
+        )
+        runtime = types.SimpleNamespace(
+            entry=entry,
+            latest_spotify_refresh_token="old-runtime-refresh",
+            spotify_access_token=None,
+            spotify_access_token_expires_at=0,
+        )
+        runtime.config = dict(entry.data)
+        runtime.update = lambda **kwargs: setattr(runtime, "last_update", kwargs)
+        backend = self.backend.SpotifyBackend(object(), runtime)
+
+        original = self.backend.refresh_access_token
+        self.backend.refresh_access_token = refresh
+        try:
+            with self.assertLogs(self.backend._LOGGER, level="DEBUG") as captured:
+                token = asyncio.run(backend._access_token())
+        finally:
+            self.backend.refresh_access_token = original
+
+        logs = "\n".join(captured.output)
+        self.assertEqual(token, "new-access")
+        self.assertEqual(calls, ["old-runtime-refresh", "new-entry-refresh"])
+        self.assertEqual(self.issues, [])
+        self.assertIn("source=entry", logs)
+        self.assertNotIn("old-runtime-refresh", logs)
+        self.assertNotIn("new-entry-refresh", logs)
+
     def test_access_token_cache_avoids_unnecessary_refresh(self) -> None:
         calls = []
 

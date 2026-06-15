@@ -118,10 +118,11 @@
 
 ### Spotify refresh-token race after iOS/macOS PTT
 
-- Status: fixed in 3.1.8, monitor after install.
+- Status: hardened after 3.1.23, monitor after install.
 - Area: Spotify backend / voice playback.
 - Previous symptom: After one PTT DJ announcement from iOS/macOS, HA could create a false Spotify reauthorization repair because concurrent Spotify calls refreshed with the same old refresh token.
-- Fix: Spotify access-token refresh is serialized per runtime, cached token is rechecked under the lock, and `invalid_grant` retries once when another call already rotated the refresh token.
+- Fix: Spotify access-token refresh is serialized per runtime, cached token is rechecked under the lock, and `invalid_grant` retries newer stored runtime/config-entry/config refresh-token sources before creating a Repair issue.
+- Debugging: With DJConnect debug logging enabled, HA logs access-token expiry timing, refresh attempts, refresh-token source names and rotation persistence metadata without logging token values.
 - Validation: Trigger several PTT requests from iOS/macOS after HA restart and confirm no false “Spotify autorisatie verlopen of ingetrokken” repair appears.
 
 ### Spotify artist queue offset error

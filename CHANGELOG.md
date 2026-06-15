@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.1.24
+
+- Harden Spotify refresh-token handling so a stale in-memory runtime token does not immediately create a Spotify reauthorization Repair when the config entry already contains a newer stored refresh token.
+- Add safe debug logging around Spotify access-token cache expiry, refresh attempts, refresh-token source selection and token rotation persistence without logging token values.
+- Add regression coverage for retrying a newer entry-stored Spotify refresh token after Spotify rejects an older runtime token.
+- Add `TECHNICAL_DESIGN_DECISIONS.md` with reverse-engineered Python/JSON/YAML/Bash/Markdown design patterns, coding conventions and a dependency/license/source inventory.
+- Add the technical design decisions document to the release documentation checklist so future releases keep it current.
+- Update `release.sh` so releasing a new version only promotes the `Unreleased` changelog block and preserves older per-release changelog sections.
+
 ## 3.1.23
 
 - Refresh HACS-facing copy and repository description with the DJConnect proposition: “Muziekbediening met karakter”.

@@ -104,7 +104,7 @@ replace_text(
 )
 replace_text(
     "CHANGELOG.md",
-    [(r"^## .+$", f"## {version}")],
+    [(r"^## Unreleased$", f"## {version}")],
 )
 replace_text(
     "README.md",

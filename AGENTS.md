@@ -30,6 +30,7 @@ Architectuur beslissingen:
 - Spotify OAuth loopt via HA external step met PKCE; geen handmatig `oauth_result` veld.
 - Spotify OAuth refresh tokens kunnen roteren; bewaar nieuwe refresh tokens direct persistent en gebruik credentials alleen HA-intern voor backend playback.
 - Spotify access tokens zijn kortlevend; cache ze HA-intern tot vlak voor expiry, refresh on demand en retry één keer bij Spotify API `401` voordat je een refresh-token repair overweegt.
+- Spotify refresh-token rotatie moet stil blijven voor clients: als een refresh token `invalid_grant` geeft, probeer eerst iedere nieuwere opgeslagen runtime/config-entry/config refresh token voordat je een Repair issue aanmaakt. Log alleen expiry/bron/rotatie-metadata en nooit tokenwaarden.
 - Als ESP `/api/djconnect/status` `spotify_configured=false` meldt, behandel dit alleen als compat/statushint voor backend playback; stuur geen Spotify OAuth credentials naar ESP.
 - BLE provisioning doet alleen WiFi SSID/password; geen Spotify credentials, device tokens of andere secrets via BLE.
 - Runtime discovery prefereert device-reported `local_url`, exacte `_djconnect._tcp` mDNS matches en daarna alleen een enkele zichtbare DJConnect mDNS service; genereer alleen model-specifieke hostnames zoals `http://djconnect-lilygo-t-embed-s3-[device-suffix].local` voor echte device IDs met 12-hex suffix, nooit voor 6-cijferige setupcodes.
@@ -58,7 +59,7 @@ Licentie/commercieel:
 HA integration:
 - domain: `djconnect`
 - HACS custom integration.
-- Actuele integratieversie: `3.1.23`.
+- Actuele integratieversie: `3.1.24`.
 - Config flow moet blijven laden.
 - Spotify OAuth gebruikt een HA external step en opent de Spotify website.
 - Spotify OAuth gebruikt bij voorkeur Nabu Casa HTTPS external URL.
@@ -168,9 +169,15 @@ README/release:
   - Controleer dat de working tree alleen bedoelde wijzigingen bevat.
   - Update `custom_components/djconnect/manifest.json` naar de target versie.
   - Update `custom_components/djconnect/const.py` naar dezelfde target versie.
-  - Update `README.md` current version, examples, endpoints en HACS instructies.
-  - Update `CHANGELOG.md` als één actuele versie zonder oude versieblokken.
+  - Update alle documentatiebestanden in deze repo die door de wijziging of release geraakt worden: minimaal `README.md`, `CHANGELOG.md`, `AGENTS.md`, `HANDOFF.md`, `TODO.md`, `ISSUES.md`, `SYNC_PROMPTS.md`, `TECHNICAL_DESIGN_DECISIONS.md`, `info.md` en relevante files onder `examples/`.
+  - Update `README.md` current version, examples, endpoints, HACS instructies en release workflow.
+  - Update `CHANGELOG.md` met een nieuw blok per release; behoud eerdere releaseblokken en consolideer niet meer naar één actuele versie.
   - Houd `AGENTS.md` gelijk met actuele versie en release-eisen.
+  - Houd `HANDOFF.md`, `TODO.md` en `ISSUES.md` actueel met release-status, bekende checks en resterende veldvalidatie.
+  - Houd `SYNC_PROMPTS.md` actueel als cross-repo contracten, clienttypes, endpoints of pairing/discovery wijzigen.
+  - Houd `TECHNICAL_DESIGN_DECISIONS.md` actueel als code-level design patterns, coding conventions, frameworks, libraries, third-party dependencies, versions, licenses of source URLs wijzigen.
+  - Houd `info.md` en HACS-facing tekst actueel voor de gebruiker.
+  - Controleer bij elke code- of contractwijziging expliciet of de testdekking uitgebreid moet worden; voeg tests toe voor nieuwe gedragspaden, regressierisico's, vertalingen en edge cases.
   - Controleer `custom_components/djconnect/brand/icon.png`, `icon@2x.png` en `logo.png`.
   - Controleer dat `LICENSE` de HA integration dekt en `FIRMWARE-LICENSE.md` firmware binaries dekt.
   - Controleer dat `THIRD_PARTY_NOTICES.md` actueel is voor manifest dependencies/requirements.
@@ -178,7 +185,9 @@ README/release:
   - Draai `python3 -m unittest discover -s tests`.
 - HACS release workflow bevat minimaal:
   - One-liner mag via `./release.sh X.Y.Z`.
-  - `./release.sh X.Y.Z` moet de versie automatisch bijwerken in `manifest.json`, `const.py`, `README.md`, `CHANGELOG.md` en `AGENTS.md` voordat commit/tag gebeurt.
+  - `./release.sh X.Y.Z` moet de versie automatisch bijwerken in `manifest.json`, `const.py`, `README.md`, `CHANGELOG.md`, `AGENTS.md` en relevante voorbeeldmetadata voordat commit/tag gebeurt.
+  - Controleer vóór release handmatig of alle documentatiebestanden (`README.md`, `CHANGELOG.md`, `AGENTS.md`, `HANDOFF.md`, `TODO.md`, `ISSUES.md`, `SYNC_PROMPTS.md`, `TECHNICAL_DESIGN_DECISIONS.md`, `info.md`, `examples/*`) inhoudelijk kloppen; niet alleen versienummers.
+  - Controleer vóór release handmatig of de testdekking past bij de wijziging; documentatie-only changes mogen zonder nieuwe tests, maar code-/contract-/UI-string changes moeten expliciet bestaande of nieuwe tests dekken.
   - Dry-run kan via `./release.sh X.Y.Z --dry-run`.
   - `git add .`
   - `git commit -m "Release DJConnect vX.Y.Z"`
@@ -186,7 +195,7 @@ README/release:
   - `git push origin main`
   - `git push origin vX.Y.Z`
   - `gh release create vX.Y.Z --title "DJConnect vX.Y.Z" --notes-file CHANGELOG.md`
-  - Optioneel oude semver releases/tags opruimen met `./cleanup_old_releases.sh --keep 1 --execute`.
+  - Standaard oude semver releases/tags opruimen met `./cleanup_old_releases.sh --keep 1 --execute`, tenzij de gebruiker expliciet vraagt om meerdere releases te behouden.
   - HACS update-info refresh/redownload.
   - Nieuwe release installeren vanuit HACS.
   - Home Assistant restart.

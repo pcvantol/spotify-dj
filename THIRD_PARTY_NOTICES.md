@@ -4,6 +4,9 @@ DJConnect includes a Home Assistant custom integration and is designed to work
 with DJConnect devices. This file summarizes third-party projects, APIs and
 trademarks that may be referenced by the integration.
 
+For the maintained dependency inventory with repository-declared versions,
+license models and source URLs, see `TECHNICAL_DESIGN_DECISIONS.md`.
+
 ## Home Assistant
 
 The DJConnect Home Assistant integration uses Home Assistant custom integration
@@ -50,4 +53,3 @@ DJConnect firmware is proprietary closed-source software. Firmware binaries and
 device firmware release assets are covered separately by `FIRMWARE-LICENSE.md`.
 The Home Assistant integration may be distributed separately for use with
 DJConnect devices under the terms of `LICENSE`.
-

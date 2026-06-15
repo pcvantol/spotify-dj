@@ -5,6 +5,7 @@
 - Install the latest HACS release in Home Assistant.
 - Restart Home Assistant after installation.
 - Open DJConnect options flow and confirm there is no internal server error.
+- Confirm `TECHNICAL_DESIGN_DECISIONS.md` remains current when code patterns, dependencies, licenses or external APIs change.
 - Confirm existing paired device remains paired after HA restart when ESP reports `ha_pairing_status=paired`.
 - Confirm iOS/macOS/Raspberry Pi paired clients do not show active/available firmware OTA or reboot entities.
 - Confirm iOS/macOS/Raspberry Pi PTT requests do not create a false Spotify refresh-token repair after the first DJ announcement.
@@ -35,6 +36,8 @@
 - Verify OAuth scopes include `playlist-read-private`.
 - Verify OAuth callback stores latest `spotify_refresh_token` persistently.
 - Verify concurrent Spotify API calls after HA restart do not refresh the same old token in parallel.
+- Verify stale runtime refresh tokens retry the newer config-entry token before creating a Spotify Repair issue.
+- Verify Spotify debug logs show access-token expiry/refresh metadata and refresh-token source names without token values.
 - Verify status payload with `spotify_configured=false` does not return Spotify credentials.
 - Verify Spotify OAuth credentials stay in Home Assistant and are not sent to ESP.
 - Verify no Spotify refresh token value appears in logs or diagnostics.
@@ -103,9 +106,11 @@
 
 - Update `README.md` after any architecture/API change.
 - Update `AGENTS.md` after any durable project decision.
-- Keep `CHANGELOG.md` consolidated to the current release only.
+- Keep `CHANGELOG.md` as a per-release changelog. Add a new section for each release and keep previous release sections.
 - Keep `HANDOFF.md` current after major debugging sessions.
 - Keep `TODO.md` and `ISSUES.md` current after field testing.
+- Before every release, review all documentation files in this repo: `README.md`, `CHANGELOG.md`, `AGENTS.md`, `HANDOFF.md`, `TODO.md`, `ISSUES.md`, `SYNC_PROMPTS.md`, `info.md` and relevant `examples/*`.
+- Before every release, explicitly check whether tests need to be expanded for the change; add coverage for new behavior paths, regression risks, translations and edge cases.
 - Keep cross-repo sync prompts only in `SYNC_PROMPTS.md`; do not re-add retired loose prompt files.
 - Document known HA restart requirement after HACS custom integration updates.
 
@@ -125,4 +130,4 @@
 - Refresh HACS update info in Home Assistant.
 - Install new release from HACS.
 - Restart Home Assistant.
-- Optionally run `./cleanup_old_releases.sh --keep 1 --execute` after successful release.
+- Run `./cleanup_old_releases.sh --keep 1 --execute` after successful release unless multiple releases are intentionally retained for support/testing.

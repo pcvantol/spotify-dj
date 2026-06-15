@@ -76,6 +76,11 @@ Requirements:
   clients determine their UI language locally.
 - Keep cloud/remote URLs out of Apple app runtime traffic; cloud URLs are only
   needed by Home Assistant-owned Spotify OAuth config flows.
+- Keep Spotify access-token expiry and refresh-token rotation fully HA-internal.
+  Normal access-token expiry, Spotify API 401 retry and rotated refresh-token
+  persistence must not surface as client errors. Only create a Spotify
+  reauthorization Repair after every known stored refresh token source has been
+  rejected by Spotify, and never log token values.
 - When pairing an app-like client, ask for or use the Client API URL shown in
   the client pairing sheet. Do not assume a changing Bonjour hostname remains
   the canonical callback target after pairing.
@@ -1611,6 +1616,11 @@ Requirements:
   clients determine their UI language locally.
 - Keep cloud/remote URLs out of Apple app runtime traffic; cloud URLs are only
   needed by Home Assistant-owned Spotify OAuth config flows.
+- Keep Spotify access-token expiry and refresh-token rotation fully HA-internal.
+  Normal access-token expiry, Spotify API 401 retry and rotated refresh-token
+  persistence must not surface as client errors. Only create a Spotify
+  reauthorization Repair after every known stored refresh token source has been
+  rejected by Spotify, and never log token values.
 - When pairing an app-like client, ask for or use the Client API URL shown in
   the client pairing sheet. Do not assume a changing Bonjour hostname remains
   the canonical callback target after pairing.
