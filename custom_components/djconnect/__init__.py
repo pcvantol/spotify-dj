@@ -1078,6 +1078,29 @@ def _register_developer_services(
         )
         return result
 
+    async def handle_test_ptt_text(call: ServiceCall) -> dict[str, Any] | None:
+        text = _service_text(call, DEFAULT_TEST_COMMAND, "command_text")
+        _LOGGER.debug(
+            "DJConnect developer action test_ptt_text after_stt_text=%s",
+            text,
+        )
+        result = await process_text_command(hass, runtime, text, play=True)
+        result["dj_response"] = await async_send_dj_response_best_effort(
+            hass,
+            runtime,
+            result.get("dj_text") or "",
+        )
+        dj_response = result.get("dj_response") or {}
+        _LOGGER.debug(
+            "DJConnect test_ptt_text result intent=%s playback=%s dj_text=%s audio_url=%s audio_type=%s",
+            result.get("intent"),
+            bool(result.get("playback")),
+            bool(result.get("dj_text")),
+            bool(dj_response.get("audio_url")),
+            dj_response.get("audio_type"),
+        )
+        return result
+
     async def handle_start_spotify_oauth(call: ServiceCall) -> dict[str, Any]:
         client_id = (
             call.data.get("client_id")
@@ -1156,6 +1179,7 @@ def _register_developer_services(
         "test_parse": (handle_test_parse, "optional"),
         "test_tts": (handle_test_tts, "optional"),
         "test_command": (handle_test_command, "optional"),
+        "test_ptt_text": (handle_test_ptt_text, "optional"),
         "start_spotify_oauth": (handle_start_spotify_oauth, "only"),
         "device_command": (handle_device_command, "optional"),
         "refresh_device_info": (handle_refresh_device_info, "optional"),

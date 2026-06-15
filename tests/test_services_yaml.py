@@ -11,11 +11,13 @@ SERVICES = ROOT / "custom_components" / "djconnect" / "services.yaml"
 class ServicesYamlTest(unittest.TestCase):
     def test_developer_actions_are_documented(self) -> None:
         text = SERVICES.read_text()
+        compact_text = " ".join(text.split())
 
         for service in (
             "test_parse",
             "test_tts",
             "test_command",
+            "test_ptt_text",
             "start_spotify_oauth",
             "device_command",
             "refresh_device_info",
@@ -26,6 +28,8 @@ class ServicesYamlTest(unittest.TestCase):
         self.assertIn("Developer test", text)
         self.assertIn("Developer helper", text)
         self.assertIn("temporary WAV or MP3 audio_url", text)
+        self.assertIn("start exactly after STT conversion", compact_text)
+        self.assertIn("Spotify search/playback", compact_text)
         self.assertIn("/api/djconnect/spotify/callback", text)
         self.assertNotIn("/api/djconnect/spotify_callback", text)
         self.assertNotIn("stuur", text.lower())

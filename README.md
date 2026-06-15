@@ -14,7 +14,7 @@ The Home Assistant integration handles pairing, Spotify OAuth, backend playback 
 
 ## Current Version
 
-- Home Assistant integration: `3.1.29`
+- Home Assistant integration: `3.1.30`
 - Domain: `djconnect`
 - HACS category: `Integration`
 - Device target: DJConnect device
@@ -63,7 +63,7 @@ runtime behavior. These decisions are part of the integration contract:
 
 ## Repository Layout
 
-- Home Assistant integration: `3.1.29`
+- Home Assistant integration: `3.1.30`
 - ESP firmware source: `pcvantol/djconnect-app`
 - Public firmware releases: `pcvantol/djconnect-firmware`
 - Canonical cross-repo sync prompts: [`SYNC_PROMPTS.md`](SYNC_PROMPTS.md)
@@ -265,6 +265,7 @@ DJConnect registers these services:
 - `djconnect.test_parse`
 - `djconnect.test_tts`
 - `djconnect.test_command`
+- `djconnect.test_ptt_text`
 - `djconnect.start_spotify_oauth`
 
 Spotify OAuth credentials stay in Home Assistant. They are never provisioned to the ESP device; the old ESP `/api/device/provision_spotify` endpoint is no longer used.
@@ -277,6 +278,10 @@ text -> HA Assist conversation pipeline -> DJConnect intent -> Spotify -> ESP DJ
 
 `djconnect.test_command` accepts `command_text` and optional `play`. The legacy `text` key is still accepted for existing YAML/scripts. With `play: false`, it uses the same command parser path without starting Spotify playback.
 `djconnect.test_parse` also accepts `command_text`; `djconnect.test_tts` accepts `dj_response_text` and keeps legacy `text` as a compatibility alias.
+`djconnect.test_ptt_text` starts exactly after STT conversion: enter the
+recognized natural-language sentence and DJConnect runs Spotify intent parsing,
+Spotify search/playback, DJ announcement generation, TTS audio creation and
+delivery back to the connected DJConnect device/client.
 
 If command processing or Spotify playback fails, DJConnect still sends a
 friendly DJ announcement to the ESP device when possible, so the user hears or sees
@@ -316,6 +321,7 @@ Developer action overview:
 - `djconnect.test_parse`: test only the HA Assist conversation parser and return the DJConnect intent; no playback and no DJ announcement delivery.
 - `djconnect.test_tts`: send a DJ announcement text to the DJConnect device; Home Assistant tries to generate a temporary WAV or MP3 URL, otherwise the ESP shows text only.
 - `djconnect.test_command`: test the complete ESP text-command route with `command_text` and `play`; set `play: false` to avoid starting Spotify playback while still sending the DJ announcement.
+- `djconnect.test_ptt_text`: test the real PTT flow immediately after STT by entering recognized text; it always attempts Spotify playback and sends the generated DJ announcement text/audio to the connected device.
 - `djconnect.start_spotify_oauth`: generate a Spotify PKCE authorization URL for manual reauthorization/debugging.
 
 Developer actions return response data where Home Assistant supports it. Enable
@@ -336,6 +342,14 @@ action: djconnect.test_command
 data:
   command_text: "Play Pearl Jam"
   play: false
+```
+
+Example post-STT PTT flow test:
+
+```yaml
+action: djconnect.test_ptt_text
+data:
+  command_text: "Speel nummer Black van Pearl Jam"
 ```
 
 Example DJ announcement test:
@@ -570,24 +584,24 @@ Example manifest:
 
 ```json
 {
-  "version": "3.1.29",
-  "version_tag": "v3.1.29",
+  "version": "3.1.30",
+  "version_tag": "v3.1.30",
   "channel": "stable",
-  "min_ha_integration": "3.1.29",
+  "min_ha_integration": "3.1.30",
   "firmwares": [
     {
       "board": "t_embed_cc1101",
       "device": "lilygo-t-embed-s3",
-      "asset": "djconnect-lilygo-t-embed-s3-v3.1.29.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.29/djconnect-lilygo-t-embed-s3-v3.1.29.bin",
+      "asset": "djconnect-lilygo-t-embed-s3-v3.1.30.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.30/djconnect-lilygo-t-embed-s3-v3.1.30.bin",
       "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "size": 2113136
     },
     {
       "board": "esp32_s3_box3",
       "device": "esp32-s3-box-3",
-      "asset": "djconnect-esp32-s3-box-3-v3.1.29.bin",
-      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.29/djconnect-esp32-s3-box-3-v3.1.29.bin",
+      "asset": "djconnect-esp32-s3-box-3-v3.1.30.bin",
+      "url": "https://github.com/pcvantol/djconnect-firmware/releases/download/v3.1.30/djconnect-esp32-s3-box-3-v3.1.30.bin",
       "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
       "size": 2113136
     }
@@ -610,7 +624,7 @@ The firmware version is injected through PlatformIO build flags from the Git tag
 Recommended firmware source release helper:
 
 ```bash
-./release.sh 3.1.29
+./release.sh 3.1.30
 ```
 
 In the private `djconnect-app` repository, the firmware release script should
@@ -622,14 +636,14 @@ PlatformIO builds, rename firmware binaries to device-specific assets such as
 Preview the firmware release flow without changing files:
 
 ```bash
-./release.sh 3.1.29 --dry-run
+./release.sh 3.1.30 --dry-run
 ```
 
 When publishing to the public firmware repository, use the firmware script's
 public-repo option if available:
 
 ```bash
-./release.sh 3.1.29 --publish-firmware-repo ../djconnect-firmware
+./release.sh 3.1.30 --publish-firmware-repo ../djconnect-firmware
 ```
 
 The public `djconnect-firmware` repository should contain only the release
@@ -668,7 +682,7 @@ Tag and publish:
 One-liner:
 
 ```bash
-./release.sh 3.1.29
+./release.sh 3.1.30
 ```
 
 The script updates the integration version in `manifest.json`, `const.py`,
@@ -679,18 +693,18 @@ above.
 Preview without executing git/gh commands:
 
 ```bash
-./release.sh 3.1.29 --dry-run
+./release.sh 3.1.30 --dry-run
 ```
 
 Manual equivalent:
 
 ```bash
 git add .
-git commit -m "Release DJConnect v3.1.29"
-git tag v3.1.29
+git commit -m "Release DJConnect v3.1.30"
+git tag v3.1.30
 git push origin main
-git push origin v3.1.29
-gh release create v3.1.29 --title "DJConnect v3.1.29" --notes-file CHANGELOG.md
+git push origin v3.1.30
+gh release create v3.1.30 --title "DJConnect v3.1.30" --notes-file CHANGELOG.md
 ```
 
 Release cleanup helper:

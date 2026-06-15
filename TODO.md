@@ -92,6 +92,7 @@
 - Test `djconnect.test_parse`.
 - Test `djconnect.test_command` with `play: false`.
 - Test `djconnect.test_command` with `play: true`.
+- Test `djconnect.test_ptt_text` with a natural-language post-STT sentence and confirm Spotify playback plus DJ aankondiging text/audio delivery.
 - Test `djconnect.test_tts` and confirm response is sent to ESP, not HA media player.
 - Test Spotify backend playback after OAuth refresh-token rotation.
 - Test Spotify backend playback with simultaneous status/play/queue calls after OAuth refresh-token rotation.

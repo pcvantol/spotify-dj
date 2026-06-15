@@ -54,6 +54,23 @@ test_command:
       selector:
         boolean:
 
+test_ptt_text:
+  name: Test PTT text flow
+  description: >
+    Developer test: start exactly after STT conversion. Enter the natural
+    language sentence the user said; DJConnect runs intent parsing, Spotify
+    search/playback, DJ announcement generation with text/audio, and sends the
+    result back to the connected DJConnect device/client.
+  fields:
+    command_text:
+      name: Natural language text
+      description: Text as recognized by STT from a PTT voice request.
+      example: "Speel nummer Black van Pearl Jam"
+      required: true
+      selector:
+        text:
+          multiline: false
+
 start_spotify_oauth:
   name: Start Spotify OAuth
   description: >

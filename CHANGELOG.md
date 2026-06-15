@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.1.30
+
+- Add `djconnect.test_ptt_text`, a Developer Tools action that starts immediately after STT by accepting recognized natural-language text, then runs intent parsing, Spotify search/playback, DJ announcement generation, TTS audio creation and delivery to the connected DJConnect device/client.
+
 ## 3.1.29
 
 - Expand local PTT Spotify intent parsing for explicit artist, track, album, playlist and default-playlist requests in Dutch and English.
