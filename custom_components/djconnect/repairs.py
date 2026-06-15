@@ -142,7 +142,11 @@ class SpotifyOAuthRepairFlow(RepairsFlow):
             self._original_refresh_token = str(
                 entry.data.get(CONF_SPOTIFY_REFRESH_TOKEN) or ""
             )
-            self._authorize_url = await _prepare_spotify_repair_oauth(self.hass, entry)
+            self._authorize_url = await _prepare_spotify_repair_oauth(
+                self.hass,
+                entry,
+                flow_id=str(getattr(self, "flow_id", "") or ""),
+            )
             external_step = getattr(self, "async_external_step", None)
             if callable(external_step):
                 issue_key = _issue_key(self.issue_id)
@@ -245,7 +249,12 @@ def _entry_from_issue(
     return entries[0] if len(entries) == 1 else None
 
 
-async def _prepare_spotify_repair_oauth(hass: HomeAssistant, entry: ConfigEntry) -> str:
+async def _prepare_spotify_repair_oauth(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    *,
+    flow_id: str = "",
+) -> str:
     client_id = str(
         entry.data.get(CONF_SPOTIFY_CLIENT_ID) or DEFAULT_SPOTIFY_CLIENT_ID
     ).strip()
@@ -259,6 +268,7 @@ async def _prepare_spotify_repair_oauth(hass: HomeAssistant, entry: ConfigEntry)
     pending = hass.data.setdefault(DOMAIN, {}).setdefault("spotify_oauth_pending", {})
     pending[state] = {
         "entry_id": entry.entry_id,
+        "flow_id": flow_id,
         "client_id": client_id,
         "code_verifier": code_verifier,
         "redirect_uri": redirect_uri,

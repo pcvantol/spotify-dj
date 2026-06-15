@@ -421,7 +421,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
         defaults = {marker.key: marker.default for marker in schema}
 
         self.assertEqual(defaults[self.const.CONF_PAIR_CODE], "555293")
-        self.assertEqual(defaults[self.const.CONF_DEVICE_NAME], "DJConnect Mac")
+        self.assertEqual(defaults[self.const.CONF_DEVICE_NAME], "DJConnect Mac macOS")
         self.assertEqual(defaults[self.const.CONF_CLIENT_TYPE], self.const.CLIENT_TYPE_MACOS)
         self.assertEqual(defaults[self.const.CONF_LOCAL_URL], "http://192.168.1.104:60955")
 
@@ -451,7 +451,7 @@ class ConfigFlowHelperTest(unittest.TestCase):
             "djconnect-raspberry-pi-A1B2C3D4E5F6",
         )
         self.assertEqual(defaults[self.const.CONF_PAIR_CODE], "654321")
-        self.assertEqual(defaults[self.const.CONF_DEVICE_NAME], "DJConnect Pi")
+        self.assertEqual(defaults[self.const.CONF_DEVICE_NAME], "DJConnect Pi Raspberry Pi")
         self.assertEqual(
             defaults[self.const.CONF_CLIENT_TYPE],
             self.const.CLIENT_TYPE_RASPBERRY_PI,

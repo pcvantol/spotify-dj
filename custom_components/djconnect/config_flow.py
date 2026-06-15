@@ -136,6 +136,12 @@ OPTIONS_ACTION_NAMES_NL = {
     OPTIONS_ACTION_RETRY_PAIRING: "Koppelen opnieuw proberen met huidige code",
     OPTIONS_ACTION_REPAIR: "Opnieuw koppelen met nieuwe koppelcode",
 }
+CLIENT_TYPE_NAME_SUFFIXES = {
+    CLIENT_TYPE_ESP32: "ESP32",
+    "ios": "iOS",
+    "macos": "macOS",
+    "raspberry_pi": "Raspberry Pi",
+}
 
 ADVANCED_VOICE_FIELDS = (
     CONF_MAX_AUDIO_BYTES,
@@ -205,6 +211,23 @@ def _manual_discovery_label(hass: Any) -> str:
     """Return the manual-entry label in the current Home Assistant language."""
     language = str(getattr(getattr(hass, "config", None), "language", "") or "").lower()
     return "Handmatig invoeren" if language.startswith("nl") else "Manual entry"
+
+
+def _device_name_for_client_type(client_type: Any, base_name: Any = DEFAULT_DEVICE_NAME) -> str:
+    """Return the suggested HA device name with a client-type suffix."""
+    name = str(base_name or DEFAULT_DEVICE_NAME).strip() or DEFAULT_DEVICE_NAME
+    suffix = CLIENT_TYPE_NAME_SUFFIXES.get(str(client_type or DEFAULT_CLIENT_TYPE).strip())
+    if not suffix:
+        return name
+    normalized_name = " ".join(name.lower().split())
+    normalized_suffix = suffix.lower()
+    if normalized_name.endswith(f" {normalized_suffix}") or normalized_name.endswith(
+        f" ({normalized_suffix})"
+    ):
+        return name
+    if name == DEFAULT_DEVICE_NAME:
+        return f"{name} {suffix}"
+    return f"{name} {suffix}"
 
 
 def _spotify_oauth_title(hass: Any, *, reauth: bool = False) -> str:
@@ -1006,14 +1029,18 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _apply_discovered_client(self, client: DiscoveredClient) -> None:
         """Use a discovered client as authoritative defaults for pairing."""
+        client_type = (
+            client.client_type
+            if client.client_type in CLIENT_TYPES
+            else DEFAULT_CLIENT_TYPE
+        )
         self._discovered_defaults = {
             CONF_DEVICE_ID: client.device_id,
-            CONF_DEVICE_NAME: client.device_name or DEFAULT_DEVICE_NAME,
-            CONF_CLIENT_TYPE: (
-                client.client_type
-                if client.client_type in CLIENT_TYPES
-                else DEFAULT_CLIENT_TYPE
+            CONF_DEVICE_NAME: _device_name_for_client_type(
+                client_type,
+                client.device_name or DEFAULT_DEVICE_NAME,
             ),
+            CONF_CLIENT_TYPE: client_type,
             CONF_LOCAL_URL: client.local_url,
             CONF_PAIR_CODE: client.pair_code,
         }
@@ -1039,8 +1066,11 @@ class DJConnectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             or getattr(self, "_last_pair_code", "")
             or ""
         )
-        device_name = _clean(defaults.get(CONF_DEVICE_NAME), DEFAULT_DEVICE_NAME)
         client_type = _clean(defaults.get(CONF_CLIENT_TYPE), DEFAULT_CLIENT_TYPE)
+        device_name = _device_name_for_client_type(
+            client_type,
+            _clean(defaults.get(CONF_DEVICE_NAME), DEFAULT_DEVICE_NAME),
+        )
         local_url = _clean(defaults.get(CONF_LOCAL_URL), _default_local_url(pair_code))
         schema: dict[Any, Any] = {
             vol.Optional(

@@ -190,6 +190,7 @@ class RepairsTest(unittest.TestCase):
                 {"entry_id": "entry-1"},
             )
         )
+        flow.flow_id = "repair-flow-1"
         result = asyncio.run(flow.async_step_init())
 
         self.assertEqual(result["type"], "external")
@@ -200,6 +201,8 @@ class RepairsTest(unittest.TestCase):
         self.assertIn("authorize_url", result["description_placeholders"])
         self.assertIn("repair_description", result["description_placeholders"])
         self.assertEqual(len(hass.data["djconnect"]["spotify_oauth_pending"]), 1)
+        pending = next(iter(hass.data["djconnect"]["spotify_oauth_pending"].values()))
+        self.assertEqual(pending["flow_id"], "repair-flow-1")
 
     def test_spotify_reauth_fix_flow_requires_new_token(self) -> None:
         entry = types.SimpleNamespace(

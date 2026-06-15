@@ -2306,6 +2306,84 @@ class VoiceHttpHelperTest(unittest.TestCase):
         self.assertEqual(entry.data[const.CONF_SPOTIFY_REFRESH_TOKEN], "new-refresh-token")
         self.assertEqual(config_entries.reloaded, "entry-1")
 
+    def test_spotify_callback_completes_open_repair_flow(self) -> None:
+        const = importlib.import_module("custom_components.djconnect.const")
+
+        class ConfigFlow:
+            def __init__(self):
+                self.configured = None
+
+            async def async_configure(self, flow_id, user_input):
+                self.configured = (flow_id, user_input)
+
+        class ConfigEntries:
+            def __init__(self, entry):
+                self.entry = entry
+                self.flow = ConfigFlow()
+                self.updated = None
+                self.reloaded = None
+
+            def async_get_entry(self, entry_id):
+                return self.entry
+
+            def async_update_entry(self, entry, *, data):
+                self.updated = data
+                entry.data = data
+
+            async def async_reload(self, entry_id):
+                self.reloaded = entry_id
+
+        class Query:
+            def get(self, key):
+                return {"state": "state-1", "code": "code-1"}.get(key)
+
+        entry = types.SimpleNamespace(
+            entry_id="entry-1",
+            data={
+                const.CONF_SPOTIFY_CLIENT_ID: "client-id",
+                const.CONF_HA_EXTERNAL_URL: "https://example.ui.nabu.casa",
+            },
+            options={},
+        )
+        config_entries = ConfigEntries(entry)
+        hass = types.SimpleNamespace(
+            data={
+                const.DOMAIN: {
+                    "spotify_oauth_pending": {
+                        "state-1": {
+                            "flow_id": "repair-flow-1",
+                            "entry_id": "entry-1",
+                            "client_id": "client-id",
+                            "code_verifier": "verifier",
+                            "redirect_uri": "https://example.ui.nabu.casa/api/djconnect/spotify/callback",
+                            "market": "NL",
+                            "scopes": "scope",
+                        }
+                    }
+                }
+            },
+            config_entries=config_entries,
+        )
+        request = types.SimpleNamespace(app={"hass": hass}, query=Query())
+
+        async def exchange(*args, **kwargs):
+            return {"refresh_token": "new-refresh-token"}
+
+        original_exchange = self.http.exchange_code_for_refresh_token
+        self.http.exchange_code_for_refresh_token = exchange
+        try:
+            response = asyncio.run(self.http.DJConnectSpotifyCallbackView(None).get(request))
+        finally:
+            self.http.exchange_code_for_refresh_token = original_exchange
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(
+            config_entries.flow.configured,
+            ("repair-flow-1", {"state": "state-1"}),
+        )
+        self.assertEqual(entry.data[const.CONF_SPOTIFY_REFRESH_TOKEN], "new-refresh-token")
+        self.assertEqual(config_entries.reloaded, "entry-1")
+
     def test_tts_view_returns_audio_for_valid_token(self) -> None:
         const = importlib.import_module("custom_components.djconnect.const")
         dj_response = importlib.import_module("custom_components.djconnect.dj_response")

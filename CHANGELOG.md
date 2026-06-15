@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.1.28
+
+- Complete the active Spotify reauthorization Repair flow from the OAuth callback, so Home Assistant can close the external-step popup after Spotify returns successfully instead of leaving an empty “Open website” dialog behind.
+- Add regression coverage for carrying the repair flow id through Spotify OAuth pending state and calling Home Assistant's flow completion hook from the callback.
+- Suffix the suggested Home Assistant device name with the discovered client type (`ESP32`, `iOS`, `macOS` or `Raspberry Pi`) so multiple DJConnect clients are easier to distinguish during setup.
+- Add config-flow coverage for discovered app/Pi client name suffixes.
+
 ## 3.1.27
 
 - Hide stale/unreachable mDNS clients from the pairing selector when `/api/device/pairing-info` can no longer be reached, so unplugged Raspberry Pi clients disappear after reopening Add integration.
