@@ -320,10 +320,9 @@ def _device_id_matches_client_type(device_id: str, client_type: str) -> bool:
     if normalized_client == CLIENT_TYPE_ESP32:
         return bool(
             re.fullmatch(
-                r"djconnect-(?:lilygo-t-embed-s3|esp32-s3-box-3|lilygo)-[0-9A-Fa-f]{12}",
+                r"djconnect-(?:lilygo-t-embed-s3|esp32-s3-box-3)-[0-9A-Fa-f]{12}",
                 normalized_device,
             )
-            or re.fullmatch(r"djconnect-[0-9A-Fa-f]{6,12}", normalized_device)
         )
     return False
 

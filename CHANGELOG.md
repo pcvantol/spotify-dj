@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.26
+
+- Tighten mDNS discovery validation so ESP32 clients are only accepted with current model-specific IDs (`djconnect-lilygo-t-embed-s3-*` or `djconnect-esp32-s3-box-3-*`) and legacy ESP discovery IDs are ignored.
+- Add regression coverage for rejecting legacy ESP32 device IDs during mDNS discovery.
+
 ## 3.1.25
 
 - Prevent stale Spotify playback snapshots from being used as DJ announcement media after a new voice/playback request when fresh `resolved_media` is missing, so asking for Nirvana cannot generate a DJ response for a previous Red Hot Chili Peppers playback state.

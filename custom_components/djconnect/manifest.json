@@ -1,7 +1,7 @@
 {
   "domain": "djconnect",
   "name": "DJConnect",
-  "version": "3.1.25",
+  "version": "3.1.26",
   "documentation": "https://github.com/pcvantol/djconnect",
   "issue_tracker": "https://github.com/pcvantol/djconnect/issues",
   "dependencies": [

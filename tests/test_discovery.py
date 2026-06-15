@@ -114,6 +114,25 @@ class DiscoveryHelperTest(unittest.TestCase):
         self.assertIsNotNone(client)
         self.assertEqual(client.client_type, "esp32")
 
+    def test_esp32_txt_legacy_device_id_is_ignored(self) -> None:
+        for device_id in (
+            "djconnect-lilygo-90B70990A994",
+            "djconnect-90B70990A994",
+            "djconnect-123456",
+        ):
+            with self.subTest(device_id=device_id):
+                client = self.discovery._client_from_service_info(
+                    self._info(
+                        props={
+                            "device_id": device_id,
+                            "client_type": "esp32",
+                            "device_name": "DJConnect ESP",
+                        }
+                    )
+                )
+
+                self.assertIsNone(client)
+
     def test_pairing_info_overrides_txt_metadata(self) -> None:
         base = self.discovery.DiscoveredClient(
             local_url="http://djconnect.local:60955",
