@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import importlib
+import sys
 import types
 import unittest
 
@@ -200,6 +202,66 @@ class DiscoveryHelperTest(unittest.TestCase):
 
         self.assertTrue(client.pairing_info_failed)
         self.assertIn("pairing-info unavailable", client.label)
+
+    def test_async_discovery_ignores_unreachable_stale_mdns_client(self) -> None:
+        stale_info = self._info(
+            props={
+                "device_id": "djconnect-raspberry-pi-A1B2C3D4E5F6",
+                "client_type": "raspberry_pi",
+                "device_name": "DJConnect Pi",
+                "local_url": "http://192.168.1.115:18080",
+            }
+        )
+
+        async def fake_browse(async_zc):
+            return {"DJConnect Pi._djconnect._tcp.local."}
+
+        async def fake_service_info(async_zc, service_name):
+            return stale_info
+
+        async def fake_probe(session, local_url):
+            return {}
+
+        async def fake_async_get_async_instance(hass):
+            return object()
+
+        zeroconf_module = types.ModuleType("homeassistant.components.zeroconf")
+        zeroconf_module.async_get_async_instance = fake_async_get_async_instance
+        components_module = sys.modules["homeassistant.components"]
+        original_zeroconf_attr = getattr(components_module, "zeroconf", None)
+        original_zeroconf_module = sys.modules.get("homeassistant.components.zeroconf")
+        sys.modules["homeassistant.components.zeroconf"] = zeroconf_module
+        components_module.zeroconf = zeroconf_module
+
+        original_browse = self.discovery._async_browse_service_names
+        original_service_info = self.discovery._async_get_service_info
+        original_probe = self.discovery.async_probe_pairing_info
+        original_session = self.discovery.async_get_clientsession
+        self.discovery._async_browse_service_names = fake_browse
+        self.discovery._async_get_service_info = fake_service_info
+        self.discovery.async_probe_pairing_info = fake_probe
+        self.discovery.async_get_clientsession = lambda hass: object()
+        try:
+            clients = asyncio.run(
+                self.discovery.async_discover_djconnect_clients(
+                    types.SimpleNamespace()
+                )
+            )
+        finally:
+            self.discovery._async_browse_service_names = original_browse
+            self.discovery._async_get_service_info = original_service_info
+            self.discovery.async_probe_pairing_info = original_probe
+            self.discovery.async_get_clientsession = original_session
+            if original_zeroconf_module is None:
+                sys.modules.pop("homeassistant.components.zeroconf", None)
+            else:
+                sys.modules["homeassistant.components.zeroconf"] = original_zeroconf_module
+            if original_zeroconf_attr is None:
+                delattr(components_module, "zeroconf")
+            else:
+                components_module.zeroconf = original_zeroconf_attr
+
+        self.assertEqual(clients, [])
 
 
 if __name__ == "__main__":

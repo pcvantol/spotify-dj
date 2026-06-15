@@ -98,16 +98,14 @@ Requirements:
   default but still require user confirmation; if multiple clients are found,
   show a discovered-client selector with useful labels. Discovery is
   convenience only and must never mark a device paired by itself.
-- If Pi mDNS TXT is visible but `/api/device/pairing-info` fails, show the
-  discovered client as reachable-by-mDNS but not verified, keep manual Client
-  API URL entry available, and surface a clear pairing error instead of silently
-  falling back to `djconnect-{pair_code}`. Do not create a second HA entry when
-  the discovered Pi `device_id` is already configured; guide the user to reset
-  or re-pair that existing client.
+- If Pi mDNS TXT is visible but `/api/device/pairing-info` fails, treat the
+  service as stale or unreachable and hide it from the automatic discovered
+  client selector. Keep manual Client API URL entry available and never fall
+  back to `djconnect-{pair_code}` for Pi pairing.
 - Add/keep HA tests for Raspberry Pi discovery: service TXT acceptance,
   pairing-info override, config-flow prefill for one Pi, selector behavior for
-  multiple clients, duplicate `device_id` handling, pairing-info failure
-  fallback, and proof that Pi pairing uses the stable discovered
+  multiple clients, duplicate `device_id` handling, stale pairing-info probe
+  filtering, and proof that Pi pairing uses the stable discovered
   `djconnect-raspberry-pi-XXXXXXXXXXXX` instead of `djconnect-{pair_code}`.
 - Return ha_version or ha_major_minor on status/command responses so Apple
   clients can enforce the matching major.minor contract.
@@ -1638,16 +1636,14 @@ Requirements:
   default but still require user confirmation; if multiple clients are found,
   show a discovered-client selector with useful labels. Discovery is
   convenience only and must never mark a device paired by itself.
-- If Pi mDNS TXT is visible but `/api/device/pairing-info` fails, show the
-  discovered client as reachable-by-mDNS but not verified, keep manual Client
-  API URL entry available, and surface a clear pairing error instead of silently
-  falling back to `djconnect-{pair_code}`. Do not create a second HA entry when
-  the discovered Pi `device_id` is already configured; guide the user to reset
-  or re-pair that existing client.
+- If Pi mDNS TXT is visible but `/api/device/pairing-info` fails, treat the
+  service as stale or unreachable and hide it from the automatic discovered
+  client selector. Keep manual Client API URL entry available and never fall
+  back to `djconnect-{pair_code}` for Pi pairing.
 - Add/keep HA tests for Raspberry Pi discovery: service TXT acceptance,
   pairing-info override, config-flow prefill for one Pi, selector behavior for
-  multiple clients, duplicate `device_id` handling, pairing-info failure
-  fallback, and proof that Pi pairing uses the stable discovered
+  multiple clients, duplicate `device_id` handling, stale pairing-info probe
+  filtering, and proof that Pi pairing uses the stable discovered
   `djconnect-raspberry-pi-XXXXXXXXXXXX` instead of `djconnect-{pair_code}`.
 - Return ha_version or ha_major_minor on status/command responses so Apple
   clients can enforce the matching major.minor contract.

@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.27
+
+- Hide stale/unreachable mDNS clients from the pairing selector when `/api/device/pairing-info` can no longer be reached, so unplugged Raspberry Pi clients disappear after reopening Add integration.
+- Add discovery coverage for stale Bonjour cache entries that still appear in mDNS but fail the pairing-info probe.
+
 ## 3.1.26
 
 - Tighten mDNS discovery validation so ESP32 clients are only accepted with current model-specific IDs (`djconnect-lilygo-t-embed-s3-*` or `djconnect-esp32-s3-box-3-*`) and legacy ESP discovery IDs are ignored.

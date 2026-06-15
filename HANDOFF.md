@@ -179,8 +179,8 @@ Do not use `/api/device/provision_spotify`; it is removed and should not be call
 - Device number/select entities accept common firmware status aliases and unit conversions.
 - Pairing config-flow browses `_djconnect._tcp` for app-like clients including Raspberry Pi. It validates `client_type=raspberry_pi` against `djconnect-raspberry-pi-XXXXXXXXXXXX`, accepts TXT `local_url` when present, probes `GET /api/device/pairing-info`, and treats pairing-info as authoritative for Client API URL, stable device ID, client type, device name, pair code, version and paired state.
 - A single discovered Raspberry Pi client is selected by default but still requires user confirmation. Multiple discovered clients are offered in the `discovered_client` selector.
-- If a Raspberry Pi mDNS TXT record is visible but `/api/device/pairing-info` cannot be reached, the pairing form shows a clear `pairing_info_unavailable` error while keeping the manual Client API URL field available. This avoids silently creating a `djconnect-{pair_code}` entry for a Pi that already has a stable `djconnect-raspberry-pi-*` identity.
-- Raspberry Pi discovery tests now cover TXT acceptance, TXT `local_url`, pairing-info override, probe-failure fallback, one-client prefill, multi-client selector, duplicate stable-ID abort behavior and proof that pairing uses the stable discovered Pi device ID instead of `djconnect-{pair_code}`.
+- Stale/unreachable mDNS clients are hidden from the discovery selector when `/api/device/pairing-info` cannot be reached. Manual Client API URL remains the fallback for networks where Bonjour advertises a wrong or blocked URL.
+- Raspberry Pi discovery tests now cover TXT acceptance, TXT `local_url`, pairing-info override, stale probe filtering, one-client prefill, multi-client selector, duplicate stable-ID abort behavior and proof that pairing uses the stable discovered Pi device ID instead of `djconnect-{pair_code}`.
 
 ## Known Issues / Field Checks
 

@@ -122,6 +122,7 @@
 - Maintain a How To Start page covering HACS install, Spotify Premium, HA Assist pipeline STT/TTS setup, Spotify OAuth, ESP pairing and iOS/macOS/Raspberry Pi Client API URL pairing.
 - Add real product photos/screenshots when final hardware imagery is available.
 - Keep requirements clear: Spotify Premium, Home Assistant, HACS, HA Assist pipeline, 2.4 GHz WiFi and mDNS/Nabu Casa recommendations.
+- Keep `PRODUCT_ROADMAP_IDEAS.md` current when adding product ideas, killer features, production must-haves or premium feature concepts.
 
 ## Release Workflow
 
